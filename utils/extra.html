@@ -1,0 +1,85 @@
+<div class="Checksetbox3">
+    <p>Ingestion Status</p>
+    <!--div class="pieindi" id="pie-indi"><div-->
+     <!--div class="pchrt1" id="pie-chart"></div-->
+    <!--script>
+      var pie_chart = {{ pie_chart | tojson }};
+      var graphJSON = JSON.parse(pie_chart);
+
+      Plotly.newPlot('pie-chart', graphJSON.data, graphJSON.layout);
+    </script-->
+    <!--script>
+      var graphJSON = {{ pie_chart | safe }};  // Access JSON data from Flask
+      var myPlot = Plotly.newPlot('pie-div', graphJSON);
+      function updateGraph() {
+        fetch('/graph_update')
+            .then(response => response.json())
+            .then(new_data => {
+                Plotly.restyle('pie-div', pie_chart);
+            });
+    }
+
+    // Call updateGraph on page load and set up automatic updates
+    //updateGraph();
+    //setInterval(updateGraph, 1000); // Update every 1 seconds
+    </script-->
+    <!--script>
+      var graphJSON = {{ indi | safe }};  // Access JSON data from Flask
+      var myPlot = Plotly.newPlot('pie-indi', graphJSON);
+    </script-->
+    <!--script>
+      var progressData = {{ progress_data | tojson }};
+      console.log('Progress Data:', progressData);
+  
+      var data = [{
+          values: progressData.map(item => item.value),
+          labels: progressData.map(item => item.label),
+          type: 'pie'
+      }];
+  
+      var layout = {
+          title: 'Progress Chart'
+      };
+  
+      Plotly.newPlot('progress-chart', data, layout);
+    </script-->
+  </div>
+
+
+
+
+
+< div
+id = "chart-div" > < / div >
+< script >
+var
+myPlot;
+
+function
+updateGraph()
+{
+    fetch('/graph_update')
+    .then(response= > response.json())
+.then(new_data= > {
+    Plotly.react('chart-div', new_data);
+});
+}
+
+// Call
+updateGraph
+on
+page
+load and set
+up
+automatic
+updates
+updateGraph();
+// setInterval(updateGraph, 1000); // Update
+every
+1
+second
+< / script >
+
+
+    alert('Hay')
+    document.getElementById("loadCogniLink").style.background='#0D076A';

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Cogni Link</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="" name="keywords">
+    <meta content="" name="description">
+
+    <!-- Favicon -->
+    <link href="static/img/ea_symbol.png" style="width: 20px; height: 15px;" rel="icon">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icon Font Stylesheet -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+    
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- jQuery UI CSS -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <!-- jQuery and jQuery UI JS -->
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    
+    <!-- Include Plotly.js library -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
+ 
+
+
+    <!-- Libraries Stylesheet -->
+    <link href="{{ url_for('static', filename='lib/owlcarousel/assets/owl.carousel.min.css')}}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='lib/tempusdominus/css/tempusdominus-bootstrap-4.min.css')}}" rel="stylesheet" />
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+
+    <!-- Template Stylesheet -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container-xxl position-relative bg-white d-flex p-0">
+        <!-- Spinner Start
+        <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div> -->
+        <!-- Spinner End -->
+
+
+        <!-- Sidebar Start -->
+        <div class="sidebar pe-4 pb-2">
+            <nav class="navbar">
+                <a href="{{url_for('data_source')}}" class="navbar-brand mx-2 mb-2">
+                    <img class="logo" src="static/img/ea_logo.png" alt="EA Logo">
+                </a>
+                <ul class="navbar-nav">
+                    <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-database"></i>Data Source</a></li>
+                    <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-question-circle"></i>Ask Question</a></li>
+                    <li><a href="{{url_for('summary')}}" class="nav-link"><i class="fa fa-list-alt"></i>Summary</a></li>
+                    <li><a href="{{url_for('eda_analysis')}}" class="nav-link"><i class="fa fa-chart-bar"></i>EDA</a></li>
+                    <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-chart-pie"></i>Data & Analytics</a></li>
+                </ul>
+            </nav>
+        </div>
+        <!-- Sidebar End -->
+
+
+        <!-- Content Start -->
+        <div class="content">
+            <!-- Navbar Start -->
+            <nav class="navbar navbar-expand bg-light navbar-light sticky-top px-4 py-0">
+                <a href="{{url_for('data_source')}}" class="navbar-brand d-flex d-lg-none me-4">
+                    <h2 class="text-primary mb-0"><img src="static/img/ea_symbol.png" style="width: 35px; height: 30px;"></h2>
+                </a>
+                <a href="#" class="sidebar-toggler flex-shrink-0">
+                    <i class="fa fa-bars"></i>
+                </a>
+                <form class="d-none d-md-flex ms-4">
+                    <input class="form-control border-0" type="search" placeholder="Search">
+                </form>
+                <div class="navbar-nav align-items-center ms-auto">
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                            <img class="rounded-2 me-lg-2" src="static/img/ea_symbol.png" alt="" style="width: 35px; height: 25px;">
+                            <span class="d-none d-lg-inline-flex">Admin</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
+                            <a href="#" class="dropdown-item">My Profile</a>
+                            <a href="#" class="dropdown-item">Settings</a>
+                            <a href="{{url_for('logout')}}" class="dropdown-item">Log Out</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            <!-- Navbar End -->
+
+            <div class="container-ask mt-2">
+                <h4 class="welcome">Generate Summary</h4>
+                <hr class="dropdown-divider">
+            </div>
+
+            <!-- Navbar End -->
+            <div class="flash_msg">
+                <div id="message"></div>
+            </div>
+
+            <!-- Prompt and Summary -->
+            <div class="container-fluid d-flex flex-row mx-n2">
+                <div class="container-fluid d-flex flex-column px-2">
+                    <div class="col-lg-12 bg-light rounded p-4 mb-2 px-4">
+                        <div class="d-flex flex-row">
+                            <div class="col-lg-8 d-flex flex-column">
+                                <h6 class="mb-2">Enter Prompt</h6>
+                                <div class="d-flex flex-row mb-2">
+                                    <input type="text" class="question form-control" id="summary_que" placeholder="Type here">
+                                    <button id="recordButton" class="btn1 rounded mx-2"><i class="fa fa-microphone p-1"></i></button>
+                                </div>
+                            </div>
+                            <div class="mx-2">
+                                <label class="data"><b>Select No. of Words</b></label>
+                                <div class="slider-container">
+                                    <div class="slidebox">
+                                        <div class="value-box" style="text-align: center; color: #000000;">
+                                            0
+                                        </div>
+                                    </div>
+                                    <input type="range" min="0" max="1000" value="0" class="slider" id="mySlider">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-12 d-flex justify-content-center">
+                            <div class="button-group mt-2">
+                                <button type="button" id="fetchSummaryBtn" class="btn btn-primary mr-2" style="font-size: 14px;">Generate</button>
+                                <button type="button"  onclick="clear_summ_Chat()" class="btn btn-primary mr-2" style="font-size: 14px;">Clear </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="response col-lg-12 bg-light rounded p-4">
+                        <h6 class="mb-2">Summary</h6>
+                        <!-- <img id="waitImg" src="static/img/wait.gif" alt="Wait" style="display: none;"> -->                       
+                        <div class="summ" id="summaryContainer">
+                            <p>Summary of your file is ....</p>
+                        </div>
+                        <div class="d-flex align-content-center justify-content-center">
+                            <i id="waitImg" class="fa fa-spinner fa-spin" style="display: none; color: var(--primary); font-size: 90px;"></i>
+                        </div> 
+                    </div>
+                </div>
+
+                <div class="col-lg-4 d-flex flex-column">
+
+                    <!-- Readiness Chart -->
+                    <div class="box bg-light rounded p-4 mb-2">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <h6 class="mb-0">Overall Readiness</h6>
+                        </div>
+                        <!-- <div id="gauge-cogni"></div> -->
+                        <canvas class="gauge" id="readiness_chart"></canvas>
+                    </div>
+
+                    <!-- Sentiment Chart -->
+                    <div class="box bg-light rounded p-4 mb-2">
+                        <div>
+                            <div class="d-flex align-items-center justify-content-center mb-2">
+                                <h6 class="mb-0">Sentiment Analysis</h6>
+                            </div>
+                            <canvas id="sentiment_chart"></canvas>
+                        <!-- <div class="gauge" id="sentiment_chart"></div> -->
+                        </div>
+                    </div>
+
+                    <!-- Word Cloud -->
+                    <div class="box bg-light rounded p-4 mb-2">
+                        <div>
+                            <h6 class="mb-2" style="text-align: center;">Word Cloud</h6>
+                        </div>
+                        <a href="#" id="worldcloud-link">
+                            <img style="width: 296px; height: 200px;" id="worldcloud-image" src="static/login/san123/wordcloud.png">
+                        </a>
+                    </div>
+
+                    <!-- Theme and Topics -->
+                    <div class="box bg-light rounded p-4">
+                        <div>
+                            <h6 class="mb-2" style="text-align: center;">Themes & Topics</h6>
+                        </div>
+                        <div class="theme_topics" id="ldaSummText" contenteditable="true"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Start -->
+            <div class="container-fluid pt-4 px-2">
+                <div class="bg-light rounded-top p-2">
+                    <div class="row">
+                        <div class="col-12 col-sm-6 text-center text-sm-start">
+                            &copy; <a href="{{url_for('data_source')}}">CogniLink</a>, All Right Reserved.
+                        </div>
+                        <div class="col-12 col-sm-6 text-center text-sm-end">
+                            <!--/*** This template is free as long as you keep the footer author’s credit link/attribution link/backlink. If you'd like to use the template without the footer author’s credit link/attribution link/backlink, you can purchase the Credit Removal License from "https://htmlcodex.com/credit-removal". Thank you for your support. ***/-->
+                            Powered By <a href="https://www.extremumanalytics.com/">Extremum Analytics</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Footer End -->
+        </div>
+        <!-- Content End -->
+
+
+        <!-- Back to Top -->
+        <a href="#" class="btn btn-lg btn-primary btn-lg-square back-to-top"><i class="bi bi-arrow-up"></i></a>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="static/lib/chart/chart.min.js"></script>
+    <script src="static/lib/easing/easing.min.js"></script>
+    <script src="static/lib/waypoints/waypoints.min.js"></script>
+    <script src="static/lib/owlcarousel/owl.carousel.min.js"></script>
+    <script src="static/lib/tempusdominus/js/moment.min.js"></script>
+    <script src="static/lib/tempusdominus/js/moment-timezone.min.js"></script>
+    <script src="static/lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js"></script>
+
+     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Template Javascript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/summary_charts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/cogserviceslider.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/summary.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/audio_service.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/image.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/warningpop.js') }}"></script>
+</body>
+
+</html>
