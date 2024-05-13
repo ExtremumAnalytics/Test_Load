@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 import base64
-import logging
+from logging import *
 
 from flask import Flask, jsonify, url_for, flash
 from flask import render_template, request, redirect, session
@@ -66,22 +66,22 @@ from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain.schema.output_parser import OutputParserException
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-# # for default Azure account use only
-# openapi_key = "OPENAI-API-KEY"
-# KVUri = f"https://eavault.vault.azure.net/"
-# credential = DefaultAzureCredential()
-# client = SecretClient(vault_url=KVUri, credential=credential)
-# retrieved_secret = client.get_secret(openapi_key)
-# main_key = retrieved_secret.value
+# for default Azure account use only
+openapi_key = "OPENAI-API-KEY"
+KVUri = f"https://eavault.vault.azure.net/"
+credential = DefaultAzureCredential()
+client = SecretClient(vault_url=KVUri, credential=credential)
+retrieved_secret = client.get_secret(openapi_key)
+main_key = retrieved_secret.value
 
-# for local use only
-load_dotenv()
-main_key = os.environ["Main_key"]
+# # for local use only
+# load_dotenv()
+# main_key = os.environ["Main_key"]
 
-os.environ["OPENAI_API_TYPE"] = "azure"
-os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
-os.environ["OPENAI_API_KEY"] = main_key
-os.environ["OPENAI_API_VERSION"] = "2023-05-15"
+# os.environ["OPENAI_API_TYPE"] = "azure"
+# os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
+# os.environ["OPENAI_API_KEY"] = main_key
+# os.environ["OPENAI_API_VERSION"] = "2023-05-15"
 
 client = AzureOpenAI(
     api_key=main_key,
@@ -91,13 +91,15 @@ client = AzureOpenAI(
 
 llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
 embeddings = AzureOpenAIEmbeddings(azure_deployment='text-embedding')
-
 chunk_size = 8000
 chunk_overlap = 400
 custom_prompt = ''
 chain_type = 'map_reduce'
 num_summaries = 1
 
+# code loger config
+LOG_FORMAT = ' {lineno} *** {name} *** {asctime} *** {message} '
+logger = ""
 # Define global variables for download progress
 current_status = ""
 current_file = ""
@@ -121,26 +123,26 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# Your Azure Storage Account details
-account_name = os.environ['account_name']
-account_key = os.environ['account_key']
-container_name = os.environ['container_name']
+# # Your Azure Storage Account details
+# account_name = os.environ['account_name']
+# account_key = os.environ['account_key']
+# container_name = os.environ['container_name']
 
-# Create a BlobServiceClient object
-connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-container_client = blob_service_client.get_container_client(container_name)
-
-
-# # for Azure use only
-# account_name = "testcongnilink"
-# container_name = "congnilink-container"
-#
-# account_url = "https://testcongnilink.blob.core.windows.net"
-# default_credential = DefaultAzureCredential()
-#
-# blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+# # Create a BlobServiceClient object
+# connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+# blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 # container_client = blob_service_client.get_container_client(container_name)
+
+
+# for Azure use only
+account_name = "testcongnilink"
+container_name = "congnilink-container"
+
+account_url = "https://testcongnilink.blob.core.windows.net"
+default_credential = DefaultAzureCredential()
+
+blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+container_client = blob_service_client.get_container_client(container_name)
 
 
 def create_or_pass_folder(container_client, session):
@@ -969,6 +971,7 @@ def Sentiment_Chart_Q_A(senti_Positive_Q_A=None, senti_Negative_Q_A=None, senti_
 # Route for Sign in page
 @app.route("/", methods=["GET", "POST"])
 def home():
+    global logger
     role_names = UserRole.query.with_entities(UserRole.name.distinct()).all()
 
     if request.method == "POST":
@@ -1015,10 +1018,16 @@ def home():
             folder_name = os.path.join('static', 'login', str(session['login_pin']))
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
+            # Define the full path for the log file within the created directory
+            log_file_path = os.path.join(folder_name, 'logfile.log')
+
+            basicConfig(filename=log_file_path, level=DEBUG, filemode='w', style='{', format=LOG_FORMAT)
+            logger = getLogger(str(session['login_pin']))
             # Create a folder named "All_PDF" if it doesn't exist
             folder_files = os.path.join('static', 'files', str(session['login_pin']))
             if not os.path.exists(folder_files):
                 os.makedirs(folder_files)
+                logger.info("Login page successfully")
             return jsonify({'redirect': url_for('data_source')})
 
         # Handle invalid cases

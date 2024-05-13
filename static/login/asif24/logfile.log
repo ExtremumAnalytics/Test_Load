@@ -1,0 +1,618 @@
+ 96 *** werkzeug *** 2024-05-14 01:19:38,235 *** 127.0.0.1 - - [14/May/2024 01:19:38] "POST / HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:38,429 *** 127.0.0.1 - - [14/May/2024 01:19:38] "GET /data_source HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:45,648 *** 127.0.0.1 - - [14/May/2024 01:19:45] "[36mGET /static/lib/owlcarousel/assets/owl.carousel.min.css HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:45,659 *** 127.0.0.1 - - [14/May/2024 01:19:45] "[36mGET /static/lib/tempusdominus/css/tempusdominus-bootstrap-4.min.css HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:45,859 *** 127.0.0.1 - - [14/May/2024 01:19:45] "[36mGET /static/css/bootstrap.min.css HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:45,863 *** 127.0.0.1 - - [14/May/2024 01:19:45] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:45,952 *** 127.0.0.1 - - [14/May/2024 01:19:45] "[36mGET /static/img/ea_logo.png HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:45,952 *** 127.0.0.1 - - [14/May/2024 01:19:45] "[36mGET /static/img/ea_symbol.png HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:45,994 *** 127.0.0.1 - - [14/May/2024 01:19:45] "[36mGET /static/images/logo.png HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,013 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/lib/chart/chart.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,028 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/lib/easing/easing.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,042 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/lib/waypoints/waypoints.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,050 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/lib/owlcarousel/owl.carousel.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,066 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/lib/tempusdominus/js/moment.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,070 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/lib/tempusdominus/js/moment-timezone.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,087 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,094 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,114 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/js/container.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,123 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[33mGET /static/js/ask_chart.js HTTP/1.1[0m" 404 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,141 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/js/popup.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,252 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/js/slider.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,255 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/js/dateslide.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,278 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/js/DigitalVault.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,278 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/js/warningpop.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:46,299 *** 127.0.0.1 - - [14/May/2024 01:19:46] "[36mGET /static/js/path_dd.js HTTP/1.1[0m" 304 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:19:47,594 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': 'f40f941f-1161-11ef-9c01-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 96 *** werkzeug *** 2024-05-14 01:19:47,696 *** 127.0.0.1 - - [14/May/2024 01:19:47] "GET /graph_update HTTP/1.1" 200 - 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:19:47,874 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:19:48,136 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f8980df-a01e-0052-096e-a568f4000000'
+    'x-ms-client-request-id': 'f40f941f-1161-11ef-9c01-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:49:46 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:19:48,140 *** 127.0.0.1 - - [14/May/2024 01:19:48] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:49,462 *** 127.0.0.1 - - [14/May/2024 01:19:49] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:49,500 *** 127.0.0.1 - - [14/May/2024 01:19:49] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:50,467 *** 127.0.0.1 - - [14/May/2024 01:19:50] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:51,466 *** 127.0.0.1 - - [14/May/2024 01:19:51] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:51,535 *** 127.0.0.1 - - [14/May/2024 01:19:51] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:52,468 *** 127.0.0.1 - - [14/May/2024 01:19:52] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:53,710 *** 127.0.0.1 - - [14/May/2024 01:19:53] "GET /download_progress HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:19:53,750 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': 'f7bb0f4c-1161-11ef-81fb-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 96 *** werkzeug *** 2024-05-14 01:19:53,871 *** 127.0.0.1 - - [14/May/2024 01:19:53] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:53,912 *** 127.0.0.1 - - [14/May/2024 01:19:53] "GET /checksession HTTP/1.1" 200 - 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:19:54,024 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:19:54,265 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f899146-a01e-0052-2e6e-a568f4000000'
+    'x-ms-client-request-id': 'f7bb0f4c-1161-11ef-81fb-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:49:52 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:19:54,276 *** 127.0.0.1 - - [14/May/2024 01:19:54] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:55,477 *** 127.0.0.1 - - [14/May/2024 01:19:55] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:55,524 *** 127.0.0.1 - - [14/May/2024 01:19:55] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:56,479 *** 127.0.0.1 - - [14/May/2024 01:19:56] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:57,482 *** 127.0.0.1 - - [14/May/2024 01:19:57] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:57,529 *** 127.0.0.1 - - [14/May/2024 01:19:57] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:58,477 *** 127.0.0.1 - - [14/May/2024 01:19:58] "GET /checksession HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:19:58,484 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': 'fa8d61e0-1161-11ef-978e-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:19:58,758 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:19:59,019 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f899f53-a01e-0052-126e-a568f4000000'
+    'x-ms-client-request-id': 'fa8d61e0-1161-11ef-978e-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:49:57 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:19:59,019 *** 127.0.0.1 - - [14/May/2024 01:19:59] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:59,506 *** 127.0.0.1 - - [14/May/2024 01:19:59] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:59,522 *** 127.0.0.1 - - [14/May/2024 01:19:59] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:19:59,580 *** 127.0.0.1 - - [14/May/2024 01:19:59] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:00,510 *** 127.0.0.1 - - [14/May/2024 01:20:00] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:01,581 *** 127.0.0.1 - - [14/May/2024 01:20:01] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:02,476 *** 127.0.0.1 - - [14/May/2024 01:20:02] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:02,491 *** 127.0.0.1 - - [14/May/2024 01:20:02] "GET /checksession HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:03,463 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': 'fd85113a-1161-11ef-96e6-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 96 *** werkzeug *** 2024-05-14 01:20:03,509 *** 127.0.0.1 - - [14/May/2024 01:20:03] "GET /graph_update HTTP/1.1" 200 - 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:03,748 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:03,995 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f89ad2a-a01e-0052-356e-a568f4000000'
+    'x-ms-client-request-id': 'fd85113a-1161-11ef-96e6-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:01 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:04,003 *** 127.0.0.1 - - [14/May/2024 01:20:04] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:04,507 *** 127.0.0.1 - - [14/May/2024 01:20:04] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:04,557 *** 127.0.0.1 - - [14/May/2024 01:20:04] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:05,612 *** 127.0.0.1 - - [14/May/2024 01:20:05] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:05,652 *** 127.0.0.1 - - [14/May/2024 01:20:05] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:05,660 *** 127.0.0.1 - - [14/May/2024 01:20:05] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:07,463 *** 127.0.0.1 - - [14/May/2024 01:20:07] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:07,516 *** 127.0.0.1 - - [14/May/2024 01:20:07] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:08,465 *** 127.0.0.1 - - [14/May/2024 01:20:08] "GET /checksession HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:08,465 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '00804c16-1162-11ef-9bb9-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:08,743 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:08,997 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f89bf54-a01e-0052-616e-a568f4000000'
+    'x-ms-client-request-id': '00804c16-1162-11ef-9bb9-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:06 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:08,997 *** 127.0.0.1 - - [14/May/2024 01:20:08] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:09,467 *** 127.0.0.1 - - [14/May/2024 01:20:09] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:09,529 *** 127.0.0.1 - - [14/May/2024 01:20:09] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:10,474 *** 127.0.0.1 - - [14/May/2024 01:20:10] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:11,469 *** 127.0.0.1 - - [14/May/2024 01:20:11] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:11,541 *** 127.0.0.1 - - [14/May/2024 01:20:11] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:12,461 *** 127.0.0.1 - - [14/May/2024 01:20:12] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:13,464 *** 127.0.0.1 - - [14/May/2024 01:20:13] "GET /download_progress HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:13,479 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '037d8371-1162-11ef-9457-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 96 *** werkzeug *** 2024-05-14 01:20:13,595 *** 127.0.0.1 - - [14/May/2024 01:20:13] "GET /graph_update HTTP/1.1" 200 - 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:13,804 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:14,051 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f89d50c-a01e-0052-2b6e-a568f4000000'
+    'x-ms-client-request-id': '037d8371-1162-11ef-9457-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:12 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:14,051 *** 127.0.0.1 - - [14/May/2024 01:20:14] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:14,490 *** 127.0.0.1 - - [14/May/2024 01:20:14] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:14,502 *** 127.0.0.1 - - [14/May/2024 01:20:14] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:15,511 *** 127.0.0.1 - - [14/May/2024 01:20:15] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:16,466 *** 127.0.0.1 - - [14/May/2024 01:20:16] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:16,466 *** 127.0.0.1 - - [14/May/2024 01:20:16] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:17,537 *** 127.0.0.1 - - [14/May/2024 01:20:17] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:18,472 *** 127.0.0.1 - - [14/May/2024 01:20:18] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:18,487 *** 127.0.0.1 - - [14/May/2024 01:20:18] "GET /checksession HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:18,503 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '067c0d7a-1162-11ef-b925-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:18,804 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:19,058 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f89eb04-a01e-0052-6d6e-a568f4000000'
+    'x-ms-client-request-id': '067c0d7a-1162-11ef-b925-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:17 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:19,058 *** 127.0.0.1 - - [14/May/2024 01:20:19] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:19,521 *** 127.0.0.1 - - [14/May/2024 01:20:19] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:20,477 *** 127.0.0.1 - - [14/May/2024 01:20:20] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:20,477 *** 127.0.0.1 - - [14/May/2024 01:20:20] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:21,510 *** 127.0.0.1 - - [14/May/2024 01:20:21] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:22,466 *** 127.0.0.1 - - [14/May/2024 01:20:22] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:22,466 *** 127.0.0.1 - - [14/May/2024 01:20:22] "GET /checksession HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:23,468 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0971b537-1162-11ef-999f-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 96 *** werkzeug *** 2024-05-14 01:20:23,515 *** 127.0.0.1 - - [14/May/2024 01:20:23] "GET /graph_update HTTP/1.1" 200 - 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:23,753 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:24,001 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f89f989-a01e-0052-7d6e-a568f4000000'
+    'x-ms-client-request-id': '0971b537-1162-11ef-999f-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:21 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:24,016 *** 127.0.0.1 - - [14/May/2024 01:20:24] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:24,471 *** 127.0.0.1 - - [14/May/2024 01:20:24] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:24,471 *** 127.0.0.1 - - [14/May/2024 01:20:24] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:25,540 *** 127.0.0.1 - - [14/May/2024 01:20:25] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:25,550 *** 127.0.0.1 - - [14/May/2024 01:20:25] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:25,558 *** 127.0.0.1 - - [14/May/2024 01:20:25] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:27,466 *** 127.0.0.1 - - [14/May/2024 01:20:27] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:27,553 *** 127.0.0.1 - - [14/May/2024 01:20:27] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:28,475 *** 127.0.0.1 - - [14/May/2024 01:20:28] "GET /checksession HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:28,491 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0c701c87-1162-11ef-b58f-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 96 *** werkzeug *** 2024-05-14 01:20:28,507 *** 127.0.0.1 - - [14/May/2024 01:20:28] "GET /download_progress HTTP/1.1" 200 - 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:28,778 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:29,022 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f8a0bed-a01e-0052-7e6e-a568f4000000'
+    'x-ms-client-request-id': '0c701c87-1162-11ef-b58f-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:27 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:29,022 *** 127.0.0.1 - - [14/May/2024 01:20:29] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:29,523 *** 127.0.0.1 - - [14/May/2024 01:20:29] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:30,463 *** 127.0.0.1 - - [14/May/2024 01:20:30] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:30,481 *** 127.0.0.1 - - [14/May/2024 01:20:30] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:31,545 *** 127.0.0.1 - - [14/May/2024 01:20:31] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:32,466 *** 127.0.0.1 - - [14/May/2024 01:20:32] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:32,466 *** 127.0.0.1 - - [14/May/2024 01:20:32] "GET /checksession HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:33,468 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '0f679499-1162-11ef-ba83-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 96 *** werkzeug *** 2024-05-14 01:20:33,537 *** 127.0.0.1 - - [14/May/2024 01:20:33] "GET /graph_update HTTP/1.1" 200 - 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:33,753 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:34,001 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f8a1dd1-a01e-0052-036e-a568f4000000'
+    'x-ms-client-request-id': '0f679499-1162-11ef-ba83-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:31 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:34,001 *** 127.0.0.1 - - [14/May/2024 01:20:34] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:34,471 *** 127.0.0.1 - - [14/May/2024 01:20:34] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:34,471 *** 127.0.0.1 - - [14/May/2024 01:20:34] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:35,524 *** 127.0.0.1 - - [14/May/2024 01:20:35] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:36,473 *** 127.0.0.1 - - [14/May/2024 01:20:36] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:36,473 *** 127.0.0.1 - - [14/May/2024 01:20:36] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:37,529 *** 127.0.0.1 - - [14/May/2024 01:20:37] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:38,463 *** 127.0.0.1 - - [14/May/2024 01:20:38] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:38,463 *** 127.0.0.1 - - [14/May/2024 01:20:38] "GET /checksession HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:38,478 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '12640444-1162-11ef-a31b-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:38,779 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:39,033 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f8a2e9d-a01e-0052-7b6e-a568f4000000'
+    'x-ms-client-request-id': '12640444-1162-11ef-a31b-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:37 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:39,033 *** 127.0.0.1 - - [14/May/2024 01:20:39] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:39,496 *** 127.0.0.1 - - [14/May/2024 01:20:39] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:40,467 *** 127.0.0.1 - - [14/May/2024 01:20:40] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:40,467 *** 127.0.0.1 - - [14/May/2024 01:20:40] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:41,523 *** 127.0.0.1 - - [14/May/2024 01:20:41] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:42,472 *** 127.0.0.1 - - [14/May/2024 01:20:42] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:42,472 *** 127.0.0.1 - - [14/May/2024 01:20:42] "GET /checksession HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:43,475 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '155e6afd-1162-11ef-b659-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 96 *** werkzeug *** 2024-05-14 01:20:43,521 *** 127.0.0.1 - - [14/May/2024 01:20:43] "GET /graph_update HTTP/1.1" 200 - 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:43,822 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:44,076 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f8a40f1-a01e-0052-6b6e-a568f4000000'
+    'x-ms-client-request-id': '155e6afd-1162-11ef-b659-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:42 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:44,076 *** 127.0.0.1 - - [14/May/2024 01:20:44] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:44,461 *** 127.0.0.1 - - [14/May/2024 01:20:44] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:44,477 *** 127.0.0.1 - - [14/May/2024 01:20:44] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:45,533 *** 127.0.0.1 - - [14/May/2024 01:20:45] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:46,489 *** 127.0.0.1 - - [14/May/2024 01:20:46] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:46,499 *** 127.0.0.1 - - [14/May/2024 01:20:46] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:47,563 *** 127.0.0.1 - - [14/May/2024 01:20:47] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:48,531 *** 127.0.0.1 - - [14/May/2024 01:20:48] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:48,551 *** 127.0.0.1 - - [14/May/2024 01:20:48] "GET /checksession HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:48,571 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1868126f-1162-11ef-956b-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:48,853 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:49,106 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f8a555a-a01e-0052-716e-a568f4000000'
+    'x-ms-client-request-id': '1868126f-1162-11ef-956b-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:47 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:49,106 *** 127.0.0.1 - - [14/May/2024 01:20:49] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:49,535 *** 127.0.0.1 - - [14/May/2024 01:20:49] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:50,487 *** 127.0.0.1 - - [14/May/2024 01:20:50] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:50,489 *** 127.0.0.1 - - [14/May/2024 01:20:50] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:51,523 *** 127.0.0.1 - - [14/May/2024 01:20:51] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:51,533 *** 127.0.0.1 - - [14/May/2024 01:20:51] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:51,563 *** 127.0.0.1 - - [14/May/2024 01:20:51] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:52,476 *** 127.0.0.1 - - [14/May/2024 01:20:52] "GET /download_progress HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:53,471 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1b53ccc4-1162-11ef-a840-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 96 *** werkzeug *** 2024-05-14 01:20:53,534 *** 127.0.0.1 - - [14/May/2024 01:20:53] "GET /graph_update HTTP/1.1" 200 - 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:53,759 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:54,013 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f8a6b10-a01e-0052-2d6e-a568f4000000'
+    'x-ms-client-request-id': '1b53ccc4-1162-11ef-a840-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:51 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:54,013 *** 127.0.0.1 - - [14/May/2024 01:20:54] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:54,475 *** 127.0.0.1 - - [14/May/2024 01:20:54] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:54,477 *** 127.0.0.1 - - [14/May/2024 01:20:54] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:55,560 *** 127.0.0.1 - - [14/May/2024 01:20:55] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:55,560 *** 127.0.0.1 - - [14/May/2024 01:20:55] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:55,560 *** 127.0.0.1 - - [14/May/2024 01:20:55] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:57,465 *** 127.0.0.1 - - [14/May/2024 01:20:57] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:57,512 *** 127.0.0.1 - - [14/May/2024 01:20:57] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:58,468 *** 127.0.0.1 - - [14/May/2024 01:20:58] "GET /checksession HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:58,483 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '1e508e90-1162-11ef-9ad4-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:20:58,753 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:20:59,000 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f8a7c32-a01e-0052-3c6e-a568f4000000'
+    'x-ms-client-request-id': '1e508e90-1162-11ef-9ad4-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:50:56 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:20:59,000 *** 127.0.0.1 - - [14/May/2024 01:20:59] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:59,470 *** 127.0.0.1 - - [14/May/2024 01:20:59] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:20:59,517 *** 127.0.0.1 - - [14/May/2024 01:20:59] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:00,510 *** 127.0.0.1 - - [14/May/2024 01:21:00] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:01,512 *** 127.0.0.1 - - [14/May/2024 01:21:01] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:01,655 *** 127.0.0.1 - - [14/May/2024 01:21:01] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:01,697 *** 127.0.0.1 - - [14/May/2024 01:21:01] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:03,503 *** 127.0.0.1 - - [14/May/2024 01:21:03] "GET /download_progress HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:21:03,519 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '2150e541-1162-11ef-a1a4-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 96 *** werkzeug *** 2024-05-14 01:21:03,684 *** 127.0.0.1 - - [14/May/2024 01:21:03] "GET /graph_update HTTP/1.1" 200 - 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:21:03,774 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:21:04,024 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f8a90a1-a01e-0052-6f6e-a568f4000000'
+    'x-ms-client-request-id': '2150e541-1162-11ef-a1a4-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:51:01 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:21:04,024 *** 127.0.0.1 - - [14/May/2024 01:21:04] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:04,488 *** 127.0.0.1 - - [14/May/2024 01:21:04] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:05,459 *** 127.0.0.1 - - [14/May/2024 01:21:05] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:05,549 *** 127.0.0.1 - - [14/May/2024 01:21:05] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:06,467 *** 127.0.0.1 - - [14/May/2024 01:21:06] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:07,501 *** 127.0.0.1 - - [14/May/2024 01:21:07] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:07,596 *** 127.0.0.1 - - [14/May/2024 01:21:07] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:07,636 *** 127.0.0.1 - - [14/May/2024 01:21:07] "GET /graph_update HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:21:08,477 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '24458da1-1162-11ef-b1af-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:21:08,725 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:21:08,979 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f8aa747-a01e-0052-606e-a568f4000000'
+    'x-ms-client-request-id': '24458da1-1162-11ef-b1af-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:51:06 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:21:08,994 *** 127.0.0.1 - - [14/May/2024 01:21:08] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:09,473 *** 127.0.0.1 - - [14/May/2024 01:21:09] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:09,543 *** 127.0.0.1 - - [14/May/2024 01:21:09] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:11,018 *** 127.0.0.1 - - [14/May/2024 01:21:11] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:11,028 *** 127.0.0.1 - - [14/May/2024 01:21:11] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:12,457 *** 127.0.0.1 - - [14/May/2024 01:21:12] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:12,469 *** 127.0.0.1 - - [14/May/2024 01:21:12] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:12,479 *** 127.0.0.1 - - [14/May/2024 01:21:12] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:13,684 *** 127.0.0.1 - - [14/May/2024 01:21:13] "GET /download_progress HTTP/1.1" 200 - 
+ 514 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:21:18,546 *** Request URL: 'https://testcongnilink.blob.core.windows.net/congnilink-container?restype=REDACTED&comp=REDACTED&prefix=REDACTED'
+Request method: 'GET'
+Request headers:
+    'x-ms-version': 'REDACTED'
+    'Accept': 'application/xml'
+    'User-Agent': 'azsdk-python-storage-blob/12.19.0 Python/3.10.9 (Windows-10-10.0.19045-SP0)'
+    'x-ms-date': 'REDACTED'
+    'x-ms-client-request-id': '2a45d144-1162-11ef-839b-541379a20e46'
+    'Authorization': 'REDACTED'
+No body was attached to the request 
+ 96 *** werkzeug *** 2024-05-14 01:21:18,607 *** 127.0.0.1 - - [14/May/2024 01:21:18] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:18,642 *** 127.0.0.1 - - [14/May/2024 01:21:18] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:18,642 *** 127.0.0.1 - - [14/May/2024 01:21:18] "GET /download_progress HTTP/1.1" 200 - 
+ 546 *** urllib3.connectionpool *** 2024-05-14 01:21:18,811 *** https://testcongnilink.blob.core.windows.net:443 "GET /congnilink-container?restype=container&comp=list&prefix=asif24 HTTP/1.1" 200 None 
+ 550 *** azure.core.pipeline.policies.http_logging_policy *** 2024-05-14 01:21:19,069 *** Response status: 200
+Response headers:
+    'Transfer-Encoding': 'chunked'
+    'Content-Type': 'application/xml'
+    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
+    'x-ms-request-id': '9f8ace60-a01e-0052-7e6e-a568f4000000'
+    'x-ms-client-request-id': '2a45d144-1162-11ef-839b-541379a20e46'
+    'x-ms-version': 'REDACTED'
+    'Date': 'Mon, 13 May 2024 19:51:17 GMT' 
+ 96 *** werkzeug *** 2024-05-14 01:21:19,069 *** 127.0.0.1 - - [14/May/2024 01:21:19] "GET /table_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:19,502 *** 127.0.0.1 - - [14/May/2024 01:21:19] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:19,504 *** 127.0.0.1 - - [14/May/2024 01:21:19] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:19,506 *** 127.0.0.1 - - [14/May/2024 01:21:19] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:20,487 *** 127.0.0.1 - - [14/May/2024 01:21:20] "GET /download_progress HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,333 *** 127.0.0.1 - - [14/May/2024 01:21:21] "GET /Summary HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,437 *** 127.0.0.1 - - [14/May/2024 01:21:21] "[36mGET /static/lib/owlcarousel/assets/owl.carousel.min.css HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,572 *** 127.0.0.1 - - [14/May/2024 01:21:21] "[36mGET /static/lib/tempusdominus/css/tempusdominus-bootstrap-4.min.css HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,635 *** 127.0.0.1 - - [14/May/2024 01:21:21] "[36mGET /static/css/bootstrap.min.css HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,714 *** 127.0.0.1 - - [14/May/2024 01:21:21] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,736 *** 127.0.0.1 - - [14/May/2024 01:21:21] "[36mGET /static/img/ea_logo.png HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,787 *** 127.0.0.1 - - [14/May/2024 01:21:21] "[36mGET /static/img/ea_symbol.png HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,882 *** 127.0.0.1 - - [14/May/2024 01:21:21] "[33mGET /static/login/san123/wordcloud.png HTTP/1.1[0m" 404 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,900 *** 127.0.0.1 - - [14/May/2024 01:21:21] "[36mGET /static/lib/chart/chart.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,943 *** 127.0.0.1 - - [14/May/2024 01:21:21] "[36mGET /static/lib/easing/easing.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,957 *** 127.0.0.1 - - [14/May/2024 01:21:21] "[36mGET /static/lib/waypoints/waypoints.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:21,988 *** 127.0.0.1 - - [14/May/2024 01:21:21] "[36mGET /static/lib/owlcarousel/owl.carousel.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,013 *** 127.0.0.1 - - [14/May/2024 01:21:22] "[36mGET /static/images/micstart.gif HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,026 *** 127.0.0.1 - - [14/May/2024 01:21:22] "[36mGET /static/lib/tempusdominus/js/moment.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,064 *** 127.0.0.1 - - [14/May/2024 01:21:22] "[36mGET /static/lib/tempusdominus/js/moment-timezone.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,079 *** 127.0.0.1 - - [14/May/2024 01:21:22] "[36mGET /static/lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,103 *** 127.0.0.1 - - [14/May/2024 01:21:22] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,120 *** 127.0.0.1 - - [14/May/2024 01:21:22] "GET /static/js/summary_charts.js HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,123 *** 127.0.0.1 - - [14/May/2024 01:21:22] "GET /static/js/cogserviceslider.js HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,144 *** 127.0.0.1 - - [14/May/2024 01:21:22] "GET /static/js/summary.js HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,181 *** 127.0.0.1 - - [14/May/2024 01:21:22] "GET /static/js/audio_service.js HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,190 *** 127.0.0.1 - - [14/May/2024 01:21:22] "GET /static/js/image.js HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,233 *** 127.0.0.1 - - [14/May/2024 01:21:22] "[36mGET /static/js/warningpop.js HTTP/1.1[0m" 304 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,316 *** 127.0.0.1 - - [14/May/2024 01:21:22] "GET /lda_data?type=summ HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:22,356 *** 127.0.0.1 - - [14/May/2024 01:21:22] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:24,274 *** 127.0.0.1 - - [14/May/2024 01:21:24] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:24,276 *** 127.0.0.1 - - [14/May/2024 01:21:24] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:26,581 *** 127.0.0.1 - - [14/May/2024 01:21:26] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:26,994 *** 127.0.0.1 - - [14/May/2024 01:21:26] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:27,494 *** 127.0.0.1 - - [14/May/2024 01:21:27] "GET /lda_data?type=summ HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:28,505 *** 127.0.0.1 - - [14/May/2024 01:21:28] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:28,527 *** 127.0.0.1 - - [14/May/2024 01:21:28] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:30,478 *** 127.0.0.1 - - [14/May/2024 01:21:30] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:30,510 *** 127.0.0.1 - - [14/May/2024 01:21:30] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:32,594 *** 127.0.0.1 - - [14/May/2024 01:21:32] "GET /lda_data?type=summ HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:32,632 *** 127.0.0.1 - - [14/May/2024 01:21:32] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:32,644 *** 127.0.0.1 - - [14/May/2024 01:21:32] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:34,570 *** 127.0.0.1 - - [14/May/2024 01:21:34] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:34,580 *** 127.0.0.1 - - [14/May/2024 01:21:34] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:36,519 *** 127.0.0.1 - - [14/May/2024 01:21:36] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:36,541 *** 127.0.0.1 - - [14/May/2024 01:21:36] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:37,468 *** 127.0.0.1 - - [14/May/2024 01:21:37] "GET /lda_data?type=summ HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:38,485 *** 127.0.0.1 - - [14/May/2024 01:21:38] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:38,539 *** 127.0.0.1 - - [14/May/2024 01:21:38] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:40,504 *** 127.0.0.1 - - [14/May/2024 01:21:40] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:40,526 *** 127.0.0.1 - - [14/May/2024 01:21:40] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:42,493 *** 127.0.0.1 - - [14/May/2024 01:21:42] "GET /lda_data?type=summ HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:42,493 *** 127.0.0.1 - - [14/May/2024 01:21:42] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:42,531 *** 127.0.0.1 - - [14/May/2024 01:21:42] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:44,527 *** 127.0.0.1 - - [14/May/2024 01:21:44] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:44,527 *** 127.0.0.1 - - [14/May/2024 01:21:44] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:46,510 *** 127.0.0.1 - - [14/May/2024 01:21:46] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:46,540 *** 127.0.0.1 - - [14/May/2024 01:21:46] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:47,473 *** 127.0.0.1 - - [14/May/2024 01:21:47] "GET /lda_data?type=summ HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:48,512 *** 127.0.0.1 - - [14/May/2024 01:21:48] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:48,528 *** 127.0.0.1 - - [14/May/2024 01:21:48] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:50,511 *** 127.0.0.1 - - [14/May/2024 01:21:50] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:50,542 *** 127.0.0.1 - - [14/May/2024 01:21:50] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:52,516 *** 127.0.0.1 - - [14/May/2024 01:21:52] "GET /lda_data?type=summ HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:52,528 *** 127.0.0.1 - - [14/May/2024 01:21:52] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:52,536 *** 127.0.0.1 - - [14/May/2024 01:21:52] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:54,527 *** 127.0.0.1 - - [14/May/2024 01:21:54] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:54,527 *** 127.0.0.1 - - [14/May/2024 01:21:54] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:56,515 *** 127.0.0.1 - - [14/May/2024 01:21:56] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:56,531 *** 127.0.0.1 - - [14/May/2024 01:21:56] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:57,480 *** 127.0.0.1 - - [14/May/2024 01:21:57] "GET /lda_data?type=summ HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:58,565 *** 127.0.0.1 - - [14/May/2024 01:21:58] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:21:58,643 *** 127.0.0.1 - - [14/May/2024 01:21:58] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:22:00,524 *** 127.0.0.1 - - [14/May/2024 01:22:00] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:22:00,540 *** 127.0.0.1 - - [14/May/2024 01:22:00] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:22:02,480 *** 127.0.0.1 - - [14/May/2024 01:22:02] "GET /lda_data?type=summ HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:22:02,535 *** 127.0.0.1 - - [14/May/2024 01:22:02] "GET /graph_update HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:22:02,535 *** 127.0.0.1 - - [14/May/2024 01:22:02] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:22:04,491 *** 127.0.0.1 - - [14/May/2024 01:22:04] "GET /checksession HTTP/1.1" 200 - 
+ 96 *** werkzeug *** 2024-05-14 01:22:04,549 *** 127.0.0.1 - - [14/May/2024 01:22:04] "GET /graph_update HTTP/1.1" 200 - 
