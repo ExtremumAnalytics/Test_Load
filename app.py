@@ -74,14 +74,10 @@ client = SecretClient(vault_url=KVUri, credential=credential)
 retrieved_secret = client.get_secret(openapi_key)
 main_key = retrieved_secret.value
 
-# # for local use only
-# load_dotenv()
-# main_key = os.environ["Main_key"]
-
-# os.environ["OPENAI_API_TYPE"] = "azure"
-# os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
-# os.environ["OPENAI_API_KEY"] = main_key
-# os.environ["OPENAI_API_VERSION"] = "2023-05-15"
+os.environ["OPENAI_API_TYPE"] = "azure"
+os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
+os.environ["OPENAI_API_KEY"] = main_key
+os.environ["OPENAI_API_VERSION"] = "2023-05-15"
 
 client = AzureOpenAI(
     api_key=main_key,
@@ -122,6 +118,12 @@ text_word_cloud = ''
 nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
+
+
+# # for local use only
+# load_dotenv()
+# main_key = os.environ["Main_key"]
+
 
 # # Your Azure Storage Account details
 # account_name = os.environ['account_name']
