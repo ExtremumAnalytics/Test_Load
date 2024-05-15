@@ -26,6 +26,7 @@
     <!-- jQuery and jQuery UI JS -->
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 
+
     <!-- Include Plotly.js library -->
     <!-- Include Plotly.js library -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
@@ -202,6 +203,9 @@
                     <button type="button" id="linkData" class="btn btn-primary m-2 p-2" style="font-size: 14px;" onclick="linkSelectedDataSource()">Link Data Source</button>
                     <button type="button" id="loadCogniLink" class="btn btn-primary m-2 p-2" style="font-size: 14px;">Load Cogni Link</button>
                     <button type="button" class="btn btn-primary m-2 p-2" style="font-size: 14px;" onclick="scrollToVault()">Explore Digital Vault</button>
+                    <div class="d-flex align-content-center justify-content-center">
+                        <i id="waitImg" class="fa fa-spinner fa-spin" style="display: none; color: var(--primary); font-size: 64px;"></i>
+                    </div>
                 </div>
                 
                 <!-- Source Load Container -->
@@ -252,12 +256,12 @@
                             </div>
                             <!-- Second Container (Progress) -->
                             <div class="col-lg-8 progress-container rounded border p-2 m-2">
-                                <div id="progress" class="d-flex flex-column" p-2>
-                                    <label for="status" style="font-size: 14px;">Current Status:</label>
+                                <div id="progress" class="d-flex flex-column" p-2 style="font-size: 10px;">
+                                    <!-- <label for="status" style="font-size: 14px;">Current Status:</label>
                                     <label for="totalFiles" style="font-size: 14px;">Total Files:</label>
                                     <label for="filesDownloaded" style="font-size: 14px;">Files Downloaded:</label>
                                     <label for="progressPercentage" style="font-size: 14px;">Progress Percentage:</label>
-                                    <label for="currentFileName" style="font-size: 14px;">Current File Name:</label>
+                                    <label for="currentFileName" style="font-size: 14px;">Current File Name:</label> -->
                                 </div>
                             </div>
                         </div>
@@ -454,6 +458,8 @@
     <script src="static/lib/tempusdominus/js/moment.min.js"></script>
     <script src="static/lib/tempusdominus/js/moment-timezone.min.js"></script>
     <script src="static/lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+
 
     <!-- Template Javascript -->
     <script src="{{ url_for('static', filename='js/main.js')}}"></script>
