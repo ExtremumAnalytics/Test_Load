@@ -165,7 +165,7 @@
                         <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
                             <a href="#" class="dropdown-item">My Profile</a>
                             <a href="#" class="dropdown-item">Settings</a>
-                            <a href="#" class="dropdown-item">Log Out</a>
+                            <a href="{{url_for('logout')}}" class="dropdown-item">Log Out</a>
                         </div>
                     </div>
                 </div>
@@ -228,8 +228,8 @@
                                 </div>
                             </div>
   
-                                <button type="button" id="eda_generate" class="btn btn-primary mr-2" style="font-size: 14px;">Generate</button>
-                                <button type="button" id="clarCcvchat" onclick="clearcvdscvChat()" class="btn btn-primary mr-2" style="font-size: 14px;">Clear Chat</button>
+                                <button type="button" id="eda_generate" class="btn btn-primary mr-2" onclick="sendQuestion()" style="font-size: 14px;">Generate</button>
+                                <button type="button" id="clarCcvchat" onclick="clearChat()" class="btn btn-primary mr-2" style="font-size: 14px;">Clear Chat</button>
                             </div>
                         </div>
                     </div>

@@ -5,7 +5,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 import base64
-import logging
+import json
+from io import BytesIO
 
 from flask import Flask, jsonify, url_for, flash
 from flask import render_template, request, redirect, session
@@ -57,33 +58,51 @@ from urllib.parse import urlparse
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 # for EDA
-import re
 import pandas as pd
-from openai import AzureOpenAI
-from langchain_community.chat_models import AzureChatOpenAI
-from langchain.agents import AgentType
-from langchain_experimental.agents import create_pandas_dataframe_agent
-from langchain.schema.output_parser import OutputParserException
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import pandasai
+from pandasai import Agent
+from pandasai.llm import AzureOpenAI
+# import re
+# import pandas as pd
+# from openai import AzureOpenAI
+# from langchain_community.chat_models import AzureChatOpenAI
+# from langchain.agents import AgentType
+# from langchain_experimental.agents import create_pandas_dataframe_agent
+# from langchain.schema.output_parser import OutputParserException
+# from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-# # for default Azure account use only
-# openapi_key = "OPENAI-API-KEY"
-# KVUri = f"https://eavault.vault.azure.net/"
-# credential = DefaultAzureCredential()
-# client = SecretClient(vault_url=KVUri, credential=credential)
-# retrieved_secret = client.get_secret(openapi_key)
-# main_key = retrieved_secret.value
+# for default Azure account use only
+openapi_key = "OPENAI-API-KEY"
+KVUri = f"https://eavault.vault.azure.net/"
+credential = DefaultAzureCredential()
+client = SecretClient(vault_url=KVUri, credential=credential)
+retrieved_secret = client.get_secret(openapi_key)
+main_key = retrieved_secret.value
 
-# for local use only
-load_dotenv()
-main_key = os.environ["Main_key"]
+# # for local use only
+# load_dotenv()
+# main_key = os.environ["Main_key"]
+
+# os.environ["OPENAI_API_TYPE"] = "azure"
+# os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
+# os.environ["OPENAI_API_KEY"] = main_key
+# os.environ["OPENAI_API_VERSION"] = "2023-05-15"
+#
+# client = AzureOpenAI(
+#     api_key=main_key,
+#     api_version="2023-05-15",
+#     azure_endpoint="https://ea-openai.openai.azure.com/"
+# )
 
 os.environ["OPENAI_API_TYPE"] = "azure"
-os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
+# os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
 os.environ["OPENAI_API_KEY"] = main_key
 os.environ["OPENAI_API_VERSION"] = "2023-05-15"
 
+os.environ["AZURE_OPENAI_ENDPOINT"] = "https://ea-openai.openai.azure.com/"
+
 client = AzureOpenAI(
+    deployment_name="gpt-4-0125-preview",
     api_key=main_key,
     api_version="2023-05-15",
     azure_endpoint="https://ea-openai.openai.azure.com/"
@@ -121,26 +140,26 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# Your Azure Storage Account details
-account_name = os.environ['account_name']
-account_key = os.environ['account_key']
-container_name = os.environ['container_name']
+# # Your Azure Storage Account details
+# account_name = os.environ['account_name']
+# account_key = os.environ['account_key']
+# container_name = os.environ['container_name']
 
-# Create a BlobServiceClient object
-connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-container_client = blob_service_client.get_container_client(container_name)
-
-
-# # for Azure use only
-# account_name = "testcongnilink"
-# container_name = "congnilink-container"
-#
-# account_url = "https://testcongnilink.blob.core.windows.net"
-# default_credential = DefaultAzureCredential()
-#
-# blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+# # Create a BlobServiceClient object
+# connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+# blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 # container_client = blob_service_client.get_container_client(container_name)
+
+
+# for Azure use only
+account_name = "testcongnilink"
+container_name = "congnilink-container"
+
+account_url = "https://testcongnilink.blob.core.windows.net"
+default_credential = DefaultAzureCredential()
+
+blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+container_client = blob_service_client.get_container_client(container_name)
 
 
 def create_or_pass_folder(container_client, session):
@@ -379,10 +398,10 @@ def update_when_file_delete():
                 session['over_all_readiness'] = session['total_files_list']
                 session['total_success_rate'] = session['successful_list']
                 # Check if session is modified and save it if necessary
-                if session.modified:
-                    # Manually save the session
-                    session_interface = app.session_interface
-                    session_interface.save_session(app, session, None)
+                # if session.modified:
+                #     # Manually save the session
+                #     session_interface = app.session_interface
+                #     session_interface.save_session(app, session, None)
 
                     # session_interface.save_session(app, session)
                 update_bar_chart_from_blob(session, blob_service_client, container_name)
@@ -418,7 +437,7 @@ def update_when_file_delete():
             update_bar_chart_from_blob(session, blob_service_client, container_name)
         print("Complete")
 
-        return jsonify({"message": "Data loaded successfully"})
+        return jsonify({"message": "Data Loaded Successfully"})
     except Exception as e:
         print("update_when_file_delete----->", str(e))
         return jsonify({'message': str(e)})
@@ -668,8 +687,8 @@ def create_bar_chart():
 
     file_bar = {'x': x1, 'y': y1}
 
-    bar_json_graph = pio.to_json(file_bar)
-    return bar_json_graph
+    # bar_json_graph = pio.to_json(file_bar)
+    return file_bar
 
 
 def create_pie_chart():
@@ -682,6 +701,11 @@ def create_pie_chart():
         successful_list = session['successful_list']
         progress_list = session['progress_list']
         failed_list = session['failed_list']
+
+        # print('tfs', total_files_list)
+        # print('sf', successful_list)
+        # print('pl', progress_list)
+        # print('fl', failed_list)
     else:
         # print('Pie Default value')
         # Default values
@@ -699,24 +723,26 @@ def create_pie_chart():
     percentages = [(value / total_files_list) * 100 for value in values]
     text = [f"{label}: {value} ({percentage:.2f}%)" for label, value, percentage in zip(labels, values, percentages)]
 
-    # Create Pie Chart
-    trace = go.Pie(values=values, labels=labels, text=text, hoverinfo='text+value', hole=.4)
-    layout = go.Layout(title=title)
+    # # Create Pie Chart
+    # trace = go.Pie(values=values, labels=labels, text=text, hoverinfo='text+value', hole=.4)
+    # layout = go.Layout(title=title)
+    #
+    # pie_chart = go.Figure(data=[trace], layout=layout)
+    #
+    # # Optional: Customize layout parameters
+    # pie_chart.update_layout(
+    #     width=260,  # Set width in pixels
+    #     height=180,  # Set height in pixels
+    #     margin=dict(l=10, r=60, t=50, b=20),
+    #     legend=dict(font=dict(size=10)),  # Adjust label text size in legend
+    #     font=dict(size=10),  # Adjust default text size
+    #     showlegend=False
+    # )
 
-    pie_chart = go.Figure(data=[trace], layout=layout)
+    pie_chart = {"labels": labels, "values": values, "percentages": percentages, "text": text}
 
-    # Optional: Customize layout parameters
-    pie_chart.update_layout(
-        width=260,  # Set width in pixels
-        height=180,  # Set height in pixels
-        margin=dict(l=10, r=60, t=50, b=20),
-        legend=dict(font=dict(size=10)),  # Adjust label text size in legend
-        font=dict(size=10),  # Adjust default text size
-        showlegend=False
-    )
-
-    pie_chart_data = pio.to_json(pie_chart)
-    return pie_chart_data
+    # pie_chart_data = json.loads(pie_chart)
+    return pie_chart
 
 
 def gauge_chart_auth():
@@ -730,7 +756,11 @@ def gauge_chart_auth():
         success_rate = 0
         over_all_readiness = 0
 
+    # print("gauge-------->auth", success_rate, over_all_readiness)
+
     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
+
+
     # Create the gauge figure
     # gauge_fig = go.Figure(go.Indicator(
     #     mode="gauge+number",
@@ -773,8 +803,8 @@ def gauge_chart_auth():
     #     margin=dict(l=30, r=30, t=50, b=50),
     #     font={'color': "darkblue", 'family': "Arial"}
     # )
-    gauge_chart_auth = pio.to_json(gauge_fig)
-    return gauge_chart_auth
+    # gauge_chart_auth = json.loads(gauge_fig)
+    return gauge_fig
 
 
 def gauge_chart_CogS():
@@ -831,8 +861,8 @@ def gauge_chart_CogS():
     #     margin=dict(l=20, r=0, t=40, b=40),  # Adjust as needed
     #     font={'color': "darkblue", 'family': "Arial"}
     # )
-    gauge_chart_CogS = pio.to_json(gauge_fig)
-    return gauge_chart_CogS
+    # gauge_chart_CogS = pio.to_json(gauge_fig)
+    return gauge_fig
 
 
 def gauge_chart_Q_A():
@@ -888,8 +918,8 @@ def gauge_chart_Q_A():
     #     margin=dict(l=0, r=0, t=40, b=40),  # Adjust as needed
     #     font={'color': "darkblue", 'family': "Arial"}
     # )
-    gauge_chart_Q_A = pio.to_json(gauge_fig)
-    return gauge_chart_Q_A
+    # gauge_chart_Q_A = pio.to_json(gauge_fig)
+    return gauge_fig
 
 
 def indicator():
@@ -935,8 +965,8 @@ def Sentiment_Chart_Summ(senti_Positive_summ=None, senti_Negative_summ=None, sen
     #                     width=310
     #                     )
 
-    senti_json_graph = pio.to_json(senti)
-    return senti_json_graph
+    # senti_json_graph = pio.to_json(senti)
+    return senti
 
 
 def Sentiment_Chart_Q_A(senti_Positive_Q_A=None, senti_Negative_Q_A=None, senti_neutral_Q_A=None):
@@ -962,8 +992,8 @@ def Sentiment_Chart_Q_A(senti_Positive_Q_A=None, senti_Negative_Q_A=None, senti_
     #                     width=310
     #                     )
 
-    senti_json_graph = pio.to_json(senti)
-    return senti_json_graph
+    # senti_json_graph = pio.to_json(senti)
+    return senti
 
 
 # Route for Sign in page
@@ -1019,6 +1049,8 @@ def home():
             folder_files = os.path.join('static', 'files', str(session['login_pin']))
             if not os.path.exists(folder_files):
                 os.makedirs(folder_files)
+            update_bar_chart_from_blob(session, blob_service_client, container_name)
+
             return jsonify({'redirect': url_for('data_source')})
 
         # Handle invalid cases
@@ -1111,6 +1143,8 @@ def check_session():
 
 @app.route('/data_source', methods=['GET', 'POST'])
 def data_source():
+    update_bar_chart_from_blob(session, blob_service_client, container_name)
+
     return render_template('DataSource.html')
 
 
@@ -1184,7 +1218,7 @@ def popup_form():
             files = request.files.getlist('myFile')
             if not len(files):
                 return jsonify({'message': 'File not Fond'}), 400
-            print('name of file is', files)
+            # print('name of file is', files)
             for file in files:
                 file.seek(0, os.SEEK_END)  # Move the cursor to the end of the file
                 file_size_bytes = file.tell()  # Get the current cursor position, which is the file size in bytes
@@ -1208,13 +1242,13 @@ def popup_form():
             db_url = request.form.get('dbURL', '')
             username = request.form.get('username', '')
             password = request.form.get('password', '')
-            print('database url n all.......', db_url, username, password)
+            # print('database url n all.......', db_url, username, password)
         else:
             if not request.form.get('Source_URL', ''):
                 print('No Source_URL Fond')
                 return jsonify({'message': 'No Source_URL Fond'}), 400
             Source_URL = request.form.get('Source_URL', '')
-            print("Source_URL Fond---->", Source_URL)
+            # print("Source_URL Fond---->", Source_URL)
         update_bar_chart_from_blob(session, blob_service_client, container_name)
 
         return jsonify({'message': 'Data uploaded successfully'}), 200
@@ -1243,7 +1277,7 @@ def Cogni_button():
         end_time = time.time()  # Get the current time when the function ends
         elapsed_time = end_time - start_time  # Calculate the elapsed time
 
-        print(f"Function took--------->  {elapsed_time} <--------- seconds to execute.")
+        # print(f"Function took--------->  {elapsed_time} <--------- seconds to execute.")
         return response
     except Exception as e:
         print("Cogni_button_error_message----->", str(e))
@@ -1642,140 +1676,98 @@ def select_pdf_file():
         return jsonify({'message': 'Error occurred while deleting file: {}'.format(str(e))}), 500
 
 
-Q_data = {}
-
-
 @app.route("/Eda_Process", methods=['POST'])
 def Eda_Process():
-    output = ''
-    fig_json = {}
-    question = request.json['question']
-    print("Question received:", question)
-    # file_url = request.json['fileUrl']
-    # print(file_url)
-    # modified_path = file_url.replace(" ", "")
-    # print("modified_path----->", modified_path)
-    # response = requests.get(modified_path)
-    # # Create a temporary file to save the downloaded content
-    # with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-    #     # Write the content of the blob to the temporary file
-    #     temp_file.write(response.content)
-    #     temp_file_path = temp_file.name
-    # print(temp_file_path)
-    # df = pd.read_excel(temp_file_path, engine='xlrd')
-    df = pd.read_excel("NSE Academy - Feedback Form for Students(ES)- AY 2023-24(1-95).xlsx")
-    # print(df.head(5))
-    df.columns = df.columns.str.replace(' ', '_')
-    df.columns.str.replace('  ', '_')
-    prompt = f"""You are a python expert. You will be given questions for
-        manipulating an input dataframe.
-        The available columns are: `{df.columns}`.
-        Use them for extracting the relevant data.
-    """
-    anwser = [{"role": "system", "content": prompt}, {"role": "user", "content": question}]
+    global df, png_file
+    img_base64 = None
+    folder_name = str(session['login_pin'])
+    try:
+        file_url = request.json.get('fileUrl')  # Use .get() to avoid KeyError
+        if file_url is not None:
+            blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name)
+            for blob in blob_list_eda:
+                if blob.name in file_url:
+                    blob_client = container_client.get_blob_client(blob)
+                    blob_data = blob_client.download_blob().readall()
+                    data_stream = BytesIO(blob_data)
+                    df = pd.read_excel(data_stream)
+                    print(df.head(5))
+        question = request.json.get('question')
+        if question is not None and question.strip():
+            print("question---->", question)
+            llm = AzureOpenAI(
+                deployment_name="gpt-4-0125-preview",
+                api_key=main_key,
+                azure_endpoint=("https://ea-openai.openai.azure.com/"),
+                api_version="2023-05-15")
 
-    # if 'plot' in anwser[-1]["content"].lower():
-    if question and 'plot' in anwser[-1]["content"].lower():
+            agent = Agent(df, config={"llm": llm,
+                                      "open_charts": False,
+                                      "save_charts": True,
+                                      "save_logs": False,
+                                      "enable_cache": False,
+                                      "save_charts_path": f'static/login/{folder_name}/'})
+            output = agent.chat(question)
+            # print(type(output))
+            # print(output)
+            # Determine the type of output and handle accordingly
+            if isinstance(output, pd.DataFrame):
+                # It's a DataFrame, convert to JSON
+                output_json = output.to_json(orient='records')
+                output_type = 'table'
+            elif isinstance(output, (int, float)):
+                # It's a numeric value, convert to JSON serializable format directly
+                output_json = json.dumps(output)
+                output_type = 'numeric'
+            elif isinstance(output, str):
+                # It's text, serialize directly
+                output_json = json.dumps(output)
+                output_type = 'text'
 
-        code_prompt = """
-            Generate the code <code> for plotting the previous data in plotly,
-            in the format requested. The solution should be given using plotly
-            and only plotly. Do not use matplotlib. Do not load any data set use default loaded data as df.
-            Return the code <code> in the following
-            format ```python <code>```
-        """
-        anwser.append({
-            "role": "assistant",
-            "content": code_prompt
-        })
-        response = client.chat.completions.create(
-            model="gpt-35-turbo",
-            messages=anwser,
-            max_tokens=256
-        )
-
-        code = extract_python_code(response.choices[0].message.content)
-
-        # code = extract_python_code(response["choices"][0]["messages"][0]["content"])
-        print("code------->", code)
-
-        if code is None:
-            warning = ("Couldn't find data to plot in the chat. Check if the number of tokens is too low for the data "
-                       "at hand. I.e. if the generated code is cut off, this might be the case.")
-            return jsonify({"message": warning})
-        else:
-            # In the Flask route /Eda_Process
-            code = code.replace("fig.show()", "")
-
-            # Dictionary to hold globals after exec
-            exec_globals = {}
-
-            # Execute the code
-            exec(code, {'df': df}, exec_globals)
-
-            # Retrieve 'fig' from the globals
-            fig = exec_globals.get('fig')
-
-            # After retrieving 'fig' from the globals
-            if fig is not None and isinstance(fig, go.Figure):
-                # Convert the Plotly figure to PNG image bytes
-                img_bytes = pio.to_image(fig, format="png")
-
-                # Encode the image bytes to base64
-                img_base64 = base64.b64encode(img_bytes).decode("utf-8")
-
-                # Return the base64 encoded image as a Flask response
-                return jsonify({"image": img_base64})
             else:
-                return jsonify(
-                    {"error": "Failed to generate plot: 'fig' is not defined or is not a valid Plotly figure"})
-    else:
+                # For other types, convert to string first (fallback case)
+                output_json = json.dumps(str(output))
+                output_type = 'unknown'
+            #     # Check if the image file exists
+            # Construct the path to the image
+            image_path = f'static/login/{folder_name}/'
+            png_file = None
 
-        llm = AzureChatOpenAI(azure_deployment="gpt-4-0125-preview", model_name="gpt-4", temperature=0.50,
-                              max_tokens=256)
-        pandas_df_agent = create_pandas_dataframe_agent(
-            llm,
-            df,
-            verbose=True,
-            return_intermediate_steps=True,
-            agent_type=AgentType.OPENAI_FUNCTIONS
-        )
+            # Check if the directory exists
+            if os.path.exists(image_path):
+                # print(image_path)
+                # Find a PNG file in the directory
+                for file_name in os.listdir(image_path):
+                    if file_name.endswith('.png'):
+                        png_file = os.path.join(image_path, file_name)
+                        break
 
-        answ = pandas_df_agent.invoke(anwser)
-        print("answ---->", answ)
-        if answ["intermediate_steps"]:
-            print("Intermediate")
-            action = answ["intermediate_steps"][-1][0].tool_input["query"]
-            output = f"Executed the code ```{action}```"
-            output = answ["output"] + output
+            # If a PNG file was found, read and encode it
+            if png_file:
+                with open(png_file, "rb") as img_file:
+                    img_data = img_file.read()
+                    img_base64 = base64.b64encode(img_data).decode('utf-8')
+
+                # Delete the file after reading it
+                output_json = question
+                os.remove(png_file)
+            response = {
+                'success': True,
+                'message': 'Question processed successfully',
+                'output_any': output_json,
+                'output_type': output_type,
+                'image': img_base64  # Sending base64 encoded image or None if image doesn't exist
+            }
+            return jsonify(response)
         else:
-            output = answ["output"]
+            response = {
+                'success': False,
+                'message': 'No question provided'
+            }
 
-        # Generate dummy graph data
-        graph_data = fig_json
-
-        # Combine text and graph data into a single response
-        response = {
-            'success': True,
-            'message': 'Question processed successfully',
-            'text': output,
-            'graph': graph_data
-        }
-
-        return jsonify(response)
-
-    # return jsonify({'success': True, 'message': 'Data processed successfully'})
-    # else:
-    #     return jsonify({'success': False, 'message': 'No file URL provided'})
-
-
-def extract_python_code(text):
-    pattern = r'```python\s(.*?)```'
-    matches = re.findall(pattern, text, re.DOTALL)
-    if not matches:
-        return None
-    else:
-        return matches[0]
+            return jsonify(response)
+    except Exception as e:
+        return jsonify({'message': 'Error occurred while EDA process: {}'.format(str(e))}), 500
 
 
 @app.route('/blank')
