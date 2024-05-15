@@ -422,11 +422,11 @@ function fetchProgress() {
         
         // Update progress display
         document.getElementById("progress").innerHTML = `
-          <label>Current Status:${data.current_status}</label>
-          <label>Total Files: ${data.total_files}</label>
-          <label>Files Downloaded: ${data.files_downloaded}</label>
-          <label>Progress Percentage: ${data.progress_percentage}%</label>
-          <label>Current File Name: ${data.current_file}</label>
+          <label><b>Current Status: </b>${data.current_status}</label>
+          <label><b>Total Files: </b> ${data.total_files}</label>
+          <label><b>Files Downloaded: </b> ${data.files_downloaded}</label>
+          <label><b>Progress Percentage: </b> ${data.progress_percentage}%</label>
+          <label><b>Current File Name: </b> ${data.current_file}</label>
         `;
       })
       .catch(error => console.error("Error fetching progress:", error));

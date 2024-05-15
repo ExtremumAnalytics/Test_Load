@@ -113,15 +113,26 @@
         },
         options: {
             responsive: true,
-            // plugins: {
-            //     title: {
-            //         display:true,
-            //         text:'Data Awaited!',
-            //         // position: 'bottom',
-            //         color: '#000'
-            //     }
-            // }
-        }
+            plugins: {
+                datalabels: {
+                    color: '#ffffff',
+                    formatter: (value, ctx2) => {
+                        let sum = 0;
+                        let dataArr = ctx2.chart.data.datasets[0].data;
+                        dataArr.map(data => {
+                            sum += data;
+                        });
+                        let percentage = (value*100 / sum).toFixed(2)+"%";
+                        return percentage;
+                    },
+                    display: true,
+                    align: 'center',
+                    anchor: 'center'
+                }
+            }
+        },
+        plugins: [ChartDataLabels]
+        
     });
 
     // Overall Readiness chart
@@ -159,7 +170,8 @@
                     display: false
                 }
             }
-        }
+        },
+        plugins: [ChartDataLabels]
     });
 
     // Readiness Chart
@@ -190,9 +202,25 @@
             plugins: {
                 legend: {
                     display: true
+                },
+                datalabels: {
+                    color: '#ffffff',
+                    formatter: (value, ctx2) => {
+                        let sum = 0;
+                        let dataArr = ctx2.chart.data.datasets[0].data;
+                        dataArr.map(data => {
+                            sum += data;
+                        });
+                        let percentage = (value*1000 / sum).toFixed(2)+"%";
+                        return percentage;
+                    },
+                    display: true,
+                    align: 'center',
+                    anchor: 'center'
                 }
             }
-        }
+        },
+        plugins: [ChartDataLabels]
     });
 
 
@@ -202,38 +230,38 @@
         .then(response => response.json())
         .then(data => {
 
+            console.log(data)
             if (data.pie_chart) {
-                var ingestion_data = JSON.parse(data.pie_chart);
-                console.log(ingestion_data)
-                myChart2.data.datasets[0].data = [
-                    ingestion_data.data[0].values[0],
-                    ingestion_data.data[0].values[1],
-                    ingestion_data.data[0].values[2]
-                ];
-                myChart2.data.labels = ingestion_data.data[0].labels;
-                myChart2.data.title = ingestion_data.layout.title.text;
+                // var ingestion_data = JSON.parse(data.pie_chart);
+                var ingestion_data = data.pie_chart;
+                console.log("Ingestion",ingestion_data)
+                myChart2.data.datasets[0].data = ingestion_data.percentages;
+                myChart2.data.labels = ingestion_data.labels;
+                myChart2.data.title = ingestion_data.text;
                 // myChart3.data.datasets[0].data = sentimentData;
                 myChart2.update(ingestion_data);
             }
 
             if (data.bars) {
-                // console.log("Data not received")
-                var bar_file_data = JSON.parse(data.bars);
+                // var bar_file_data = JSON.parse(data.bars);
+                var bar_file_data = data.bars;
                 // console.log('Data Parsed!')
-                // console.log(bar_file_data)
-                myChart1.data.datasets[0].data = bar_file_data.data[0].x;
+                console.log("Files Bar",bar_file_data)
+                myChart1.data.datasets[0].data = bar_file_data.x;
                 // myChart1.data.datasets[0].data = bar_file_data.data[0].x;
-                myChart1.data.labels = bar_file_data.data[0].y;
+                myChart1.data.labels = bar_file_data.y;
                 // myChart3.data.datasets[0].data = sentimentData;
                 myChart1.update(bar_file_data);
             }
 
             if (data.gauge_auth) {
                 // console.log("Data not received")
-                var gauge_data = JSON.parse(data.gauge_auth);
+                // var gauge_data = JSON.parse(data.gauge_auth);
+                var gauge_data = data.gauge_auth;
+                console.log("Readiness Data Source",gauge_data)
                 myChart3.data.datasets[0].data = [
-                    gauge_data.data[0].x,
-                    100 - gauge_data.data[0].x
+                    gauge_data.x,
+                    100 - gauge_data.x
                 ]
                 myChart3.update(gauge_data);
             }
