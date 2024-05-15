@@ -79,20 +79,9 @@ client = SecretClient(vault_url=KVUri, credential=credential)
 retrieved_secret = client.get_secret(openapi_key)
 main_key = retrieved_secret.value
 
-# # for local use only
-# load_dotenv()
-# main_key = os.environ["Main_key"]
-
-# os.environ["OPENAI_API_TYPE"] = "azure"
-# os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
-# os.environ["OPENAI_API_KEY"] = main_key
-# os.environ["OPENAI_API_VERSION"] = "2023-05-15"
-#
-# client = AzureOpenAI(
-#     api_key=main_key,
-#     api_version="2023-05-15",
-#     azure_endpoint="https://ea-openai.openai.azure.com/"
-# )
+# for local use only
+load_dotenv()
+main_key = os.environ["Main_key"]
 
 os.environ["OPENAI_API_TYPE"] = "azure"
 # os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
@@ -701,11 +690,6 @@ def create_pie_chart():
         successful_list = session['successful_list']
         progress_list = session['progress_list']
         failed_list = session['failed_list']
-
-        # print('tfs', total_files_list)
-        # print('sf', successful_list)
-        # print('pl', progress_list)
-        # print('fl', failed_list)
     else:
         # print('Pie Default value')
         # Default values
@@ -755,8 +739,6 @@ def gauge_chart_auth():
     else:
         success_rate = 0
         over_all_readiness = 0
-
-    # print("gauge-------->auth", success_rate, over_all_readiness)
 
     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
 
@@ -1678,96 +1660,135 @@ def select_pdf_file():
 
 @app.route("/Eda_Process", methods=['POST'])
 def Eda_Process():
-    global df, png_file
-    img_base64 = None
-    folder_name = str(session['login_pin'])
-    try:
-        file_url = request.json.get('fileUrl')  # Use .get() to avoid KeyError
-        if file_url is not None:
-            blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name)
-            for blob in blob_list_eda:
-                if blob.name in file_url:
-                    blob_client = container_client.get_blob_client(blob)
-                    blob_data = blob_client.download_blob().readall()
-                    data_stream = BytesIO(blob_data)
-                    df = pd.read_excel(data_stream)
-                    print(df.head(5))
-        question = request.json.get('question')
-        if question is not None and question.strip():
-            print("question---->", question)
-            llm = AzureOpenAI(
-                deployment_name="gpt-4-0125-preview",
-                api_key=main_key,
-                azure_endpoint=("https://ea-openai.openai.azure.com/"),
-                api_version="2023-05-15")
+    output = ''
+    fig_json = {}
+    question = request.json['question']
+    print("Question received:", question)
+    # file_url = request.json['fileUrl']
+    # print(file_url)
+    # modified_path = file_url.replace(" ", "")
+    # print("modified_path----->", modified_path)
+    # response = requests.get(modified_path)
+    # # Create a temporary file to save the downloaded content
+    # with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+    #     # Write the content of the blob to the temporary file
+    #     temp_file.write(response.content)
+    #     temp_file_path = temp_file.name
+    # print(temp_file_path)
+    # df = pd.read_excel(temp_file_path, engine='xlrd')
+    df = pd.read_excel("NSE Academy - Feedback Form for Students(ES)- AY 2023-24(1-95).xlsx")
+    # print(df.head(5))
+    df.columns = df.columns.str.replace(' ', '_')
+    df.columns.str.replace('  ', '_')
+    prompt = f"""You are a python expert. You will be given questions for
+        manipulating an input dataframe.
+        The available columns are: `{df.columns}`.
+        Use them for extracting the relevant data.
+    """
+    anwser = [{"role": "system", "content": prompt}, {"role": "user", "content": question}]
 
-            agent = Agent(df, config={"llm": llm,
-                                      "open_charts": False,
-                                      "save_charts": True,
-                                      "save_logs": False,
-                                      "enable_cache": False,
-                                      "save_charts_path": f'static/login/{folder_name}/'})
-            output = agent.chat(question)
-            # print(type(output))
-            # print(output)
-            # Determine the type of output and handle accordingly
-            if isinstance(output, pd.DataFrame):
-                # It's a DataFrame, convert to JSON
-                output_json = output.to_json(orient='records')
-                output_type = 'table'
-            elif isinstance(output, (int, float)):
-                # It's a numeric value, convert to JSON serializable format directly
-                output_json = json.dumps(output)
-                output_type = 'numeric'
-            elif isinstance(output, str):
-                # It's text, serialize directly
-                output_json = json.dumps(output)
-                output_type = 'text'
+    # if 'plot' in anwser[-1]["content"].lower():
+    if question and 'plot' in anwser[-1]["content"].lower():
 
-            else:
-                # For other types, convert to string first (fallback case)
-                output_json = json.dumps(str(output))
-                output_type = 'unknown'
-            #     # Check if the image file exists
-            # Construct the path to the image
-            image_path = f'static/login/{folder_name}/'
-            png_file = None
+        code_prompt = """
+            Generate the code <code> for plotting the previous data in plotly,
+            in the format requested. The solution should be given using plotly
+            and only plotly. Do not use matplotlib. Do not load any data set use default loaded data as df.
+            Return the code <code> in the following
+            format ```python <code>```
+        """
+        anwser.append({
+            "role": "assistant",
+            "content": code_prompt
+        })
+        response = client.chat.completions.create(
+            model="gpt-35-turbo",
+            messages=anwser,
+            max_tokens=256
+        )
 
-            # Check if the directory exists
-            if os.path.exists(image_path):
-                # print(image_path)
-                # Find a PNG file in the directory
-                for file_name in os.listdir(image_path):
-                    if file_name.endswith('.png'):
-                        png_file = os.path.join(image_path, file_name)
-                        break
+        code = extract_python_code(response.choices[0].message.content)
 
-            # If a PNG file was found, read and encode it
-            if png_file:
-                with open(png_file, "rb") as img_file:
-                    img_data = img_file.read()
-                    img_base64 = base64.b64encode(img_data).decode('utf-8')
+        # code = extract_python_code(response["choices"][0]["messages"][0]["content"])
+        print("code------->", code)
 
-                # Delete the file after reading it
-                output_json = question
-                os.remove(png_file)
-            response = {
-                'success': True,
-                'message': 'Question processed successfully',
-                'output_any': output_json,
-                'output_type': output_type,
-                'image': img_base64  # Sending base64 encoded image or None if image doesn't exist
-            }
-            return jsonify(response)
+        if code is None:
+            warning = ("Couldn't find data to plot in the chat. Check if the number of tokens is too low for the data "
+                       "at hand. I.e. if the generated code is cut off, this might be the case.")
+            return jsonify({"message": warning})
         else:
-            response = {
-                'success': False,
-                'message': 'No question provided'
-            }
+            # In the Flask route /Eda_Process
+            code = code.replace("fig.show()", "")
 
-            return jsonify(response)
-    except Exception as e:
-        return jsonify({'message': 'Error occurred while EDA process: {}'.format(str(e))}), 500
+            # Dictionary to hold globals after exec
+            exec_globals = {}
+
+            # Execute the code
+            exec(code, {'df': df}, exec_globals)
+
+            # Retrieve 'fig' from the globals
+            fig = exec_globals.get('fig')
+
+            # After retrieving 'fig' from the globals
+            if fig is not None and isinstance(fig, go.Figure):
+                # Convert the Plotly figure to PNG image bytes
+                img_bytes = pio.to_image(fig, format="png")
+
+                # Encode the image bytes to base64
+                img_base64 = base64.b64encode(img_bytes).decode("utf-8")
+
+                # Return the base64 encoded image as a Flask response
+                return jsonify({"image": img_base64})
+            else:
+                return jsonify(
+                    {"error": "Failed to generate plot: 'fig' is not defined or is not a valid Plotly figure"})
+    else:
+
+        llm = AzureChatOpenAI(azure_deployment="gpt-4-0125-preview", model_name="gpt-4", temperature=0.50,
+                              max_tokens=256)
+        pandas_df_agent = create_pandas_dataframe_agent(
+            llm,
+            df,
+            verbose=True,
+            return_intermediate_steps=True,
+            agent_type=AgentType.OPENAI_FUNCTIONS
+        )
+
+        answ = pandas_df_agent.invoke(anwser)
+        print("answ---->", answ)
+        if answ["intermediate_steps"]:
+            print("Intermediate")
+            action = answ["intermediate_steps"][-1][0].tool_input["query"]
+            output = f"Executed the code ```{action}```"
+            output = answ["output"] + output
+        else:
+            output = answ["output"]
+
+        # Generate dummy graph data
+        graph_data = fig_json
+
+        # Combine text and graph data into a single response
+        response = {
+            'success': True,
+            'message': 'Question processed successfully',
+            'text': output,
+            'graph': graph_data
+        }
+
+        return jsonify(response)
+
+    # return jsonify({'success': True, 'message': 'Data processed successfully'})
+    # else:
+    #     return jsonify({'success': False, 'message': 'No file URL provided'})
+
+
+def extract_python_code(text):
+    pattern = r'```python\s(.*?)```'
+    matches = re.findall(pattern, text, re.DOTALL)
+    if not matches:
+        return None
+    else:
+        return matches[0]
 
 
 @app.route('/blank')
