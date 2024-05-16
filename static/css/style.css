@@ -506,9 +506,8 @@
     transform: translateX(-50%); /* Move left by 50% of its own width */
     width: 90%; /* Adjust width as needed */
     max-width: 400px; /* Set a max width */
-    height: calc(100% - 100px); /* Take 100px space from top and bottom */
+    height: auto; /* Take 100px space from top and bottom */
     overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0, 0, 0, 0.5); /* Black w/ opacity */
     display: flex;
     justify-content: flex-start; /* Align to the left */
     align-items: center; /* Center vertically */

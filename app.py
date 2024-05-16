@@ -703,10 +703,10 @@ def create_pie_chart():
         progress_list = session['progress_list']
         failed_list = session['failed_list']
 
-        print('tfs', total_files_list)
-        print('sf', successful_list)
-        print('pl', progress_list)
-        print('fl', failed_list)
+        # print('tfs', total_files_list)
+        # print('sf', successful_list)
+        # print('pl', progress_list)
+        # print('fl', failed_list)
     else:
         # print('Pie Default value')
         # Default values
@@ -757,7 +757,7 @@ def gauge_chart_auth():
         success_rate = 0
         over_all_readiness = 0
 
-    print("gauge-------->auth", success_rate, over_all_readiness)
+    # print("gauge-------->auth", success_rate, over_all_readiness)
 
     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
 
