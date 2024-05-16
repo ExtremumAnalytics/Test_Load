@@ -42,8 +42,8 @@
 
 
     // Session expiry warning
-var sessionTimeout = 1200; // 60 seconds = 1 minute 5 min
-var warningTimeout = 120; // 10 seconds before session expiry
+var sessionTimeout = 3600; // 60 seconds = 1 minute 5 min
+var warningTimeout = 300; // 10 seconds before session expiry
 var lastActivity = new Date().getTime();
 
 // Function to check session status

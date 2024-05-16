@@ -1756,6 +1756,8 @@ def Eda_Process():
                     img_base64 = base64.b64encode(img_data).decode('utf-8')
                 # Delete the file after reading it
                 # output_json = question
+                output_json = json.dumps(question)
+                output_type = 'text'
                 os.remove(png_file)
 
             response = {
