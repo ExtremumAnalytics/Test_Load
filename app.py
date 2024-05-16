@@ -1677,37 +1677,103 @@ def select_pdf_file():
         return jsonify({'message': 'Error occurred while deleting file: {}'.format(str(e))}), 500
 
 
+Q_data = {}
+
+
 @app.route("/Eda_Process", methods=['POST'])
 def Eda_Process():
-    global df, folder_name
-    output = ''
-    file_url = request.json.get('fileUrl')  # Use .get() to avoid KeyError
-    if file_url is not None:
-        folder_name = str(session['login_pin'])
-        blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name)
-        for blob in blob_list_eda:
-            if blob.name in file_url:
-                blob_client = container_client.get_blob_client(blob)
-                blob_data = blob_client.download_blob().readall()
-                data_stream = BytesIO(blob_data)
-                df = pd.read_excel(data_stream)
-                print(df.head(5))
-    question = request.json.get('question')
-    if question is not None:
-        llm = AzureOpenAI(
-            deployment_name="gpt-4-0125-preview",
-            api_key=main_key,
-            azure_endpoint=("https://ea-openai.openai.azure.com/"),
-            api_version="2023-05-15")
-        agent = Agent(df, config={"llm": llm, "enable_cache": False, "save_charts": True, "save_charts_path": f'static/login/{folder_name}/'})
-        outputs = agent.chat(question)
-        print(outputs)
-    response = {
-        'success': True,
-        'message': 'Question processed successfully',
-        'text': output
-    }
-    return jsonify(response)
+    global df, png_file
+    img_base64 = None
+    folder_name = str(session['login_pin'])
+    try:
+        file_url = request.json.get('fileUrl')  # Use .get() to avoid KeyError
+        if file_url is not None:
+            blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name)
+            for blob in blob_list_eda:
+                if blob.name in file_url:
+                    blob_client = container_client.get_blob_client(blob)
+                    blob_data = blob_client.download_blob().readall()
+                    data_stream = BytesIO(blob_data)
+                    df = pd.read_excel(data_stream)
+                    print(df.head(5))
+                    return jsonify({"message":"Data Loaded Successfuly. Ask Virtual Analyst!"})
+        question = request.json.get('question')
+
+        if question is not None and question.strip():
+            print("question---->", question)
+            jsonify({'message':'Question received.'})
+            llm = AzureOpenAI(
+                deployment_name="gpt-4-0125-preview",
+                api_key=main_key,
+                azure_endpoint=("https://ea-openai.openai.azure.com/"),
+                api_version="2023-05-15")
+            
+            agent = Agent(df, config={"llm": llm,
+                                      "save_charts": True,
+                                      "save_logs": False,
+                                      "enable_cache": False,
+                                      "save_charts_path":f'static/files/image',
+                                      "open_charts": False,
+                                      "max_retries": 1
+                                      })
+
+            output = agent.chat(question)
+            print(type(output))
+            print(output)
+            # Determine the type of output and handle accordingly
+            if isinstance(output, pd.DataFrame):
+                # It's a DataFrame, convert to JSON
+                output_json = output.to_json(orient='records')
+                output_type = 'table'
+            elif isinstance(output, (int, float)):
+                # It's a numeric value, convert to JSON serializable format directly
+                output_json = json.dumps(output)
+                output_type = 'numeric'
+            elif isinstance(output, str):
+                # It's text, serialize directly
+                output_json = json.dumps(output)
+                output_type = 'text'
+            else:
+                # For other types, convert to string first (fallback case)
+                output_json = json.dumps(str(output))
+                output_type = 'unknown'
+            #     # Check if the image file exists
+            # Construct the path to the image
+            image_path = f'static/files/image/'
+            png_file = None
+            # Check if the directory exists
+            if os.path.exists(image_path):
+                print(image_path)
+                # Find a PNG file in the directory
+                for file_name in os.listdir(image_path):
+                    if file_name.endswith('.png'):
+                        png_file = os.path.join(image_path, file_name)
+                        break
+            # If a PNG file was found, read and encode it
+            if png_file:
+                with open(png_file, "rb") as img_file:
+                    img_data = img_file.read()
+                    img_base64 = base64.b64encode(img_data).decode('utf-8')
+                # Delete the file after reading it
+                # output_json = question
+                os.remove(png_file)
+
+            response = {
+                'success': True,
+                'message': 'Question Processed Successfully!',
+                'output_any': output_json,
+                'output_type': output_type,
+                'image': img_base64  # Sending base64 encoded image or None if image doesn't exist
+            }
+            return jsonify(response)
+        else:
+            response = {
+                'success': False,
+                'message': 'No Question Provided!!'
+            }
+            return jsonify(response)
+    except Exception as e:
+        return jsonify({'message': 'Error occurred while EDA process: {}'.format(str(e))}), 500
 
 
 @app.route('/blank')

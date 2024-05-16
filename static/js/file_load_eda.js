@@ -65,143 +65,234 @@ function loadData() {
     contentType: 'application/json',
     success: function(response) {
       // Handle success response, if needed
+      closeModal()
+      $('#message').text(response.message);
     }
   });
 }
 
-// $(document).ready(function() {
-//   $("#eda_generate").click(function() {
-//       var question = $("#question_eda").val();
-//       $.ajax({
-//           url: "/Eda_Process",
-//           type: "POST",
-//           contentType: "application/json",
-//           data: JSON.stringify({ question: question }),
-//           success: function(response) {
-//               // Update the text response content
-//               $("#eda_questionAnswer").html("<p>" + response.text + "</p>");
+// Function to clear the chat content
+function clearChat() {
+  document.getElementById('eda_questionAnswer').innerHTML = '';
+  $('#message').text(data.message);
+  setTimeout(function() {
+    $('#message').text('');
+  }, 8000); // 8 seconds ke baad delete
+}
 
-//               // Parse the Plotly JSON
-//               var plotlyData = JSON.parse(response.graph);
 
-//               // Render the Plotly chart
-//               Plotly.newPlot('eda_graph', plotlyData.data, plotlyData.layout);
-//           },
-//           error: function(xhr, status, error) {
-//               console.error(error);
-//           }
-//       });
-//   });
-// });
 
-$(document).ready(function() {
-    // Function to handle the rendering of data based on the response
-    function renderData(data) {
-        const container = document.getElementById('dataContainer');
-        if (!container) {
-            console.error("Container element not found.");
-            return;
-        }
-  
-        try {
-            container.innerHTML = ''; // Clear previous content
-  
-            // Check if data is likely a table (look for table indicators such as multiple rows and columns)
-            if (data.includes('|')) {
-                // Assuming '|' is used to separate table columns in your text output
-                let formattedTable = '<table border="1"><tr>';
-                const lines = data.split('\n');
-  
-                lines.forEach((line, index) => {
-                    if (line.trim()) { // Check if the line is not just whitespace
-                        if (index === 1) { // Assuming second line is always headers (customize as needed)
-                            line.split('|').forEach(header => {
-                                if (header.trim()) {
-                                    formattedTable += `<th>${header.trim()}</th>`;
-                                }
-                            });
-                            formattedTable += '</tr>';
-                        } else {
-                            formattedTable += '<tr>';
-                            line.split('|').forEach(column => {
-                                if (column.trim()) {
-                                    formattedTable += `<td>${column.trim()}</td>`;
-                                }
-                            });
-                            formattedTable += '</tr>';
-                        }
-                    }
-                });
-  
-                formattedTable += '</table>';
-                container.innerHTML = formattedTable;
-            } else {
-                // If it's just text, wrap in a paragraph for better formatting
-                container.innerHTML = `<p>${data}</p>`;
-            }
-        } catch (error) {
-            console.error("Error rendering data:", error);
-            container.innerHTML = "<p>Error rendering data. Please try again.</p>";
-        }
-    }
-  
-    // Function to handle fetching data on initial load or based on user input
-    function fetchData(question = "") {
-        $("#waitImg").show(); // Show the loading image
-        $.ajax({
-            url: "/Eda_Process",
-            type: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({ question: question }),
-            success: function(response) {
-                $("#waitImg").hide(); // Hide the loading image
-                try {
-                    // Handle the response here
-                    if (response.text) {
-                        renderData(response.text);
-                    }
-  
-                    if (response.image) {
-                        // Create an image element
-                        var img = document.createElement('img');
-  
-                        // Set the source of the image to the base64 encoded string received from the server
-                        img.src = "data:image/png;base64," + response.image;
-  
-                        // Append the image to the container
-                        $("#eda_graph").html(img);
-                    } else if (response.graph) {
-                        // Check if the response.graph is already an object
-                        if (typeof response.graph === 'string') {
-                            var plotlyData = JSON.parse(response.graph);
-                            Plotly.newPlot('eda_graph', plotlyData.data, plotlyData.layout);
-                        } else {
-                            // If it's already an object, use it directly
-                            Plotly.newPlot('eda_graph', response.graph.data, response.graph.layout);
-                        }
-                    } else {
-                        $("#eda_graph").html("<p>No graphical data provided.</p>");
-                    }
-                } catch (error) {
-                    console.error("Error processing response:", error);
-                    $("#dataContainer").html("<p>Error in processing the data.</p>");
-                }
-            },
-            error: function(xhr, status, error) {
-                $("#waitImg").hide(); // Hide the loading image
-                console.error("AJAX error:", error);
-                $("#dataContainer").html("<p>Failed to get response. Please try again.</p>");
-            }
-        });
-    }
-  
-    // Event listener for the generate button
-    $("#eda_generate").click(function() {
-        var question = $("#question_eda").val();
-        fetchData(question);
-    });
-  
-    // Initial fetch with no question (default data load)
-    fetchData();
+// function sendQuestion() {
+//     const question = document.getElementById('question_eda').value;
+//     fetch('/Eda_Process', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//         },
+//         body: JSON.stringify({ question })
+//     })
+//     .then(response => {
+//         if (!response.ok) {
+//             throw new Error('Network response was not ok');
+//         }
+//         return response.json();
+//     })
+//     .then(data => {
+//         // Parse JSON string to array if it's a string
+//         if (typeof data.output_any === 'string') {
+//             data.output_any = JSON.parse(data.output_any);
+//         }
+
+//         // Check the type of output and display accordingly
+//         switch(data.output_type) {
+//             case 'table':
+//                 // Assuming data is an array of objects
+//                 if (Array.isArray(data.output_any)) {
+//                     let tableHTML = '<table><thead><tr>';
+//                     Object.keys(data.output_any[0]).forEach(key => {
+//                         tableHTML += `<th>${key}</th>`;
+//                     });
+//                     tableHTML += '</tr></thead><tbody>';
+//                     data.output_any.forEach(row => {
+//                         tableHTML += '<tr>';
+//                         Object.values(row).forEach(value => {
+//                             tableHTML += `<td>${value}</td>`;
+//                         });
+//                         tableHTML += '</tr>';
+//                     });
+//                     tableHTML += '</tbody></table>';
+//                     document.getElementById('eda_questionAnswer').innerHTML = tableHTML;
+//                 } else {
+//                     // Handle invalid table data
+//                     document.getElementById('eda_questionAnswer').textContent = 'Invalid table data';
+//                 }
+//                 break;
+//             case 'numeric':
+//             case 'text':
+//                 // Directly display numeric and text data
+//                 document.getElementById('eda_questionAnswer').textContent = data.output_any;
+//                 break;
+//             default:
+//                 // Handle unknown type
+//                 document.getElementById('eda_questionAnswer').textContent = 'Unknown data type';
+//         }
+//     })
+//     .catch(error => {
+//         console.error('Failed to send question:', error);
+//         document.getElementById('eda_questionAnswer').textContent = 'Failed to send question';
+//     });
+// }
+
+
+
+// table line js
+
+// function sendQuestion() {
+//     const question = document.getElementById('question_eda').value;
+//     fetch('/Eda_Process', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//         },
+//         body: JSON.stringify({ question })
+//     })
+//     .then(response => {
+//         if (!response.ok) {
+//             throw new Error('Network response was not ok');
+//         }
+//         return response.json();
+//     })
+//     .then(data => {
+//         // Parse JSON string to array if it's a string
+//         if (typeof data.output_any === 'string') {
+//             data.output_any = JSON.parse(data.output_any);
+//         }
+
+//         // Check the type of output and display accordingly
+//         switch(data.output_type) {
+//             case 'table':
+//                 // Assuming data is an array of objects
+//                 if (Array.isArray(data.output_any)) {
+//                     let tableHTML = '<table style="border-collapse: collapse;"><thead><tr>';
+//                     Object.keys(data.output_any[0]).forEach(key => {
+//                         tableHTML += `<th style="border: 1px solid black; padding: 8px;">${key}</th>`;
+//                     });
+//                     tableHTML += '</tr></thead><tbody>';
+//                     data.output_any.forEach(row => {
+//                         tableHTML += '<tr>';
+//                         Object.values(row).forEach(value => {
+//                             tableHTML += `<td style="border: 1px solid black; padding: 8px;">${value}</td>`;
+//                         });
+//                         tableHTML += '</tr>';
+//                     });
+//                     tableHTML += '</tbody></table>';
+//                     document.getElementById('eda_questionAnswer').innerHTML = tableHTML;
+//                 } else {
+//                     // Handle invalid table data
+//                     document.getElementById('eda_questionAnswer').textContent = 'Invalid table data';
+//                 }
+//                 break;
+//             case 'numeric':
+//             case 'text':
+//                 // Directly display numeric and text data
+//                 document.getElementById('eda_questionAnswer').textContent = data.output_any;
+//                 break;
+//             default:
+//                 // Handle unknown type
+//                 document.getElementById('eda_questionAnswer').textContent = data.output_any;
+//         }
+//     })
+//     .catch(error => {
+//         console.error('Failed to send question:', error);
+//         document.getElementById('eda_questionAnswer').textContent = 'Failed to send question';
+//     });
+// }
+
+
+
+// table line js with image handle js
+
+function sendQuestion() {
+  const question = document.getElementById('question_eda').value;
+  $("#waitImg").show(); // Show the loading image
+  fetch('/Eda_Process', {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ question })
+  })
+  .then(response => {
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      return response.json();
+  })
+  .then(data => {
+      $("#waitImg").hide(); // Hide the loading image on success
+      $('#message').text(data.message);
+      setTimeout(function() {
+        $('#message').text('');
+      }, 8000); // 8 seconds ke baad delete
+      // Parse JSON string to array if it's a string
+      if (typeof data.output_any === 'string') {
+          data.output_any = JSON.parse(data.output_any);
+          $("#waitImg").hide(); // Hide the loading image on success
+          $('#message').text(data.message);
+          setTimeout(function() {
+            $('#message').text('');
+          }, 8000); // 8 seconds ke baad delete
+      }
+
+      // Initialize the content to be displayed
+      let displayContent = '';
+
+      // Check the type of output and create appropriate content
+      switch(data.output_type) {
+          case 'table':
+              // Assuming data is an array of objects
+              if (Array.isArray(data.output_any)) {
+                  let tableHTML = '<table style="border-collapse: collapse;"><thead><tr>';
+                  Object.keys(data.output_any[0]).forEach(key => {
+                      tableHTML += `<th style="border: 1px solid black; padding: 8px;">${key}</th>`;
+                  });
+                  tableHTML += '</tr></thead><tbody>';
+                  data.output_any.forEach(row => {
+                      tableHTML += '<tr>';
+                      Object.values(row).forEach(value => {
+                          tableHTML += `<td style="border: 1px solid black; padding: 8px;">${value}</td>`;
+                      });
+                      tableHTML += '</tr>';
+                  });
+                  tableHTML += '</tbody></table>';
+                  displayContent = tableHTML;
+              } else {
+                  // Handle invalid table data
+                  displayContent = 'Invalid table data';
+              }
+              break;
+          case 'numeric':
+          case 'text':
+              // Directly display numeric and text data
+              displayContent = data.output_any;
+              break;
+          default:
+              // Handle unknown type
+              displayContent = 'Unknown response type';
+      }
+
+      // Check if there's an image and add it to the content
+      if (data.image) {
+          const imageUrl = `data:image/png;base64,${data.image}`;
+          displayContent += `<div><img src="${imageUrl}" alt="Processed Image" style="max-width: 100%; height: auto;" /></div>`;
+      }
+
+      // Display the final content
+      document.getElementById('eda_questionAnswer').innerHTML = displayContent;
+
+  })
+  .catch(error => {
+      console.error('Failed to send question:', error);
+      document.getElementById('eda_questionAnswer').textContent = 'Failed to send question';
   });
 }
