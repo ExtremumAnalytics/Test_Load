@@ -73,17 +73,17 @@ matplotlib.use('Agg')
 # from langchain.schema.output_parser import OutputParserException
 # from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-# # for default Azure account use only
-# openapi_key = "OPENAI-API-KEY"
-# KVUri = f"https://eavault.vault.azure.net/"
-# credential = DefaultAzureCredential()
-# client = SecretClient(vault_url=KVUri, credential=credential)
-# retrieved_secret = client.get_secret(openapi_key)
-# main_key = retrieved_secret.value
+# for default Azure account use only
+openapi_key = "OPENAI-API-KEY"
+KVUri = f"https://eavault.vault.azure.net/"
+credential = DefaultAzureCredential()
+client = SecretClient(vault_url=KVUri, credential=credential)
+retrieved_secret = client.get_secret(openapi_key)
+main_key = retrieved_secret.value
 
-# for local use only
-load_dotenv()
-main_key = os.environ["Main_key"]
+# # for local use only
+# load_dotenv()
+# main_key = os.environ["Main_key"]
 
 # os.environ["OPENAI_API_TYPE"] = "azure"
 # os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
@@ -142,26 +142,26 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# Your Azure Storage Account details
-account_name = os.environ['account_name']
-account_key = os.environ['account_key']
-container_name = os.environ['container_name']
+# # Your Azure Storage Account details
+# account_name = os.environ['account_name']
+# account_key = os.environ['account_key']
+# container_name = os.environ['container_name']
 
-# Create a BlobServiceClient object
-connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-container_client = blob_service_client.get_container_client(container_name)
-
-
-# # for Azure use only
-# account_name = "testcongnilink"
-# container_name = "congnilink-container"
-#
-# account_url = "https://testcongnilink.blob.core.windows.net"
-# default_credential = DefaultAzureCredential()
-#
-# blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+# # Create a BlobServiceClient object
+# connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+# blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 # container_client = blob_service_client.get_container_client(container_name)
+
+
+# for Azure use only
+account_name = "testcongnilink"
+container_name = "congnilink-container"
+
+account_url = "https://testcongnilink.blob.core.windows.net"
+default_credential = DefaultAzureCredential()
+
+blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+container_client = blob_service_client.get_container_client(container_name)
 
 
 def create_or_pass_folder(container_client, session):
