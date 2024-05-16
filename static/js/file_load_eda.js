@@ -54,6 +54,10 @@ function closeModal() {
 // Load data from selected file
 function loadData() {
   var selectedFileUrl = document.getElementById("fileList").value;
+  // $('#message').text(data.message);
+  setTimeout(function() {
+    $('#message').text('');
+  }, 8000); // 8 seconds ke baad delete
   $.ajax({
     url: '/Eda_Process',
     type: 'POST',
@@ -62,6 +66,7 @@ function loadData() {
     success: function(response) {
       // Handle success response, if needed
       closeModal()
+      $('#message').text(response.message);
     }
   });
 }
@@ -69,6 +74,10 @@ function loadData() {
 // Function to clear the chat content
 function clearChat() {
   document.getElementById('eda_questionAnswer').innerHTML = '';
+  $('#message').text(data.message);
+  setTimeout(function() {
+    $('#message').text('');
+  }, 8000); // 8 seconds ke baad delete
 }
 
 
@@ -205,6 +214,7 @@ function clearChat() {
 
 function sendQuestion() {
   const question = document.getElementById('question_eda').value;
+  $("#waitImg").show(); // Show the loading image
   fetch('/Eda_Process', {
       method: 'POST',
       headers: {
@@ -219,9 +229,19 @@ function sendQuestion() {
       return response.json();
   })
   .then(data => {
+      $("#waitImg").hide(); // Hide the loading image on success
+      $('#message').text(data.message);
+      setTimeout(function() {
+        $('#message').text('');
+      }, 8000); // 8 seconds ke baad delete
       // Parse JSON string to array if it's a string
       if (typeof data.output_any === 'string') {
           data.output_any = JSON.parse(data.output_any);
+          $("#waitImg").hide(); // Hide the loading image on success
+          $('#message').text(data.message);
+          setTimeout(function() {
+            $('#message').text('');
+          }, 8000); // 8 seconds ke baad delete
       }
 
       // Initialize the content to be displayed
@@ -269,6 +289,7 @@ function sendQuestion() {
 
       // Display the final content
       document.getElementById('eda_questionAnswer').innerHTML = displayContent;
+
   })
   .catch(error => {
       console.error('Failed to send question:', error);

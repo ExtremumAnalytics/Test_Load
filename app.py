@@ -60,8 +60,10 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer
 # for EDA
 import pandas as pd
 import pandasai
+import matplotlib
 from pandasai import Agent
 from pandasai.llm import AzureOpenAI
+matplotlib.use('Agg')
 # import re
 # import pandas as pd
 # from openai import AzureOpenAI
@@ -71,17 +73,17 @@ from pandasai.llm import AzureOpenAI
 # from langchain.schema.output_parser import OutputParserException
 # from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-# for default Azure account use only
-openapi_key = "OPENAI-API-KEY"
-KVUri = f"https://eavault.vault.azure.net/"
-credential = DefaultAzureCredential()
-client = SecretClient(vault_url=KVUri, credential=credential)
-retrieved_secret = client.get_secret(openapi_key)
-main_key = retrieved_secret.value
+# # for default Azure account use only
+# openapi_key = "OPENAI-API-KEY"
+# KVUri = f"https://eavault.vault.azure.net/"
+# credential = DefaultAzureCredential()
+# client = SecretClient(vault_url=KVUri, credential=credential)
+# retrieved_secret = client.get_secret(openapi_key)
+# main_key = retrieved_secret.value
 
-# # for local use only
-# load_dotenv()
-# main_key = os.environ["Main_key"]
+# for local use only
+load_dotenv()
+main_key = os.environ["Main_key"]
 
 # os.environ["OPENAI_API_TYPE"] = "azure"
 # os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
@@ -140,26 +142,26 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# # Your Azure Storage Account details
-# account_name = os.environ['account_name']
-# account_key = os.environ['account_key']
-# container_name = os.environ['container_name']
+# Your Azure Storage Account details
+account_name = os.environ['account_name']
+account_key = os.environ['account_key']
+container_name = os.environ['container_name']
 
-# # Create a BlobServiceClient object
-# connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-# blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-# container_client = blob_service_client.get_container_client(container_name)
-
-
-# for Azure use only
-account_name = "testcongnilink"
-container_name = "congnilink-container"
-
-account_url = "https://testcongnilink.blob.core.windows.net"
-default_credential = DefaultAzureCredential()
-
-blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+# Create a BlobServiceClient object
+connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 container_client = blob_service_client.get_container_client(container_name)
+
+
+# # for Azure use only
+# account_name = "testcongnilink"
+# container_name = "congnilink-container"
+#
+# account_url = "https://testcongnilink.blob.core.windows.net"
+# default_credential = DefaultAzureCredential()
+#
+# blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+# container_client = blob_service_client.get_container_client(container_name)
 
 
 def create_or_pass_folder(container_client, session):
@@ -267,7 +269,7 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
                 file_type = 'DOCX'
             elif file_name.endswith('.mp3'):
                 file_type = 'MP3'
-            elif file_name.endswith('.xlsx') or file_name.endswith('.xls'):
+            elif file_name.endswith('.xlsx') or file_name.endswith('.xlscd .'):
                 file_type = 'XLSX'
             else:
                 file_type = 'Other'
@@ -643,7 +645,6 @@ app.config['DEBUG'] = True
 db = SQLAlchemy(app)
 app.secret_key = os.urandom(24)
 
-
 class FileStorage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(255), nullable=False)
@@ -702,10 +703,10 @@ def create_pie_chart():
         progress_list = session['progress_list']
         failed_list = session['failed_list']
 
-        # print('tfs', total_files_list)
-        # print('sf', successful_list)
-        # print('pl', progress_list)
-        # print('fl', failed_list)
+        print('tfs', total_files_list)
+        print('sf', successful_list)
+        print('pl', progress_list)
+        print('fl', failed_list)
     else:
         # print('Pie Default value')
         # Default values
@@ -756,7 +757,7 @@ def gauge_chart_auth():
         success_rate = 0
         over_all_readiness = 0
 
-    # print("gauge-------->auth", success_rate, over_all_readiness)
+    print("gauge-------->auth", success_rate, over_all_readiness)
 
     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
 
@@ -1676,6 +1677,9 @@ def select_pdf_file():
         return jsonify({'message': 'Error occurred while deleting file: {}'.format(str(e))}), 500
 
 
+Q_data = {}
+
+
 @app.route("/Eda_Process", methods=['POST'])
 def Eda_Process():
     global df, png_file
@@ -1692,24 +1696,30 @@ def Eda_Process():
                     data_stream = BytesIO(blob_data)
                     df = pd.read_excel(data_stream)
                     print(df.head(5))
+                    return jsonify({"message":"Data Loaded Successfuly. Ask Virtual Analyst!"})
         question = request.json.get('question')
+
         if question is not None and question.strip():
             print("question---->", question)
+            jsonify({'message':'Question received.'})
             llm = AzureOpenAI(
                 deployment_name="gpt-4-0125-preview",
                 api_key=main_key,
                 azure_endpoint=("https://ea-openai.openai.azure.com/"),
                 api_version="2023-05-15")
-
+            
             agent = Agent(df, config={"llm": llm,
-                                      "open_charts": False,
                                       "save_charts": True,
                                       "save_logs": False,
                                       "enable_cache": False,
-                                      "save_charts_path": f'static/login/{folder_name}/'})
+                                      "save_charts_path":f'static/files/image',
+                                      "open_charts": False,
+                                      "max_retries": 1
+                                      })
+
             output = agent.chat(question)
-            # print(type(output))
-            # print(output)
+            print(type(output))
+            print(output)
             # Determine the type of output and handle accordingly
             if isinstance(output, pd.DataFrame):
                 # It's a DataFrame, convert to JSON
@@ -1723,37 +1733,34 @@ def Eda_Process():
                 # It's text, serialize directly
                 output_json = json.dumps(output)
                 output_type = 'text'
-
             else:
                 # For other types, convert to string first (fallback case)
                 output_json = json.dumps(str(output))
                 output_type = 'unknown'
             #     # Check if the image file exists
             # Construct the path to the image
-            image_path = f'static/login/{folder_name}/'
+            image_path = f'static/files/image/'
             png_file = None
-
             # Check if the directory exists
             if os.path.exists(image_path):
-                # print(image_path)
+                print(image_path)
                 # Find a PNG file in the directory
                 for file_name in os.listdir(image_path):
                     if file_name.endswith('.png'):
                         png_file = os.path.join(image_path, file_name)
                         break
-
             # If a PNG file was found, read and encode it
             if png_file:
                 with open(png_file, "rb") as img_file:
                     img_data = img_file.read()
                     img_base64 = base64.b64encode(img_data).decode('utf-8')
-
                 # Delete the file after reading it
-                output_json = question
+                # output_json = question
                 os.remove(png_file)
+
             response = {
                 'success': True,
-                'message': 'Question processed successfully',
+                'message': 'Question Processed Successfully!',
                 'output_any': output_json,
                 'output_type': output_type,
                 'image': img_base64  # Sending base64 encoded image or None if image doesn't exist
@@ -1762,9 +1769,8 @@ def Eda_Process():
         else:
             response = {
                 'success': False,
-                'message': 'No question provided'
+                'message': 'No Question Provided!!'
             }
-
             return jsonify(response)
     except Exception as e:
         return jsonify({'message': 'Error occurred while EDA process: {}'.format(str(e))}), 500
@@ -1789,14 +1795,6 @@ def signup():
 def file_manager():
     return render_template('webCrawl_file_manager.html')
 
-
-# @app.route('/typography')
-# def typography():
-#     return render_template('typography.html')
-
-# @app.route('/widget')
-# def widget():
-#     return render_template('widget.html')
 
 @app.route('/_404')
 def _404():
