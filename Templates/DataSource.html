@@ -63,7 +63,7 @@
                     <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-database"></i>Data Source</a></li>
                     <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-question-circle"></i>Ask Question</a></li>
                     <li><a href="{{url_for('summary')}}" class="nav-link"><i class="fa fa-list-alt"></i>Summary</a></li>
-                    <li><a href="{{url_for('eda_analysis')}}" class="nav-link"><i class="fa fa-chart-bar"></i>EDA</a></li>
+                    <li><a href="{{url_for('eda_analysis')}}" class="nav-link"><i class="fa fa-chart-bar"></i>Virtual Analyst</a></li>
                     <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-chart-pie"></i>Data & Analytics</a></li>
                 </ul>
             </nav>
@@ -209,9 +209,19 @@
                 </div>
                 
                 <!-- Source Load Container -->
-                <div class="lds d-flex m-2 p-2">
+                <div class="lds d-flex m-2 p-2" id="sourceContainer">
                     <p id="defaultMsg" style="display: block;">Please Select Any Data Sources!</p>
                     
+                    <!-- After Link Submit -->
+                    <div id="close" class="p-2" style="display: none;">
+                        <p style="color:#000000;">Linking Successful. Please Load the Cogni Link!</p>
+                    </div>
+
+                    <!-- After Load CogniLinks -->
+                    <div id="loadData" class="p-2" style="display: none;">
+                        <p style="color:#000000;">Load CogniLink Successful!</p>
+                    </div>
+
                     <!-- Data Base Container -->
                     <div id="databaseForm" class="database-container p-2" style="display: none;">
                         <label class="mb-2" style="color:#000000;" for="database">Database Connection:</label>
@@ -224,7 +234,7 @@
                             <div class="col-lg-12 d-flex justify-content-center">
                                 <div class="button-group">
                                     <button type="button" class="btn btn-primary mr-2" onclick="submitForm()" style="font-size: 14px;">Submit</button>
-                                    <button type="button" class="btn btn-secondary mr-2" onclick="closeLds()" style="font-size: 14px;">Close</button>
+                                    <button type="button" class="btn btn-secondary mr-2" onclick="pdfclosePopup()" style="font-size: 14px; display: none;">Close</button>
                                 </div>
                             </div>
                         </div>
@@ -240,7 +250,7 @@
                             <div class="col-lg-12 d-flex justify-content-center">
                                 <div class="button-group">
                                     <button type="button" class="btn btn-primary mr-2" onclick="submitForm()" style="font-size: 14px;">Submit</button>
-                                    <button type="button" class="btn btn-secondary mr-2" onclick="closeLds()" style="font-size: 14px;">Close</button>
+                                    <button type="button" class="btn btn-secondary mr-2" onclick="pdfclosePopup()" style="font-size: 14px; display: none;">Close</button>
                                 </div>
                             </div>
                         </div>
@@ -275,7 +285,7 @@
                                         <!-- <a href="{{url_for('file_manager')}}">File Manager</a> -->
                                         File Manager
                                     </button>
-                                    <button type="button" class="btn btn-secondary mr-2" onclick="closeLds()" style="font-size: 14px;">Close</button>
+                                    <button type="button" class="btn btn-secondary mr-2" onclick="pdfclosePopup()" style="font-size: 14px; display: none;">Close</button>
                                 </div>
                             </div>
                         </div>
@@ -292,7 +302,7 @@
                                 <div class="col-lg-12 d-flex justify-content-center">
                                     <div class="button-group">
                                         <button type="button" class="btn btn-primary mr-2" onclick="submitForm()" style="font-size: 14px;">Submit</button>
-                                        <button type="button" class="btn btn-secondary mr-2" onclick="closeLds()" style="font-size: 14px;">Close</button>
+                                        <button type="button" class="btn btn-secondary mr-2" onclick="pdfclosePopup()" style="font-size: 14px; display: none;">Close</button>
                                     </div>
                                 </div>
                             </div>
@@ -309,7 +319,7 @@
                                 <div class="col-lg-12 d-flex justify-content-center">
                                     <div class="button-group">
                                         <button type="button" class="btn btn-primary mr-2" onclick="submitForm()" style="font-size: 14px;">Submit</button>
-                                        <button type="button" class="btn btn-secondary mr-2" onclick="closeLds()" style="font-size: 14px;">Close</button>
+                                        <button type="button" class="btn btn-secondary mr-2" onclick="pdfclosePopup()" style="font-size: 14px; display:none;">Close</button>
                                     </div>
                                 </div>
                             </div>
@@ -399,11 +409,12 @@
                                 <tr class="text-dark">
                                     <th scope="col" >Name</th>
                                     <th scope="col">URL</th>
-                                    <th scope="col">Action</th>
-                                    <th scope="col" >
+                                    <th scope="col">Download</th>
+                                    <th scope="col">Delete</th>
+                                    <!-- <th scope="col" >
                                         <input class="form-check-input" id="selectAll" onclick="toggleSelectAll()" type="checkbox">
                                         <span class="mx-2">Select</span>
-                                    </th>
+                                    </th> -->
                                 </tr>
                             </thead>
                             <tbody id="table-body">

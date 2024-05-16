@@ -69,7 +69,7 @@
                         <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-database"></i>Data Source</a></li>
                         <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-question-circle"></i>Ask Question</a></li>
                         <li><a href="{{url_for('summary')}}" class="nav-link"><i class="fa fa-list-alt"></i>Summary</a></li>
-                        <li><a href="{{url_for('eda_analysis')}}" class="nav-link"><i class="fa fa-chart-bar"></i>EDA</a></li>
+                        <li><a href="{{url_for('eda_analysis')}}" class="nav-link" style="display: none;"><i class="fa fa-chart-bar"></i>Virtual Analyst</a></li>
                         <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-chart-pie"></i>Data & Analytics</a></li>
                     </ul>
                 </div>
@@ -165,7 +165,7 @@
                         <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
                             <a href="#" class="dropdown-item">My Profile</a>
                             <a href="#" class="dropdown-item">Settings</a>
-                            <a href="#" class="dropdown-item">Log Out</a>
+                            <a href="{{url_for('logout')}}" class="dropdown-item">Log Out</a>
                         </div>
                     </div>
                 </div>
@@ -173,38 +173,16 @@
             <!-- Navbar End -->
 
             <div class="container-ask mt-2">
-                <h2 class="welcome">Data Analytics Cogni Link!</h2>
+                <h2 class="welcome">Virtual Analyst Cogni Link!</h2>
                 <hr class="dropdown-divider">
-            </div> 
-            <!--div id="table-container" class="table-responsive d-flex">
-                <table id="data-table" class="table text-start align-middle table-bordered table-hover mb-0">
-                    <thead>
-                        <tr class="text-dark">
-                            <th scope="col">Name</th>
-                            <th scope="col">URL</th>
-                            <th scope="col">Action</th>
-                            <th scope="col" ><input class="form-check-input"  type="checkbox">Select</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                        <!- {% for file in files %}
-                        <tr>
-                            <td><input class="form-check-input" type="checkbox" name="selected_files" value="{{ file.name }}"></td>
-                            <td>{{ file.name }}</td>
-                            <td>
-                                <select class="form-select" name="action">
-                                        <option value="download">Download</option>
-                                        <option value="delete">Delete</option>
-                                </select>
-                            </td>
-                            <td><a class="btn btn-sm btn-primary" href="{{ url_for('static', filename=file.url) }}">View PDF</a></td>
-                        </tr>
-                            {% endfor %} ->
-                    </tbody>
-                </table>
             </div>
-        </div>
-    </div-->
+            
+            <!-- Message Alerts -->
+            <div class="flash_msg">
+                <div id="message" style="text-align: center;"></div>
+                <div id="warning" class="warningtxt" style="display: none;">Warning: Please Choose Source First!</div>
+            </div>
+
             <!-- Ask Form Start -->
             <div class="container-fluid d-flex flex-row">
                 <div class="container-fluid d-flex flex-column">
@@ -228,15 +206,17 @@
                                 </div>
                             </div>
   
-                                <button type="button" id="eda_generate" class="btn btn-primary mr-2" style="font-size: 14px;">Generate</button>
-                                <button type="button" id="clarCcvchat" onclick="clearcvdscvChat()" class="btn btn-primary mr-2" style="font-size: 14px;">Clear Chat</button>
+                                <button type="button" id="eda_generate" class="btn btn-primary mr-2" onclick="sendQuestion()" style="font-size: 14px;">Generate</button>
+                                <button type="button" id="clarCcvchat" onclick="clearChat()" class="btn btn-primary mr-2" style="font-size: 14px;">Clear Chat</button>
                             </div>
                         </div>
                     </div>
                     <div class="response col-lg-12 bg-light rounded p-4 mb-2">
                         <h6 class="mb-2">Response</h6>
                         <!-- Display a loading image while waiting for the response -->
-                        <img id="waitImg" src="static/img/wait.gif" alt="Wait" style="display: none;">
+                        <div class="d-flex align-content-center justify-content-center">
+                            <i id="waitImg" class="fa fa-spinner fa-spin" style="display: none; color: var(--primary); font-size: 64px;"></i>
+                        </div>
                         <div class="Answer" id="eda_questionAnswer">
                             <!-- Response content will be updated here -->
                         </div>

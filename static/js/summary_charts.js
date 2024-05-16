@@ -29,15 +29,15 @@
                 },
                 datalabels: {
                     color: '#000',
-                    formatter: (value, ctx2) => {
-                        let sum = 0;
-                        let dataArr = ctx2.chart.data.datasets[0].data;
-                        dataArr.map(data => {
-                            sum += data;
-                        });
-                        let percentage = (value*1000 / sum).toFixed(2)+"%";
-                        return percentage;
-                    },
+                    // formatter: (value, ctx2) => {
+                    //     let sum = 0;
+                    //     let dataArr = ctx2.chart.data.datasets[0].data;
+                    //     dataArr.map(data => {
+                    //         sum += data;
+                    //     });
+                    //     let percentage = (value*1000 / sum).toFixed(2)+"%";
+                    //     return percentage;
+                    // },
                     display: true,
                     align: 'center',
                     anchor: 'center'
