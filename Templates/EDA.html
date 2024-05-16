@@ -197,7 +197,7 @@
                                 <button type="button" id="table_container" onclick="table_data_retrieve()" class="btn btn-primary mr-2" style="font-size: 14px;">Select CogniLink Data</button>
                                 
                                 <!-- HTML for the Popup Modal -->
-                                <div id="myModal" class="modal">
+                                <div id="myModal" class="modal" style="display:none;">
                                     <div class="modal-content">
                                     <span class="close">&times;</span>
                                     <h2>Select File to Load</h2>
@@ -295,6 +295,7 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/file_load_eda.js') }}"></script>
     <script src="{{ url_for('static', filename='js/audio_q_a.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/eda_audio.js') }}"></script>
     <!--script src="{{ url_for('static', filename='js/warningpop.js') }}"></script-->
 </body>
 
