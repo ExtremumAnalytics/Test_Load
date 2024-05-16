@@ -20,7 +20,6 @@ mdurl==0.1.2
 multidict==6.0.4
 numpy==1.26.3
 packaging==23.2
-pandas==2.1.4
 plotly==5.18.0
 Pygments==2.17.2
 PySocks==1.7.1
