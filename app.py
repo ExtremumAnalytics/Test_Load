@@ -64,14 +64,6 @@ import matplotlib
 from pandasai import Agent
 from pandasai.llm import AzureOpenAI
 matplotlib.use('Agg')
-# import re
-# import pandas as pd
-# from openai import AzureOpenAI
-# from langchain_community.chat_models import AzureChatOpenAI
-# from langchain.agents import AgentType
-# from langchain_experimental.agents import create_pandas_dataframe_agent
-# from langchain.schema.output_parser import OutputParserException
-# from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 # for default Azure account use only
 openapi_key = "OPENAI-API-KEY"
