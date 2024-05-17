@@ -19,7 +19,7 @@ function updateImage() {
 setInterval(updateImage, 5000);
 
 document.addEventListener('DOMContentLoaded', function() {
-    var image = document.getElementById('wordcloud-image');
+    var image = document.getElementById('wordcloud-link');
 
     image.addEventListener('click', function() {
         var fullImageOverlay = document.createElement('div');
