@@ -57,6 +57,13 @@ from urllib.parse import urlparse
 
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
+# For database connection
+from flask import send_file
+import mysql.connector
+from pymongo import MongoClient
+import traceback
+import io
+
 # for EDA
 import pandas as pd
 import pandasai
@@ -1239,11 +1246,15 @@ def popup_form():
             for file in files:
                 upload_to_blob(file, session, blob_service_client, container_name)
 
-        elif request.form.get('dbURL', ''):
-            db_url = request.form.get('dbURL', '')
+        elif request.form.get('dbType', ''):
+            dbType = request.form.get('dbType', '')
+            hostname = request.form.get('hostname', '')
+            port = request.form.get('port', '')
             username = request.form.get('username', '')
             password = request.form.get('password', '')
-            print('database url n all.......', db_url, username, password)
+            query = request.form.get('query', '')
+
+            print('Database Connection Information.......', dbType, hostname, port, username, password, query)
         else:
             if not request.form.get('Source_URL', ''):
                 print('No Source_URL Fond')
@@ -1256,6 +1267,49 @@ def popup_form():
     else:
         return jsonify({'message': 'Invalid request method'}), 405
 
+@app.route('/run_query', methods=['POST'])
+def run_query():
+    db_type = request.json['dbType']
+    hostname = request.json['hostname']
+    port = request.json['port']
+    username = request.json['username']
+    password = request.json['password']
+    query = request.json['query']
+
+    try:
+        if db_type == 'MySQL':
+            conn = mysql.connector.connect(
+                host=hostname,
+                user=username,
+                password=password,
+                port=port
+            )
+            cursor = conn.cursor()
+            cursor.execute(query)
+            columns = [desc[0] for desc in cursor.description]
+            results = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            # Convert to DataFrame and then to CSV
+            df = pd.DataFrame(results, columns=columns)
+            csv_buffer = io.StringIO()
+            df.to_csv(csv_buffer, index=False)
+            csv_buffer.seek(0)
+
+            return send_file(
+                io.BytesIO(csv_buffer.getvalue().encode()),
+                mimetype='text/csv',
+                as_attachment=True,
+                download_name='query_results.csv'
+            )
+        elif db_type == 'MongoDB':
+            client = MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
+            db = client.test  # Replace 'test' with your database name
+            result = db.command('eval', query)
+            return jsonify(str(result))
+    except Exception as e:
+        return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
 
 @app.route('/Cogni_button', methods=['GET'])
 def Cogni_button():
@@ -1756,6 +1810,8 @@ def Eda_Process():
                     img_base64 = base64.b64encode(img_data).decode('utf-8')
                 # Delete the file after reading it
                 # output_json = question
+                output_json = json.dumps(question)
+                output_type = 'text'
                 os.remove(png_file)
 
             response = {
@@ -1774,7 +1830,7 @@ def Eda_Process():
             return jsonify(response)
     except Exception as e:
         return jsonify({'message': 'Error occurred while EDA process: {}'.format(str(e))}), 500
-
+        
 
 @app.route('/blank')
 def blank():

@@ -114,7 +114,7 @@ function displayWebCrawFileManager() {
         .then(response => response.text())
         .then(htmlContent => {
             // Open a new popup window
-            var popupWindow = window.open("{{url_for('data_source')}}", "_blank", "Title", 'newwin', 'toolbar=yes, menubar=yes, scrollbars=yes, resizable=yes, width=800, height=600');
+            var popupWindow = window.open("{{url_for('data_source')}}", "_blank", "toolbar=yes, menubar=yes, resizable=yes, scrollbars=yes");
 
             // Write the HTML content to the popup window
             popupWindow.document.open();
@@ -138,3 +138,30 @@ function toggleSelectAll(){
         checkbox.checked = selectAllCheckbox.checked;
     });
 }
+
+document.getElementById('dbForm').onsubmit = async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const response = await fetch('/run_query', {
+        method: 'POST',
+        body: JSON.stringify(Object.fromEntries(formData)),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+
+    if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'query_results.csv';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } else {
+        const result = await response.json();
+        document.getElementById('results').innerText = JSON.stringify(result);
+    }
+};

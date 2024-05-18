@@ -69,15 +69,15 @@
                         <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-database"></i>Data Source</a></li>
                         <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-question-circle"></i>Ask Question</a></li>
                         <li><a href="{{url_for('summary')}}" class="nav-link"><i class="fa fa-list-alt"></i>Summary</a></li>
-                        <li><a href="{{url_for('eda_analysis')}}" class="nav-link" style="display: none;"><i class="fa fa-chart-bar"></i>Virtual Analyst</a></li>
-                        <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-chart-pie"></i>Data & Analytics</a></li>
+                        <li><a href="{{url_for('eda_analysis')}}" class="nav-link"><i class="fa fa-chart-bar"></i>Virtual Analyst</a></li>
+                        <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-chart-pie"></i>Virtual Data Scientist</a></li>
                     </ul>
                 </div>
             </nav>
         </div>
         <!-- Sidebar End -->
 
-
+       
         <!-- Content Start -->
         <div class="content">
             <!-- Navbar Start -->
@@ -173,10 +173,26 @@
             <!-- Navbar End -->
 
             <div class="container-ask mt-2">
-                <h2 class="welcome">Virtual Analyst Cogni Link!</h2>
+                <h2 class="welcome">Virtual Analyst CogniLink!</h2>
                 <hr class="dropdown-divider">
             </div>
             
+            
+            <div id="warningpopup" class="pop_box" style="display: none;">
+                <div class="m-box">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="logo">
+                    <h5>| Welcome to CogniLink |</h5>
+                    <div class="form-l"><label ></label></div><br>
+                    <div class="dbfile">
+                        <p>Your session will expire soon. Do you want to continue?</p>
+                        <button class="submitpop" onclick="hideWarning()">Continue</button>
+                        <button class="closepop" id="logout" onclick="logout()">Logout</button>
+                    </div>
+                </div>
+            </div>
+
+
+
             <!-- Message Alerts -->
             <div class="flash_msg">
                 <div id="message" style="text-align: center;"></div>
@@ -197,7 +213,7 @@
                                 <button type="button" id="table_container" onclick="table_data_retrieve()" class="btn btn-primary mr-2" style="font-size: 14px;">Select CogniLink Data</button>
                                 
                                 <!-- HTML for the Popup Modal -->
-                                <div id="myModal" class="modal">
+                                <div id="myModal" class="modal" style="display:none;">
                                     <div class="modal-content">
                                     <span class="close">&times;</span>
                                     <h2>Select File to Load</h2>
@@ -295,7 +311,8 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/file_load_eda.js') }}"></script>
     <script src="{{ url_for('static', filename='js/audio_q_a.js') }}"></script>
-    <!--script src="{{ url_for('static', filename='js/warningpop.js') }}"></script-->
+    <script src="{{ url_for('static', filename='js/eda_audio.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/warningpop.js') }}"></script>
 </body>
 
 </html>

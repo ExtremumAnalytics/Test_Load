@@ -1,5 +1,5 @@
 // Initially hide the modal
-document.getElementById('myModal').style.display = 'none';
+// document.getElementById('myModal').style.display = 'none';
 // JavaScript to handle Popup Modal and AJAX request
 var modal = document.getElementById("myModal");
 var span = document.getElementsByClassName("close")[0];
