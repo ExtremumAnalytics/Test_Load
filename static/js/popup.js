@@ -398,18 +398,36 @@ function runDefaultProgram() {
         formData.append('myFile', files[i]);
     }
 
-    var dbURL = document.getElementsByName('dbURL')[0].value;
+    var dbType = document.getElementsByName('dbType')[0].value;
+    var hostname = document.getElementsByName('hostname')[0].value;
+    var port = document.getElementsByName('port')[0].value;
     var username = document.getElementsByName('username')[0].value;
     var password = document.getElementsByName('password')[0].value;
+    var query = document.getElementsByName('query')[0].value;
     var Source_URL = document.getElementsByName('Source_URL')[0].value;
+
+    // var dbURL = document.getElementsByName('dbURL')[0].value;
+    // var username = document.getElementsByName('username')[0].value;
+    // var password = document.getElementsByName('password')[0].value;
+    // var Source_URL = document.getElementsByName('Source_URL')[0].value;
     
     //$("#myDiv").html('<img src="/static/images/wait.gif" alt="Wait" />');
     $("#waitImg").show(); // Show the loading image
+    // // Append additional fields
+    // formData.append('dbURL', dbURL);
+    // formData.append('username', username);
+    // formData.append('password', password);
+    // formData.append('Source_URL', Source_URL);
+
     // Append additional fields
-    formData.append('dbURL', dbURL);
+    formData.append('dbType', dbType);
+    formData.append('hostname', hostname);
+    formData.append('port', port);
     formData.append('username', username);
     formData.append('password', password);
+    formData.append('query', query);
     formData.append('Source_URL', Source_URL);
+
 
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/popup_form');
