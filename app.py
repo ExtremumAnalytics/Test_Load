@@ -9,11 +9,12 @@ import json
 from io import BytesIO
 
 from flask import Flask, jsonify, url_for, flash
-from flask import render_template, request, redirect, session
+from flask import render_template, request, g, redirect, session
 from flask_sqlalchemy import SQLAlchemy
 import tempfile
 import pickle
 
+# sentiment and word cloud use only
 import nltk
 from huggingface_hub import logout
 from nltk.tokenize import word_tokenize
@@ -22,8 +23,10 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 from nltk.corpus import stopwords
-from azure.identity import DefaultAzureCredential
 
+# for azure credentials use only
+
+from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient, BlobClient, ContentSettings, BlobProperties
 from azure.identity import ClientSecretCredential
 from azure.keyvault.secrets import SecretClient
@@ -41,10 +44,7 @@ from langchain_community.chat_models import AzureChatOpenAI
 from langchain_community.embeddings import AzureOpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.memory import ConversationBufferMemory
-
 from langchain.chains import ConversationalRetrievalChain
-# from langchain.agents import AgentType
-# from langchain.agents import create_pandas_dataframe_agent
 
 # for mp3 to pdf
 from reportlab.lib.pagesizes import letter
@@ -55,15 +55,25 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+# For database connection
+from flask import send_file
+import mysql.connector
+from pymongo import MongoClient
+import traceback
+import io
 
 # for EDA
 import pandas as pd
-import pandasai
 import matplotlib
 from pandasai import Agent
 from pandasai.llm import AzureOpenAI
+
 matplotlib.use('Agg')
+
+# for logging use
+import logging
+from logging.handlers import TimedRotatingFileHandler
+import traceback
 
 # for default Azure account use only
 openapi_key = "OPENAI-API-KEY"
@@ -81,26 +91,13 @@ main_key = retrieved_secret.value
 # os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
 # os.environ["OPENAI_API_KEY"] = main_key
 # os.environ["OPENAI_API_VERSION"] = "2023-05-15"
-#
-# client = AzureOpenAI(
-#     api_key=main_key,
-#     api_version="2023-05-15",
-#     azure_endpoint="https://ea-openai.openai.azure.com/"
-# )
+
 
 os.environ["OPENAI_API_TYPE"] = "azure"
 # os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
 os.environ["OPENAI_API_KEY"] = main_key
 os.environ["OPENAI_API_VERSION"] = "2023-05-15"
-
 os.environ["AZURE_OPENAI_ENDPOINT"] = "https://ea-openai.openai.azure.com/"
-
-client = AzureOpenAI(
-    deployment_name="gpt-4-0125-preview",
-    api_key=main_key,
-    api_version="2023-05-15",
-    azure_endpoint="https://ea-openai.openai.azure.com/"
-)
 
 llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
 embeddings = AzureOpenAIEmbeddings(azure_deployment='text-embedding')
@@ -111,6 +108,8 @@ custom_prompt = ''
 chain_type = 'map_reduce'
 num_summaries = 1
 
+# logger variable:
+logger = ''
 # Define global variables for download progress
 current_status = ""
 current_file = ""
@@ -134,18 +133,17 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# # Your Azure Storage Account details
+# # blob storage use locally.
 # account_name = os.environ['account_name']
 # account_key = os.environ['account_key']
 # container_name = os.environ['container_name']
-
 # # Create a BlobServiceClient object
 # connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
 # blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 # container_client = blob_service_client.get_container_client(container_name)
 
 
-# for Azure use only
+# for Azure server use only
 account_name = "testcongnilink"
 container_name = "congnilink-container"
 
@@ -164,8 +162,13 @@ def create_or_pass_folder(container_client, session):
         try:
             container_client.get_blob_client(container_name, user_folder).upload_blob("")
             print('successfully created')
+            g.flag = 1  # Set flag to 1 on success1
+            logger.info(f"Function create_or_pass_folder successfully created folder with flag {g.flag}")
             return f"Folder '{user_folder}' successfully created."
         except Exception as e:
+            g.flag = 0  # Set flag to 1 on success1
+            logger.info(
+                f"Function create_or_pass_folder error with flag {g.flag} -- Function create_or_pass_folder error is::{e}")
             if "BlobNotFound" in str(e):
                 try:
                     container_client.get_blob_client(container_name, user_folder).create_container()
@@ -173,8 +176,10 @@ def create_or_pass_folder(container_client, session):
                 except Exception as e:
                     return f"Error creating folder '{user_folder}': {str(e)}"
             else:
+                logger.info(f"Function create_or_pass_folder Error creating folder'{user_folder}': {str(e)} ")
                 return f"Error creating folder '{user_folder}': {str(e)}"
     else:
+        logger.info(f"Function create_or_pass_folder login_pin' not found in session. ")
         return "Error: 'login_pin' not found in session."
 
 
@@ -212,40 +217,22 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
                                 content_settings=ContentSettings(content_type=file_content.content_type),
                                 overwrite=True)
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success1
+        logger.info(f"Function upload_to_blob error with flag {g.flag} --Function upload_to_blob error is::{e}")
         print('upload_to_blob----->', str(e))
 
     # Return the URL of the uploaded Blob
+    g.flag = 1  # Set flag to 1 on success1
+    logger.info(f"Function upload_to_blob successfully created blob_client.url")
     return blob_client.url
-
-
-# def create_pdf(data):
-#     folder_name = str(session['login_pin'])
-#     file_name_without_extension = data.key.split('.')[0]
-#     temp_pdf_path = os.path.join(folder_name, f"{file_name_without_extension}.pdf")
-#     doc = SimpleDocTemplate("output.pdf", pagesize=letter)
-#     styles = getSampleStyleSheet()
-#     flowables = []
-#
-#     for name, text in data.items():
-#         ptext = "<font size=12><b>{}<br/><br/></b></font>{}".format(name, text)
-#         paragraph = Paragraph(ptext, style=styles["Normal"])
-#         flowables.append(paragraph)
-#         flowables.append(Paragraph("<br/><br/><br/>", style=styles["Normal"]))
-#
-#     doc.build(flowables)
-# Upload the PDF file to blob storage
-# upload_to_blob(temp_pdf_path, session, blob_service_client, container_name)
-#
-# # Temporary PDF file ko delete karna
-# os.remove(temp_pdf_path)
 
 
 def update_bar_chart_from_blob(session, blob_service_client, container_name):
     bar_chart = {}
     blob_list = []
-    # Get the folder name from the session
-    folder_name = str(session['login_pin'])
     try:
+        # Get the folder name from the session
+        folder_name = str(session['login_pin'])
         # Get a list of blobs in the specified folder
         blob_list = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name)
         # print("blob_list------?", blob_list)
@@ -272,7 +259,12 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
             else:
                 bar_chart[file_type] = 1
         session['bar_chart_ss'].update(bar_chart)
+        g.flag = 1  # Set flag to 1 on success1
+        logger.info(f"Function update_bar_chart_from_blob successfully Return blob_list with flag {g.flag}")
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success1
+        logger.info(
+            f"Function update_bar_chart_from_blob error with flag {g.flag} -- Function update_bar_chart_from_blob error is::{e}")
         print('blob_list error------>', str(e))
 
     # Return the updated bar_chart dictionary
@@ -397,7 +389,7 @@ def update_when_file_delete():
                 #     session_interface = app.session_interface
                 #     session_interface.save_session(app, session, None)
 
-                    # session_interface.save_session(app, session)
+                # session_interface.save_session(app, session)
                 update_bar_chart_from_blob(session, blob_service_client, container_name)
         if Source_URL != "":
             session['total_files_list'] += 1
@@ -430,9 +422,13 @@ def update_when_file_delete():
             session['total_success_rate'] = session['successful_list']
             update_bar_chart_from_blob(session, blob_service_client, container_name)
         print("Complete")
-
+        g.flag = 1  # Set flag to 1 on success1
+        logger.info(f"Function update_when_file_delete Data Loaded Successfully with flag {g.flag}")
         return jsonify({"message": "Data Loaded Successfully"})
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success1
+        logger.info(
+            f"Function update_when_file_delete error with flag {g.flag} -- Function update_when_file_delete error is::{e}")
         print("update_when_file_delete----->", str(e))
         return jsonify({'message': str(e)})
 
@@ -637,6 +633,7 @@ app.config['DEBUG'] = True
 db = SQLAlchemy(app)
 app.secret_key = os.urandom(24)
 
+
 class FileStorage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(255), nullable=False)
@@ -685,7 +682,6 @@ def create_bar_chart():
 
 
 def create_pie_chart():
-    title = ''
     if session['total_files_list'] != 0:
         # print('pie chart value inside fuction:', session['total_files_list'], session['successful_list'],
         #       session['failed_list'], session['progress_list'])
@@ -700,13 +696,10 @@ def create_pie_chart():
         # print('pl', progress_list)
         # print('fl', failed_list)
     else:
-        # print('Pie Default value')
-        # Default values
         total_files_list = 1
         successful_list = 0
         progress_list = 0
         failed_list = 0
-        title = "Data Awaited"
 
     # Calculate percentages
     labels = ['Read', 'In Progress', 'Failed']
@@ -752,7 +745,6 @@ def gauge_chart_auth():
     # print("gauge-------->auth", success_rate, over_all_readiness)
 
     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
-
 
     # Create the gauge figure
     # gauge_fig = go.Figure(go.Indicator(
@@ -989,73 +981,7 @@ def Sentiment_Chart_Q_A(senti_Positive_Q_A=None, senti_Negative_Q_A=None, senti_
     return senti
 
 
-# Route for Sign in page
-@app.route("/", methods=["GET", "POST"])
-def home():
-    role_names = UserRole.query.with_entities(UserRole.name.distinct()).all()
-
-    if request.method == "POST":
-        pin = request.form.get('authpin')
-        group_user = request.form.get('Grp_usr')
-        print(group_user, pin)
-
-        # Map group_user to role_id (Admin=1, Guest=2, ML Engine=3)
-        role_id_mapping = {
-            'Admin': 1,
-            'Guest': 2,
-            'ML Engine': 3
-        }
-
-        role_id = role_id_mapping.get(group_user)
-        user_role = UserRole.query.filter_by(role_id=role_id).first()
-        user = UserDetails.query.filter_by(role_id=role_id, login_pin=pin, status='Active').first()
-
-        if role_id is not None and user_role and user:
-            logout()  # logout function ko call
-            session.modified = True
-            session['logged_in'] = True
-            session['login_pin'] = user.login_pin
-            session['bar_chart_ss'] = {}
-            session['over_all_readiness'] = 0
-            session['total_success_rate'] = 0
-            session['MB'] = 0.0
-            session['total_files_list'] = 0
-            session['successful_list'] = 0
-            session['failed_list'] = 0
-            session['progress_list'] = 0
-            session['lda_topics_summ'] = {}
-            session['lda_topics_Q_A'] = {}
-            session['senti_Positive_summ'] = 0
-            session['senti_Negative_summ'] = 0
-            session['senti_neutral_summ'] = 0
-            session['senti_Positive_Q_A'] = 0
-            session['senti_Negative_Q_A'] = 0
-            session['senti_neutral_Q_A'] = 0
-            session['chat_history_qa'] = []
-            session['summary_add'] = []
-            session['summary_word_cpunt'] = 0
-            create_or_pass_folder(container_client, session)  # Pass container_client and session
-            folder_name = os.path.join('static', 'login', str(session['login_pin']))
-            if not os.path.exists(folder_name):
-                os.makedirs(folder_name)
-            # Create a folder named "All_PDF" if it doesn't exist
-            folder_files = os.path.join('static', 'files', str(session['login_pin']))
-            if not os.path.exists(folder_files):
-                os.makedirs(folder_files)
-            update_bar_chart_from_blob(session, blob_service_client, container_name)
-
-            return jsonify({'redirect': url_for('data_source')})
-
-        # Handle invalid cases
-        flash('Invalid Group User or PIN Or Status Deactivate. Please try again.', 'error')
-        return jsonify({'redirect': url_for('home')})
-
-    return render_template('index.html', role_names=role_names)
-
-
-# Route for logout button
-@app.route('/logout')
-def logout():
+def log_out_forall():
     global chat_history_list, bar_chart_url
     global Limit_By_Size, Source_URL, tot_file
     global current_file, total_files, files_downloaded, progress_percentage, current_status
@@ -1114,6 +1040,95 @@ def logout():
     #     blob_name = session.pop('blob_name')  # Retrieve and remove blob name from session
     #     delete_blob_from_azure(blob_name)  # Delete the corresponding blob from Azure Blob Storage
 
+
+@app.route("/", methods=["GET", "POST"])
+def home():
+    global logger
+    role_names = UserRole.query.with_entities(UserRole.name.distinct()).all()
+
+    if request.method == "POST":
+        pin = request.form.get('authpin')
+        group_user = request.form.get('Grp_usr')
+        print(group_user, pin)
+
+        # Map group_user to role_id (Admin=1, Guest=2, ML Engine=3)
+        role_id_mapping = {
+            'Admin': 1,
+            'Guest': 2,
+            'ML Engine': 3
+        }
+
+        role_id = role_id_mapping.get(group_user)
+        user_role = UserRole.query.filter_by(role_id=role_id).first()
+        user = UserDetails.query.filter_by(role_id=role_id, login_pin=pin, status='Active').first()
+
+        if role_id is not None and user_role and user:
+            log_out_forall()  # logout function call
+            session.modified = True
+            session['logged_in'] = True
+            session['login_pin'] = user.login_pin
+            session['bar_chart_ss'] = {}
+            session['over_all_readiness'] = 0
+            session['total_success_rate'] = 0
+            session['MB'] = 0.0
+            session['total_files_list'] = 0
+            session['successful_list'] = 0
+            session['failed_list'] = 0
+            session['progress_list'] = 0
+            session['lda_topics_summ'] = {}
+            session['lda_topics_Q_A'] = {}
+            session['senti_Positive_summ'] = 0
+            session['senti_Negative_summ'] = 0
+            session['senti_neutral_summ'] = 0
+            session['senti_Positive_Q_A'] = 0
+            session['senti_Negative_Q_A'] = 0
+            session['senti_neutral_Q_A'] = 0
+            session['chat_history_qa'] = []
+            session['summary_add'] = []
+            session['summary_word_cpunt'] = 0
+            folder_name = os.path.join('static', 'login', str(session['login_pin']))
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name)
+
+            # Use a consistent log file name and set the handler to rotate at midnight
+            log_file_name = os.path.join(folder_name, 'logfile_' + time.strftime('%Y-%m-%d_%H-%M-%S') + '.log')
+            handler = TimedRotatingFileHandler(log_file_name, when='midnight', interval=1, backupCount=7)
+            handler.setLevel(logging.DEBUG)
+            formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+
+            logger = logging.getLogger(__name__)
+            logger.setLevel(logging.DEBUG)
+
+            # Remove all old handlers associated with the logger
+            if logger.hasHandlers():
+                logger.handlers.clear()
+
+            logger.addHandler(handler)
+
+            # Pass container_client and session
+            create_or_pass_folder(container_client, session)
+            # Create a folder named "All_PDF" if it doesn't exist
+            folder_files = os.path.join('static', 'files', str(session['login_pin']))
+            if not os.path.exists(folder_files):
+                os.makedirs(folder_files)
+            update_bar_chart_from_blob(session, blob_service_client, container_name)
+            g.flag = 1  # Set flag to 1 on success
+            logger.info(f"User {str(session['login_pin'])} logged in successfully with flag {g.flag}")
+
+            return jsonify({'redirect': url_for('data_source')})
+
+        # Handle invalid cases
+        flash('Invalid Group User or PIN Or Status Deactivate. Please try again.', 'error')
+        return jsonify({'redirect': url_for('home')})
+
+    return render_template('index.html', role_names=role_names)
+
+
+# Route for logout button
+@app.route('/logout')
+def logout():
+    log_out_forall()
     flash('You have been successfully logged out!', 'success')
     return redirect(url_for('home'))
 
@@ -1230,6 +1245,7 @@ def popup_form():
             # Calculate total number of files
             for file in files:
                 upload_to_blob(file, session, blob_service_client, container_name)
+            logger.info('User documents uploded successfully.')
 
         elif request.form.get('dbURL', ''):
             db_url = request.form.get('dbURL', '')
@@ -1242,11 +1258,77 @@ def popup_form():
                 return jsonify({'message': 'No Source_URL Fond'}), 400
             Source_URL = request.form.get('Source_URL', '')
             print("Source_URL Fond---->", Source_URL)
+            logger.info('User Source_URL uploded successfully.')
         update_bar_chart_from_blob(session, blob_service_client, container_name)
+        g.flag = 1  # Set flag to 1 on success
+        logger.info(f"Popup_form route succeeded with flag {g.flag}")
 
         return jsonify({'message': 'Data uploaded successfully'}), 200
     else:
+        g.flag = 0  # Set flag to 1 on success
+        logger.info(f"Popup_form route Invalid request method with flag {g.flag}")
         return jsonify({'message': 'Invalid request method'}), 405
+
+
+@app.route('/run_query', methods=['POST'])
+def run_query():
+    db_type = request.json['dbType']
+    hostname = request.json['hostname']
+    port = request.json['port']
+    username = request.json['username']
+    password = request.json['password']
+    query = request.json['query']
+
+    folder_name_azure = str(session['login_pin'])
+    file_name = "query_results.csv"
+    try:
+        if db_type == 'MySQL':
+            conn = mysql.connector.connect(
+                host=hostname,
+                user=username,
+                password=password,
+                port=port
+            )
+            cursor = conn.cursor()
+            cursor.execute(query)
+            columns = [desc[0] for desc in cursor.description]
+            results = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            # Convert to DataFrame and then to CSV
+            df = pd.DataFrame(results, columns=columns)
+            csv_buffer = io.StringIO()
+            csv_file = df.to_csv(csv_buffer, index=False)
+            csv_buffer.seek(0)
+
+            blob_name = f"{folder_name_azure}/{file_name}"
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+
+            # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
+            blob_client.upload_blob(
+                csv_buffer.getvalue(),
+                blob_type="BlockBlob",
+                content_settings=ContentSettings(content_type="text/csv"),
+                overwrite=True
+            )
+
+            return jsonify({'message': 'Data Fetched and Uploaded successfully.'})
+
+            # return send_file(
+            #     io.BytesIO(csv_buffer.getvalue().encode()),
+            #     mimetype='text/csv',
+            #     as_attachment=True,
+            #     download_name='query_results.csv'
+            # )
+
+        elif db_type == 'MongoDB':
+            client = MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
+            db = client.test  # Replace 'test' with your database name
+            result = db.command('eval', query)
+            return jsonify(str(result))
+    except Exception as e:
+        return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
 
 
 @app.route('/Cogni_button', methods=['GET'])
@@ -1269,10 +1351,14 @@ def Cogni_button():
         # Set Timer
         end_time = time.time()  # Get the current time when the function ends
         elapsed_time = end_time - start_time  # Calculate the elapsed time
+        g.flag = 1  # Set flag to 1 on success
+        logger.info(f"Cogni_button route succeeded with flag {g.flag}")
 
         print(f"Function took--------->  {elapsed_time} <--------- seconds to execute.")
         return response
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success
+        logger.info(f"Cogni_button route succeeded with flag {g.flag}---> error is-->{e}")
         print("Cogni_button_error_message----->", str(e))
         return jsonify({'message': str(e)}), 500
 
@@ -1335,23 +1421,34 @@ def summary_input():
         generate_word_cloud(senti_text_summ)
         session['lda_topics_summ'] = perform_lda____summ(senti_text_summ)
         session['summary_add'].extend(summ)
+        g.flag = 1  # Set flag to 1 on success
+        logger.info(f"summary_input route succeeded with flag {g.flag}")
 
         return jsonify(session['summary_add'][::-1])
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success
+        logger.info(f"summary_input route error with flag {g.flag} -- Exception of summary_input:{e}")
         print('Exception of summary_input:', str(e))
         return jsonify({'message': 'No data Load'})
 
 
 @app.route("/Cogservice_Value_Updated", methods=["POST"])
 def Cogservice_Value_Updated():
-    if request.is_json:
-        summary_word_cpunt = request.json["value"]
-        session['summary_word_cpunt'] = summary_word_cpunt
-        print(session['summary_word_cpunt'])
-        # Do something with the value (e.g., store in database, update graph)
-        return jsonify({"message": "CogniLink Value updated successfully"})
-    else:
-        return jsonify({"error": "Unsupported Media Type"}), 415
+    try:
+        if request.is_json:
+            summary_word_cpunt = request.json["value"]
+            session['summary_word_cpunt'] = summary_word_cpunt
+            print(session['summary_word_cpunt'])
+            g.flag = 1  # Set flag to 1 on success
+            logger.info(f"Cogservice_Value_Updated route Value updated successfully: {g.flag}")
+            # Do something with the value (e.g., store in database, update graph)
+            return jsonify({"message": "CogniLink Value updated successfully"})
+        else:
+            return jsonify({"error": "Unsupported Media Type"}), 415
+    except Exception as e:
+        g.flag = 0  # Set flag to 1 on success
+        logger.info(f"Cogservice_Value_Updated route error with flag {g.flag} -- Unsupported Media Type:{e}")
+        print('Unsupported Media Type', str(e))
 
 
 @app.route('/CogniLink_Services_QA', methods=['GET', 'POST'])
@@ -1393,9 +1490,13 @@ def ask_question():
             'senti_neutral_Q_A'] = analyze_sentiment_Q_A(senti_text_Q_A)
         session['lda_topics_Q_A'] = perform_lda___Q_A(senti_text_Q_A)
         session['chat_history_qa'].extend(chat_history_list)
+        g.flag = 1  # Set flag to 1 on success
+        logger.info(f"ask_question route successfully send data. {g.flag} ")
 
         return jsonify({'chat_history': session['chat_history_qa'][::-1]})
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success
+        logger.info(f"ask_question route error with flag {g.flag} -- ask_question error is::{e}")
         print("Exception of ask_question:", str(e))
         return jsonify({'message': 'No data Load'})
 
@@ -1410,9 +1511,14 @@ def clear_chat():
         session['senti_Negative_Q_A'] = 0
         session['senti_neutral_Q_A'] = 0
         session['chat_history_qa'] = []
+        g.flag = 1  # Set flag to 1 on success
+        logger.info(f"clear_chat for ask_question route Chat history cleared successfully with flag {g.flag}")
         # print('Cleared Chat')
         return jsonify({'message': 'Chat history cleared successfully'})
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success
+        logger.info(
+            f"clear_chat for ask_question route error with flag {g.flag} -- ask_question clear_chat error is::{e}")
         print('error in Cleared Chat', str(e))
         return jsonify({'message': str(e)})
 
@@ -1444,8 +1550,13 @@ def clear_chat_summ():
         session['summary_add'] = []
         # sentiment variable for summary
         # print('Cleared Chat')
+        g.flag = 1  # Set flag to 1 on success
+        logger.info(f"Summary cleared successfully with flag {g.flag}")
         return jsonify({'message': 'Summary cleared successfully'})
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success
+        logger.info(
+            f"clear_chat_summ for summary_input route error with flag {g.flag} -- summary_input clear error is::{e}")
         print('error in Cleared Chat', str(e))
         return jsonify({'message': str(e)})
 
@@ -1475,23 +1586,37 @@ def delete(file_name):
             blob_client.delete_blob()
             update_when_file_delete()
             update_bar_chart_from_blob(session, blob_service_client, container_name)
+            g.flag = 1  # Set flag to 1 on success
+            logger.info(f"delete for delete/<file_name> route deleted successfully with flag {g.flag}")
             return jsonify({'message': f'File {file_name} deleted successfully'})
         else:
+            g.flag = 0  # Set flag to 1 on success
+            logger.info(f"delete for delete/<file_name> route deleted {file_name} not found with flag {g.flag}")
             return jsonify({'error': f'File {file_name} not found'}), 404
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success
+        logger.info(
+            f"delete for delete/<file_name> route error with flag {g.flag} -- delete for delete/<file_name> error is::{e}")
         return jsonify({'error': str(e)}), 500
 
 
 @app.route("/table_update", methods=['GET'])
 def get_data_source():
-    folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
-    blobs = container_client.list_blobs(name_starts_with=folder_name)
+    try:
+        folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
+        blobs = container_client.list_blobs(name_starts_with=folder_name)
 
-    # Construct the URLs for each blob based on your Azure Blob Storage configuration
-    data = [{'name': blob.name.split('/')[1],
-             'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"}
-            for blob in blobs]
-    return jsonify(data)
+        # Construct the URLs for each blob based on your Azure Blob Storage configuration
+        data = [{'name': blob.name.split('/')[1],
+                 'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"}
+                for blob in blobs]
+        g.flag = 1  # Set flag to 1 on success
+        logger.info(f"table_update route successfully send data with flag {g.flag}")
+        return jsonify(data)
+    except Exception as e:
+        g.flag = 0  # Set flag to 1 on success
+        logger.info(f"table_update route error with flag {g.flag} -- table_update route error is::{e}")
+        print(f"Exceptions is{e}")
 
 
 @app.route("/webcrawler", methods=['GET', 'POST'])
@@ -1533,8 +1658,12 @@ def webcrawler():
                 print(f"Error occurred: {e}")
         # Define global variables for download progress
         current_status = "File downloaded successfully"
+        g.flag = 1  # Set flag to 1 on success
+        logger.info(f"webcrawler route successfull with flag {g.flag}")
         return jsonify({'message': 'All files downloaded successfully'})
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success1
+        logger.info(f"webcrawler route error with flag {g.flag} -- webcrawler route error is::{e}")
         print("Exception of web crawling:", str(e))
         return jsonify({'message': 'URL Not found'})
 
@@ -1571,7 +1700,7 @@ def download_pdf(url, folder_name, filename):
 
     with open(file_path, 'wb') as f:
         f.write(response.content)
-
+    logger.info(f"Route download_progress success")
     print(f"Downloaded: {filename}")
 
 
@@ -1582,7 +1711,7 @@ def download_progress():
     # current_file = "Master Direction – Acquisition or Transfer of Immovable Property under Foreign Exchange
     # Management Act, 1999 (Updated as on September 01, 2022)" total_files = 10 files_downloaded = 5
     # progress_percentage = int(files_downloaded / total_files * 100)
-
+    logger.info(f"Route download_progress success")
     # Return JSON response with progress information
     return jsonify({
         'current_status': current_status,
@@ -1600,6 +1729,7 @@ def fetch_pdf_files():
 
     # Get list of PDF files in the directory
     pdf_files = [file for file in os.listdir(directory_path) if file.endswith(".pdf")]
+    logger.info(f"Route fetch_pdf_files success")
 
     # Return the list of PDF files to the client
     return jsonify({"pdf_files": pdf_files})
@@ -1611,11 +1741,16 @@ def delete_file(directory_path, file_name):
         file_path = os.path.join(directory_path, file_name)
         if os.path.exists(file_path):
             os.remove(file_path)
+            g.flag = 1  # Set flag to 1 on success1
+            logger.info(f"Function delete_file success with flag {g.flag}")
             return True
         else:
+            logger.info(f"Function delete_file error File does not exist")
             print("File does not exist:", file_path)
             return False
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success1
+        logger.info(f"Function delete_file error with flag {g.flag} -- Function delete_file error is::{e}")
         print("Error occurred while deleting file:", str(e))
         return False
 
@@ -1662,14 +1797,17 @@ def select_pdf_file():
         # Delete the file
         if res is True:
             print("file deleted")
+            g.flag = 1  # Set flag to 1 on success1
+            logger.info(f"Successfully webcrawler File Loaded In Cognilink Application with flag {g.flag} ")
             return jsonify({'message': 'Successfully File Loaded In Cognilink Application'}), 200
         else:
+            logger.info(f"Failed To Loaded In Cognilink Application")
             return jsonify({'message': 'Failed To Loaded In Cognilink Application'}), 500
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success1
+        logger.info(
+            f"Error in webcrawler File Loaded In Cognilink Application with flag {g.flag} --select_pdf_file route error is::{e}")
         return jsonify({'message': 'Error occurred while deleting file: {}'.format(str(e))}), 500
-
-
-Q_data = {}
 
 
 @app.route("/Eda_Process", methods=['POST'])
@@ -1678,9 +1816,11 @@ def Eda_Process():
     img_base64 = None
     folder_name = str(session['login_pin'])
     try:
-        file_url = request.json.get('fileUrl')  # Use .get() to avoid KeyError
+        file_url = request.json.get('fileUrl')
+        logger.info("Route Eda_Process File name recieve")
         if file_url is not None:
-            blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name)
+            blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(
+                name_starts_with=folder_name)
             for blob in blob_list_eda:
                 if blob.name in file_url:
                     blob_client = container_client.get_blob_client(blob)
@@ -1688,28 +1828,30 @@ def Eda_Process():
                     data_stream = BytesIO(blob_data)
                     df = pd.read_excel(data_stream)
                     print(df.head(5))
-                    return jsonify({"message":"Data Loaded Successfuly. Ask Virtual Analyst!"})
+                    logger.info("Route Eda_Process Data Loaded Successfuly.")
+                    return jsonify({"message": "Data Loaded Successfuly. Ask Virtual Analyst!"})
         question = request.json.get('question')
 
         if question is not None and question.strip():
             print("question---->", question)
-            jsonify({'message':'Question received.'})
+            logger.info("Route Eda_Process Question received.")
             llm = AzureOpenAI(
                 deployment_name="gpt-4-0125-preview",
                 api_key=main_key,
                 azure_endpoint=("https://ea-openai.openai.azure.com/"),
                 api_version="2023-05-15")
-            
+
             agent = Agent(df, config={"llm": llm,
                                       "save_charts": True,
                                       "save_logs": False,
                                       "enable_cache": False,
-                                      "save_charts_path":f'static/files/image',
+                                      "save_charts_path": f'static/files/image',
                                       "open_charts": False,
                                       "max_retries": 1
                                       })
 
             output = agent.chat(question)
+            logger.info("Route Eda_Process output received.")
             print(type(output))
             print(output)
             # Determine the type of output and handle accordingly
@@ -1747,7 +1889,6 @@ def Eda_Process():
                     img_data = img_file.read()
                     img_base64 = base64.b64encode(img_data).decode('utf-8')
                 # Delete the file after reading it
-                # output_json = question
                 output_json = json.dumps(question)
                 output_type = 'text'
                 os.remove(png_file)
@@ -1759,6 +1900,8 @@ def Eda_Process():
                 'output_type': output_type,
                 'image': img_base64  # Sending base64 encoded image or None if image doesn't exist
             }
+            g.flag = 1  # Set flag to 1 on success1
+            logger.info(f"Processed Successfully in Eda_Process with flag {g.flag}")
             return jsonify(response)
         else:
             response = {
@@ -1767,6 +1910,8 @@ def Eda_Process():
             }
             return jsonify(response)
     except Exception as e:
+        g.flag = 0  # Set flag to 1 on success1
+        logger.info(f"Error in Eda_Process with flag {g.flag} -- Eda_Process route error is::{e}")
         return jsonify({'message': 'Error occurred while EDA process: {}'.format(str(e))}), 500
 
 
