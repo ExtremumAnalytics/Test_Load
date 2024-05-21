@@ -308,7 +308,7 @@ function updateTable(searchTerm) {
                 row += '</td>' +
                     '<td class="action-links">' +
                     '<a href="' + blob.url + '">Download</a> </td>' +
-                    '<td><a onclick="deleteFile(\'' + blob.name + '\')" style="color: var(--primary);">Delete</a>' +
+                    '<td><a href="javascript:void(0);" onclick="deleteFile(\'' + blob.name + '\')" style="color: var(--primary);">Delete</a>' +
                     '</td>' +
                     // '<td><input type="checkbox" name="selected_blob" value="' + blob.name + '"></td>' +
                     '</tr>';
