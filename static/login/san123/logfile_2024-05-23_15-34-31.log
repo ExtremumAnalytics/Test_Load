@@ -1,0 +1,23 @@
+2024-05-23 15:34:31,774 - INFO - Function create_or_pass_folder error with flag 0 -- Function create_or_pass_folder error is::Value for one of the query parameters specified in the request URI is invalid.
+RequestId:82d9b96f-001e-0010-62f8-ac43e0000000
+Time:2024-05-23T10:04:32.3934183Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:san123
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:82d9b96f-001e-0010-62f8-ac43e0000000
+Time:2024-05-23T10:04:32.3934183Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>san123</QueryParameterValue></Error>
+2024-05-23 15:34:31,774 - INFO - Function create_or_pass_folder Error creating folder'san123': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:82d9b96f-001e-0010-62f8-ac43e0000000
+Time:2024-05-23T10:04:32.3934183Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:san123
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:82d9b96f-001e-0010-62f8-ac43e0000000
+Time:2024-05-23T10:04:32.3934183Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>san123</QueryParameterValue></Error> 
+2024-05-23 15:34:32,456 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 15:34:32,457 - INFO - User san123 logged in successfully with flag 1
+2024-05-23 15:34:34,311 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1

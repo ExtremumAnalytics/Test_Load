@@ -1,0 +1,37 @@
+2024-05-23 15:58:49,940 - INFO - Function create_or_pass_folder error with flag 0 -- Function create_or_pass_folder error is::Value for one of the query parameters specified in the request URI is invalid.
+RequestId:205e9210-c01e-002f-3ffc-acf43c000000
+Time:2024-05-23T10:28:50.5881467Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:san123
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:205e9210-c01e-002f-3ffc-acf43c000000
+Time:2024-05-23T10:28:50.5881467Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>san123</QueryParameterValue></Error>
+2024-05-23 15:58:49,940 - INFO - Function create_or_pass_folder Error creating folder'san123': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:205e9210-c01e-002f-3ffc-acf43c000000
+Time:2024-05-23T10:28:50.5881467Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:san123
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:205e9210-c01e-002f-3ffc-acf43c000000
+Time:2024-05-23T10:28:50.5881467Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>san123</QueryParameterValue></Error> 
+2024-05-23 15:58:50,775 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 15:58:50,775 - INFO - User san123 logged in successfully with flag 1
+2024-05-23 15:58:51,980 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 15:58:53,807 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:58:53,929 - INFO - Route download_progress success
+2024-05-23 15:58:54,931 - INFO - Route download_progress success
+2024-05-23 15:58:55,952 - INFO - Route download_progress success
+2024-05-23 15:58:56,940 - INFO - Route download_progress success
+2024-05-23 15:58:57,098 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 15:58:58,214 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:58:58,468 - INFO - Route download_progress success
+2024-05-23 15:58:59,455 - INFO - Route download_progress success
+2024-05-23 15:59:00,803 - INFO - Route download_progress success
+2024-05-23 15:59:01,560 - INFO - Route download_progress success
+2024-05-23 15:59:02,596 - INFO - Route download_progress success
+2024-05-23 15:59:03,240 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:59:03,477 - INFO - Route download_progress success

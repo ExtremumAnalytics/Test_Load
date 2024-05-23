@@ -1,0 +1,55 @@
+2024-05-23 14:12:36,720 - INFO - Function create_or_pass_folder error with flag 0 -- Function create_or_pass_folder error is::Value for one of the query parameters specified in the request URI is invalid.
+RequestId:20d7d296-401e-0053-05ed-ac6909000000
+Time:2024-05-23T08:42:37.2966227Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:san123
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:20d7d296-401e-0053-05ed-ac6909000000
+Time:2024-05-23T08:42:37.2966227Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>san123</QueryParameterValue></Error>
+2024-05-23 14:12:36,720 - INFO - Function create_or_pass_folder Error creating folder'san123': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:20d7d296-401e-0053-05ed-ac6909000000
+Time:2024-05-23T08:42:37.2966227Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:san123
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:20d7d296-401e-0053-05ed-ac6909000000
+Time:2024-05-23T08:42:37.2966227Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>san123</QueryParameterValue></Error> 
+2024-05-23 14:12:37,544 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:12:37,544 - INFO - User san123 logged in successfully with flag 1
+2024-05-23 14:12:38,259 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:12:39,903 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:12:40,100 - INFO - Route download_progress success
+2024-05-23 14:12:41,142 - INFO - Route download_progress success
+2024-05-23 14:12:43,787 - INFO - Route download_progress success
+2024-05-23 14:12:45,178 - INFO - Route download_progress success
+2024-05-23 14:12:45,996 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:12:47,078 - INFO - Route download_progress success
+2024-05-23 14:12:49,070 - INFO - Route download_progress success
+2024-05-23 14:12:50,293 - INFO - Route download_progress success
+2024-05-23 14:12:50,952 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:12:52,081 - INFO - Route download_progress success
+2024-05-23 14:12:53,570 - INFO - Route download_progress success
+2024-05-23 14:12:55,082 - INFO - Route download_progress success
+2024-05-23 14:12:55,815 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:12:57,110 - INFO - Route download_progress success
+2024-05-23 14:12:59,069 - INFO - Route download_progress success
+2024-05-23 14:13:00,158 - INFO - Route download_progress success
+2024-05-23 14:13:00,885 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:13:02,090 - INFO - Route download_progress success
+2024-05-23 14:13:04,116 - INFO - Route download_progress success
+2024-05-23 14:13:05,909 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:13:06,581 - INFO - Route download_progress success
+2024-05-23 14:13:08,063 - INFO - Route download_progress success
+2024-05-23 14:13:10,093 - INFO - Route download_progress success
+2024-05-23 14:13:10,817 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:13:12,093 - INFO - Route download_progress success
+2024-05-23 14:13:14,090 - INFO - Route download_progress success
+2024-05-23 14:13:15,825 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:13:16,057 - INFO - Route download_progress success
+2024-05-23 14:13:16,096 - INFO - Route download_progress success
+2024-05-23 14:13:17,110 - INFO - Route download_progress success
+2024-05-23 14:13:18,114 - INFO - Route download_progress success

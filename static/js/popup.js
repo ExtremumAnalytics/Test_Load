@@ -363,11 +363,11 @@ function fetchProgress() {
         
         // Update progress display
         document.getElementById("progress").innerHTML = `
-          <label><b>Current Status: </b>${data.current_status}</label>
-          <label><b>Total Files: </b> ${data.total_files}</label>
-          <label><b>Files Downloaded: </b> ${data.files_downloaded}</label>
-          <label><b>Progress Percentage: </b> ${data.progress_percentage}%</label>
-          <label><b>Current File Name: </b> ${data.current_file}</label>
+          <label>Current Status: ${data.current_status}</label>
+          <label>Total Files:  ${data.total_files}</label>
+          <label>Files Downloaded:  ${data.files_downloaded}</label>
+          <label>Progress Percentage:  ${data.progress_percentage}%</label>
+          <label>Current File Name:  ${data.current_file}</label>
         `;
       })
       .catch(error => console.error("Error fetching progress:", error));
@@ -397,6 +397,12 @@ function runDefaultProgram() {
     for (var i = 0; i < files.length; i++) {
         formData.append('myFile', files[i]);
     }
+    
+
+    // var dbURL = document.getElementsByName('dbURL')[0].value;
+    // var username = document.getElementsByName('username')[0].value;
+    // var password = document.getElementsByName('password')[0].value;
+    // var Source_URL = document.getElementsByName('Source_URL')[0].value;
 
     var dbType = document.getElementsByName('dbType')[0].value;
     var hostname = document.getElementsByName('hostname')[0].value;
@@ -408,7 +414,12 @@ function runDefaultProgram() {
     
     //$("#myDiv").html('<img src="/static/images/wait.gif" alt="Wait" />');
     $("#waitImg").show(); // Show the loading image
-    // Append additional fields
+    // // Append additional fields
+    // formData.append('dbURL', dbURL);
+    // formData.append('username', username);
+    // formData.append('password', password);
+    // formData.append('Source_URL', Source_URL);
+      // Append additional fields
     formData.append('dbType', dbType);
     formData.append('hostname', hostname);
     formData.append('port', port);
@@ -427,7 +438,7 @@ function runDefaultProgram() {
                 document.getElementById('message').innerHTML = '';
             }, 8000);
             $("#waitImg").hide(); // Hide the loading image on success
-            // pdfclosePopup();
+            pdfclosePopup();
             document.getElementById('popupForm').reset();
         } else {
             document.getElementById('message').innerHTML = '<p>Failed to upload files. Please try again later.</p>';
@@ -446,12 +457,38 @@ function runDefaultProgram() {
 
 
 
-// load cognilink button
+// // load cognilink button
+
+
+// $(document).ready(function () {
+//     $("#loadCogniLink").click(function () {
+//         //$("#myDiv").html('');
+//         $("#waitImg").show(); // Show the loading image
+//         $.ajax({
+//             url: '/Cogni_button',
+//             type: 'GET',
+//             success: function (data) {
+//                 $("#waitImg").hide(); // Hide the loading image on success
+//                 $('#message').text(data.message);
+//                 setTimeout(function() {
+//                     $('#message').text('');
+//                 }, 8000);
+//                 console.log('Data is Loaded:', data);
+//                 dataLoadUpdate();
+//             },
+//             error: function (error) {
+//                 console.error('Error in Loading CogniLink data:', error);
+//                 $("#waitImg").hide(); // Hide the loading image on error
+//             }
+//         });
+//     });
+// });
 
 
 $(document).ready(function () {
+    var socket = io();
+
     $("#loadCogniLink").click(function () {
-        //$("#myDiv").html('');
         $("#waitImg").show(); // Show the loading image
         $.ajax({
             url: '/Cogni_button',
@@ -471,4 +508,16 @@ $(document).ready(function () {
             }
         });
     });
+
+    socket.on('button_response', function(msg) {
+        $('#message').text(msg.message);
+        setTimeout(function() {
+            $('#message').text('');
+        }, 8000);
+    });
 });
+
+function dataLoadUpdate() {
+    // Add your logic here to handle data load update
+    console.log('Data load update function called');
+}

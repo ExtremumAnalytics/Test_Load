@@ -571,10 +571,6 @@
     to { opacity: 1; }
 }
 
-#table-container{
-    overflow: auto;
-}
-
 #full-image-overlay {
     position: fixed;
     top: 0;

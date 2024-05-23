@@ -25,6 +25,9 @@
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <!-- jQuery and jQuery UI JS -->
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    
+    <!-- Socket IO library -->
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 
 
     <!-- Include Plotly.js library -->
@@ -93,7 +96,7 @@
                         <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
                             <a href="#" class="dropdown-item">My Profile</a>
                             <a href="#" class="dropdown-item">Settings</a>
-                            <a href="{{url_for('logout')}}" class="dropdown-item">Log Out</a>
+                            <a href="{{url_for('logout')}}" id="logoutButton" class="dropdown-item">Log Out</a>
                         </div>
                     </div>
                 </div>
@@ -247,7 +250,7 @@
                                 </div>
                             </div>
                         </form>
-                    </div>                
+                    </div>          
 
                     <!-- Source URL Container -->
                     <div id="SourceURL" class="source-url-container p-2" style="display: none;">
@@ -275,7 +278,7 @@
                             </div>
                             <!-- Second Container (Progress) -->
                             <div class="col-lg-8 progress-container rounded border p-2 m-2">
-                                <div id="progress" class="d-flex flex-column" p-2 style="font-size: 10px;">
+                                <div id="progress" class="d-flex flex-column p-2">
                                     <!-- <label for="status" style="font-size: 14px;">Current Status:</label>
                                     <label for="totalFiles" style="font-size: 14px;">Total Files:</label>
                                     <label for="filesDownloaded" style="font-size: 14px;">Files Downloaded:</label>
@@ -484,7 +487,7 @@
     <!-- Template Javascript -->
     <script src="{{ url_for('static', filename='js/main.js')}}"></script>
     <script src="{{ url_for('static', filename='js/container.js')}}"></script>
-    <script src="{{ url_for('static', filename='js/ask_chart.js')}}"></script>
+    <!-- <script src="{{ url_for('static', filename='js/ask_charts.js')}}"></script> -->
     <!-- <script src="{{ url_for('static', filename='js/data_source_chart.js')}}"></script> -->
     <!-- <script src="{{ url_for('static', filename='js/auth_chart.js') }}"></script> -->
     <script src="{{ url_for('static', filename='js/popup.js') }}"></script>
