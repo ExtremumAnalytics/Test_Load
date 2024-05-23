@@ -1,0 +1,73 @@
+2024-05-23 15:12:58,175 - INFO - Function create_or_pass_folder error with flag 0 -- Function create_or_pass_folder error is::Value for one of the query parameters specified in the request URI is invalid.
+RequestId:12be81d1-601e-0029-04f5-ac0344000000
+Time:2024-05-23T09:42:57.3650126Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:12be81d1-601e-0029-04f5-ac0344000000
+Time:2024-05-23T09:42:57.3650126Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>
+2024-05-23 15:12:58,176 - INFO - Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:12be81d1-601e-0029-04f5-ac0344000000
+Time:2024-05-23T09:42:57.3650126Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:12be81d1-601e-0029-04f5-ac0344000000
+Time:2024-05-23T09:42:57.3650126Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> 
+2024-05-23 15:12:58,947 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 15:12:58,947 - INFO - User asif24 logged in successfully with flag 1
+2024-05-23 15:12:59,643 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 15:13:01,567 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:06,614 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:07,392 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 15:13:09,282 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:13,812 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:18,075 - INFO - Route download_progress success
+2024-05-23 15:13:18,806 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:25,459 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:28,707 - INFO - Route download_progress success
+2024-05-23 15:13:29,325 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:34,507 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:35,143 - INFO - Route download_progress success
+2024-05-23 15:13:39,051 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:41,869 - INFO - Route download_progress success
+2024-05-23 15:13:43,927 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:48,820 - INFO - Route download_progress success
+2024-05-23 15:13:48,828 - INFO - webcrawler route successfull with flag 1
+2024-05-23 15:13:48,868 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:53,804 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:13:58,806 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:03,842 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:08,838 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:13,911 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:18,847 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:23,851 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:28,888 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:33,900 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:38,875 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:43,813 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:48,813 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:54,356 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:14:59,323 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:04,329 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:09,324 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:14,334 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:19,355 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:24,525 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:29,431 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:34,314 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:39,429 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:44,381 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:49,420 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:54,324 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:15:59,353 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:16:04,347 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:16:09,368 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:16:15,362 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:16:19,517 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:16:24,995 - INFO - table_update route successfully send data with flag 1
+2024-05-23 15:17:00,624 - INFO - table_update route successfully send data with flag 1
