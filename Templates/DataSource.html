@@ -25,6 +25,9 @@
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <!-- jQuery and jQuery UI JS -->
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    
+    <!-- Socket IO library -->
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 
 
     <!-- Include Plotly.js library -->
@@ -277,11 +280,11 @@
                             <!-- Second Container (Progress) -->
                             <div class="col-lg-8 progress-container rounded border p-2 m-2">
                                 <div id="progress" class="d-flex flex-column p-2">
-                                    <!-- <label for="status" style="font-size: 14px;">Current Status:</label>
-                                    <label for="totalFiles" style="font-size: 14px;">Total Files:</label>
-                                    <label for="filesDownloaded" style="font-size: 14px;">Files Downloaded:</label>
-                                    <label for="progressPercentage" style="font-size: 14px;">Progress Percentage:</label>
-                                    <label for="currentFileName" style="font-size: 14px;">Current File Name:</label> -->
+                                    <label id="status" style="font-size: 14px;">Current Status:</label>
+                                    <label id="totalFiles" style="font-size: 14px;">Total Files:</label>
+                                    <label id="filesDownloaded" style="font-size: 14px;">Files Downloaded:</label>
+                                    <label id="progressPercentage" style="font-size: 14px;">Progress Percentage:</label>
+                                    <label id="currentFileName" style="font-size: 14px;">Current File Name:</label>
                                 </div>
                             </div>
                         </div>

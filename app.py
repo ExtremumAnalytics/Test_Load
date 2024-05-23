@@ -11,6 +11,7 @@ from io import BytesIO
 from flask import Flask, jsonify, url_for, flash
 from flask import render_template, request, g, redirect, session
 from flask_sqlalchemy import SQLAlchemy
+from flask_session import Session
 import tempfile
 import pickle
 
@@ -74,6 +75,9 @@ matplotlib.use('Agg')
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import traceback
+
+# Socket IO
+from flask_socketio import SocketIO, emit
 
 # for default Azure account use only
 openapi_key = "OPENAI-API-KEY"
@@ -246,6 +250,8 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
                 file_type = 'PDF'
             elif file_name.endswith('.docx') or file_name.endswith('.doc'):
                 file_type = 'DOCX'
+            elif file_name.endswith('.csv') or file_name.endswith('.CSV'):
+                file_type = 'CSV'
             elif file_name.endswith('.mp3'):
                 file_type = 'MP3'
             elif file_name.endswith('.xlsx') or file_name.endswith('.xlscd .'):
@@ -271,6 +277,174 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
     return blob_list
 
 
+# def update_when_file_delete():
+#     global blob_list_length, Source_URL, loader, tot_file, bar_chart_url, txt_to_pdf
+#     txt_to_pdf = {}
+#     bar_chart_url = {}
+#     blob_list_length = 0
+#     tot_succ = 0
+#     tot_fail = 0
+#     final_chunks = []
+#     summary_chunk = []
+#     folder_name_azure = str(session['login_pin'])
+#     folder_name = os.path.join('static', 'login', folder_name_azure)
+#     blob_list = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name_azure)
+#     blob_list_length = len(list(blob_list))
+#     if blob_list_length == 0 and Source_URL == "":
+#         session['bar_chart_ss'] = {}
+#         session['over_all_readiness'] = 0
+#         session['total_success_rate'] = 0
+#         session['total_files_list'] = 0
+#         session['successful_list'] = 0
+#         session['failed_list'] = 0
+#         session['progress_list'] = 0
+#         print("No data Load in storage")
+#         return
+#     session['total_files_list'] = blob_list_length
+#     blob_list_for = blob_service_client.get_container_client(container_name).list_blobs(
+#         name_starts_with=folder_name_azure)
+#     # delete here to csv file
+#
+#     try:
+#         if blob_list_length != 0:
+#             for blob in blob_list_for:
+#                 blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
+#                 file_name = blob.name.split('/')[-1]  # Extract file name from blob path
+#                 print("blob_name_file_name---------->", file_name)
+#                 if file_name.endswith('.pdf') or file_name.endswith('.PDF') or file_name.endswith('.mp3'):
+#                     temp_path = blob_client.url
+#                 elif file_name.endswith('.xls') or file_name.endswith('.xlsx') or file_name.endswith(
+#                         '.docx') or file_name.endswith('.doc'):
+#                     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+#                         temp_path = temp_file.name
+#                         blob_data = blob_client.download_blob()
+#                         blob_data.readinto(temp_file)
+#
+#                     # loader = AzureBlobStorageFileLoader(
+#                     #     conn_str=connection_string,
+#                     #     container=container_name,
+#                     #     blob_name=blob.name,
+#                     # )
+#                 if '.pdf' in file_name or '.PDF' in file_name:
+#                     loader = PyPDFLoader(temp_path)
+#                 elif '.mp3' in file_name:
+#                     loader = AssemblyAIAudioTranscriptLoader(temp_path, api_key="5bbe5761b36b4ff885dbd18836c3c723")
+#                 elif '.docx' in file_name or '.doc' in file_name:
+#                     loader = Docx2txtLoader(temp_path)
+#                 # elif '.csv' in file_name or '.CSV' in file_name:
+#                 # loader = CSVLoader(temp_path)
+#                 elif '.xlsx' in file_name or '.xls' in file_name:
+#                     loader = UnstructuredExcelLoader(temp_path)
+#                 s_url = 'https://testcongnilink.blob.core.windows.net/congnilink-container/' + blob.name
+#                 chunks = loader.load_and_split()
+#                 for ele in chunks:
+#                     ele.metadata['source'] = s_url
+#                 print(f"Number of chunks :: {len(chunks)}")
+#                 if len(chunks) == 0:
+#                     tot_fail += 1
+#                 final_chunks.extend(chunks)
+#                 summary_chunk.append({file_name: [chunks]})
+#
+#                 if '.mp3' in file_name and len(chunks) != 0:
+#                     for i, chunk in enumerate(chunks):
+#                         txt_to_pdf[f"{file_name}_{i + 1}"] = chunk.page_content
+#                     # Split file_name at the dot and append ".pdf" to the first part
+#                     file_name_without_extension = file_name.split('.')[0]
+#                     temp_pdf_path = os.path.join(folder_name, f"{file_name_without_extension}.pdf")
+#
+#                     doc = SimpleDocTemplate(temp_pdf_path, pagesize=letter)
+#                     styles = getSampleStyleSheet()
+#                     flowables = []
+#
+#                     for name, text in txt_to_pdf.items():
+#                         ptext = "<font size=12><b>{}<br/><br/></b></font>{}".format(name, text)
+#                         paragraph = Paragraph(ptext, style=styles["Normal"])
+#                         flowables.append(paragraph)
+#                         flowables.append(Paragraph("<br/><br/><br/>", style=styles["Normal"]))
+#
+#                     doc.build(flowables)
+#                     # Get the filename from the path
+#                     file_name = os.path.basename(temp_pdf_path)
+#                     with open(temp_pdf_path, "rb") as file:
+#                         content = file.read()
+#                     blob_name = f"{folder_name_azure}/{file_name}"
+#                     blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+#
+#                     # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
+#                     blob_client.upload_blob(content, blob_type="BlockBlob",
+#                                             content_settings=ContentSettings(content_type="application/pdf"),
+#                                             overwrite=True)
+#
+#                     # Temporary PDF file ko delete karna
+#                     os.remove(temp_pdf_path)
+#
+#                 tot_succ += 1
+#                 # Calculate progress_list
+#                 session['successful_list'] = min(tot_succ - tot_fail, session['total_files_list'])
+#                 session['failed_list'] = min(tot_fail, session['total_files_list'] - session['successful_list'])
+#                 session['progress_list'] = session['total_files_list'] - session['successful_list'] - session[
+#                     'failed_list']
+#
+#                 with open(os.path.join(folder_name, 'summary_chunk.pkl'), 'wb') as f:
+#                     pickle.dump(summary_chunk, f)
+#
+#                 vectorstore = get_vectostore(final_chunks)
+#                 vectorstore.save_local(os.path.join(folder_name, 'faiss_index'))
+#                 session['over_all_readiness'] = session['total_files_list']
+#                 session['total_success_rate'] = session['successful_list']
+#                 # Check if session is modified and save it if necessary
+#                 # if session.modified:
+#                 #     # Manually save the session
+#                 #     session_interface = app.session_interface
+#                 #     session_interface.save_session(app, session, None)
+#
+#                 # session_interface.save_session(app, session)
+#                 pie_chart_data = create_pie_chart()
+#                 socketio.emit('updatePieChart', pie_chart_data)
+#                 update_bar_chart_from_blob(session, blob_service_client, container_name)
+#         if Source_URL != "":
+#             session['total_files_list'] += 1
+#             f_name_url = Source_URL
+#             file_type = 'Source_Url'
+#             bar_chart_url[file_type] = bar_chart_url.get(file_type, 0) + 1
+#             # Update bar_chart_url with values from session, if available
+#             if 'bar_chart_ss' in session:
+#                 session['bar_chart_ss'].update(bar_chart_url)
+#             loader = WebBaseLoader(Source_URL)
+#             chunks_url = loader.load_and_split()
+#             print(f"Number of chunks :: {len(chunks_url)}")
+#             if len(chunks_url) == 0:
+#                 tot_fail += 1
+#                 return jsonify({"message": "No data available in website"})
+#             final_chunks.extend(chunks_url)
+#             summary_chunk.append({f_name_url: [chunks_url]})
+#             tot_succ += 1
+#             # Calculate progress_list
+#             session['successful_list'] = min(tot_succ - tot_fail, session['total_files_list'])
+#             session['failed_list'] = min(tot_fail, session['total_files_list'] - session['successful_list'])
+#             session['progress_list'] = session['total_files_list'] - session['successful_list'] - session[
+#                 'failed_list']
+#             with open(os.path.join(folder_name, 'summary_chunk.pkl'), 'wb') as f:
+#                 pickle.dump(summary_chunk, f)
+#
+#             vectorstore = get_vectostore(final_chunks)
+#             vectorstore.save_local(os.path.join(folder_name, 'faiss_index'))
+#             session['over_all_readiness'] = session['total_files_list']
+#             session['total_success_rate'] = session['successful_list']
+#             update_bar_chart_from_blob(session, blob_service_client, container_name)
+#         print("Complete")
+#         g.flag = 1  # Set flag to 1 on success1
+#         logger.info(f"Function update_when_file_delete Data Loaded Successfully with flag {g.flag}")
+#
+#         return jsonify({"message": "Data Loaded Successfully"})
+#     except Exception as e:
+#         g.flag = 0  # Set flag to 1 on success1
+#         logger.info(
+#             f"Function update_when_file_delete error with flag {g.flag} -- Function update_when_file_delete error is::{e}")
+#         print("update_when_file_delete----->", str(e))
+#         return jsonify({'message': str(e)})
+
+
 def update_when_file_delete():
     global blob_list_length, Source_URL, loader, tot_file, bar_chart_url, txt_to_pdf
     txt_to_pdf = {}
@@ -282,8 +456,16 @@ def update_when_file_delete():
     summary_chunk = []
     folder_name_azure = str(session['login_pin'])
     folder_name = os.path.join('static', 'login', folder_name_azure)
-    blob_list = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name_azure)
-    blob_list_length = len(list(blob_list))
+    all_blobs = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name_azure)
+    # print(all_blobs)
+    all_blobs_list = list(all_blobs)  # Convert to list to enable filtering
+    blob_list = [blob for blob in all_blobs_list if not (blob.name.endswith('.csv') or blob.name.endswith('.CSV'))]
+    # print(blob_list)
+
+    # Update session counts for CSV files directly
+    csv_files_count = len(all_blobs_list) - len(blob_list)
+    tot_succ += csv_files_count  # Mark CSV files as successfully read
+    blob_list_length = len(blob_list)
     if blob_list_length == 0 and Source_URL == "":
         session['bar_chart_ss'] = {}
         session['over_all_readiness'] = 0
@@ -293,14 +475,15 @@ def update_when_file_delete():
         session['failed_list'] = 0
         session['progress_list'] = 0
         print("No data Load in storage")
-        return
-    session['total_files_list'] = blob_list_length
-    blob_list_for = blob_service_client.get_container_client(container_name).list_blobs(
-        name_starts_with=folder_name_azure)
+        return jsonify({'message':'No data Load in storage'})
+
+    session['total_files_list'] = blob_list_length+csv_files_count
+    #blob_list_for = blob_service_client.get_container_client(container_name).list_blobs(
+     #   name_starts_with=folder_name_azure)
 
     try:
         if blob_list_length != 0:
-            for blob in blob_list_for:
+            for blob in blob_list:
                 blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
                 file_name = blob.name.split('/')[-1]  # Extract file name from blob path
                 print("blob_name_file_name---------->", file_name)
@@ -390,6 +573,10 @@ def update_when_file_delete():
                 #     session_interface.save_session(app, session, None)
 
                 # session_interface.save_session(app, session)
+                pie_chart_data = create_pie_chart()
+                socketio.emit('updatePieChart', pie_chart_data)
+
+                # session_interface.save_session(app, session)
                 update_bar_chart_from_blob(session, blob_service_client, container_name)
         if Source_URL != "":
             session['total_files_list'] += 1
@@ -420,6 +607,11 @@ def update_when_file_delete():
             vectorstore.save_local(os.path.join(folder_name, 'faiss_index'))
             session['over_all_readiness'] = session['total_files_list']
             session['total_success_rate'] = session['successful_list']
+
+            # session_interface.save_session(app, session)
+            pie_chart_data = create_pie_chart()
+            socketio.emit('updatePieChart', pie_chart_data)
+
             update_bar_chart_from_blob(session, blob_service_client, container_name)
         print("Complete")
         g.flag = 1  # Set flag to 1 on success1
@@ -427,8 +619,7 @@ def update_when_file_delete():
         return jsonify({"message": "Data Loaded Successfully"})
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
-        logger.info(
-            f"Function update_when_file_delete error with flag {g.flag} -- Function update_when_file_delete error is::{e}")
+        logger.info(f"Function update_when_file_delete error with flag {g.flag} -- Function update_when_file_delete error is::{e}")
         print("update_when_file_delete----->", str(e))
         return jsonify({'message': str(e)})
 
@@ -632,6 +823,12 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///Dashboard.db"
 app.config['DEBUG'] = True
 db = SQLAlchemy(app)
 app.secret_key = os.urandom(24)
+# socket io
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = False
+
+Session(app)
+socketio = SocketIO(app, manage_session=False)
 
 
 class FileStorage(db.Model):
@@ -1156,6 +1353,17 @@ def data_source():
     return render_template('DataSource.html')
 
 
+@socketio.on('connect')
+def handle_connect():
+    pie_chart_data = create_pie_chart()
+    emit('update_pie_chart', pie_chart_data)
+
+
+@app.route("/test_pie", methods=['GET', 'POST'])
+def test_pie():
+    return render_template('test_pie.html')
+
+
 @app.route('/graph_update')
 def graph_update():
     bar_chart_json = create_bar_chart()
@@ -1177,7 +1385,7 @@ def graph_update():
     # Return a JSON object containing all the updated data
     return jsonify({
         'bars': bar_chart_json,
-        'pie_chart': pie_chart_json,
+        # 'pie_chart': pie_chart_json,
         'gauge_auth': gauge_auth,
         'gauge_CogS': gauge_CogS,
         'gauge_Q_A': gauge_Q_A,
@@ -1228,6 +1436,8 @@ def popup_form():
                 return jsonify({'message': 'File not Fond'}), 400
             print('name of file is', files)
             for file in files:
+                # if is_file_in_use(file):
+                #     return jsonify({'error':'The file is currently in use by another process. Please close the file and try again.'}),400
                 file.seek(0, os.SEEK_END)  # Move the cursor to the end of the file
                 file_size_bytes = file.tell()  # Get the current cursor position, which is the file size in bytes
                 file.seek(0)  # Reset the cursor back to the beginning of the file
@@ -1347,20 +1557,55 @@ def Cogni_button():
             session['failed_list'] = 0
             session['progress_list'] = 0
             print("No data Load in storage cogni button code")
+            socketio.emit('button_response', {'message': 'No data Load in storage'})
             return jsonify({'message': 'No data Load in storage'})
-        # Set Timer
-        end_time = time.time()  # Get the current time when the function ends
-        elapsed_time = end_time - start_time  # Calculate the elapsed time
-        g.flag = 1  # Set flag to 1 on success
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        g.flag = 1
         logger.info(f"Cogni_button route succeeded with flag {g.flag}")
 
         print(f"Function took--------->  {elapsed_time} <--------- seconds to execute.")
+        socketio.emit('button_response', {'message': 'Operation successful'})
         return response
     except Exception as e:
-        g.flag = 0  # Set flag to 1 on success
+        g.flag = 0
         logger.info(f"Cogni_button route succeeded with flag {g.flag}---> error is-->{e}")
         print("Cogni_button_error_message----->", str(e))
+        socketio.emit('button_response', {'message': str(e)})
         return jsonify({'message': str(e)}), 500
+
+
+# @app.route('/Cogni_button', methods=['GET'])
+# def Cogni_button():
+#     global blob_list_length, Source_URL
+#     try:
+#         start_time = time.time()
+#         print('Cogni_button Press')
+#         response = update_when_file_delete()
+#         if blob_list_length == 0 and Source_URL == "":
+#             session['bar_chart_ss'] = {}
+#             session['over_all_readiness'] = 0
+#             session['total_success_rate'] = 0
+#             session['total_files_list'] = 0
+#             session['successful_list'] = 0
+#             session['failed_list'] = 0
+#             session['progress_list'] = 0
+#             print("No data Load in storage cogni button code")
+#             return jsonify({'message': 'No data Load in storage'})
+#         # Set Timer
+#         end_time = time.time()  # Get the current time when the function ends
+#         elapsed_time = end_time - start_time  # Calculate the elapsed time
+#         g.flag = 1  # Set flag to 1 on success
+#         logger.info(f"Cogni_button route succeeded with flag {g.flag}")
+#
+#         print(f"Function took--------->  {elapsed_time} <--------- seconds to execute.")
+#         return response
+#     except Exception as e:
+#         g.flag = 0  # Set flag to 1 on success
+#         logger.info(f"Cogni_button route succeeded with flag {g.flag}---> error is-->{e}")
+#         print("Cogni_button_error_message----->", str(e))
+#         return jsonify({'message': str(e)}), 500
 
 
 @app.route("/Summary", methods=['GET', 'POST'])
@@ -1654,6 +1899,7 @@ def webcrawler():
                 files_downloaded += 1
                 # Update progress percentage
                 progress_percentage = int(files_downloaded / total_files * 100)
+                update_progress()
             except Exception as e:
                 print(f"Error occurred: {e}")
         # Define global variables for download progress
@@ -1704,22 +1950,37 @@ def download_pdf(url, folder_name, filename):
     print(f"Downloaded: {filename}")
 
 
-@app.route("/download_progress", methods=['GET'])
-def download_progress():
-    global current_file, total_files, files_downloaded, progress_percentage, current_status
-
-    # current_file = "Master Direction – Acquisition or Transfer of Immovable Property under Foreign Exchange
-    # Management Act, 1999 (Updated as on September 01, 2022)" total_files = 10 files_downloaded = 5
-    # progress_percentage = int(files_downloaded / total_files * 100)
-    logger.info(f"Route download_progress success")
-    # Return JSON response with progress information
-    return jsonify({
-        'current_status': current_status,
-        'total_files': total_files,
-        'files_downloaded': files_downloaded,
-        'progress_percentage': progress_percentage,
-        'current_file': current_file
-    })
+# @app.route("/download_progress", methods=['GET'])
+# def download_progress():
+#     global current_file, total_files, files_downloaded, progress_percentage, current_status
+#
+#     # current_file = "Master Direction – Acquisition or Transfer of Immovable Property under Foreign Exchange
+#     # Management Act, 1999 (Updated as on September 01, 2022)" total_files = 10 files_downloaded = 5
+#     # progress_percentage = int(files_downloaded / total_files * 100)
+#     logger.info(f"Route download_progress success")
+#     # Return JSON response with progress information
+#     return jsonify({
+#         'current_status': current_status,
+#         'total_files': total_files,
+#         'files_downloaded': files_downloaded,
+#         'progress_percentage': progress_percentage,
+#         'current_file': current_file
+#     })
+def update_progress():
+    global files_downloaded, progress_percentage, current_status, current_file
+    # Simulate file download progress
+    while files_downloaded < total_files:
+        files_downloaded += 1
+        progress_percentage = int(files_downloaded / total_files * 100)
+        current_status = "Downloading" if files_downloaded < total_files else "Completed"
+        socketio.emit('progress', {
+            'current_status': current_status,
+            'total_files': total_files,
+            'files_downloaded': files_downloaded,
+            'progress_percentage': progress_percentage,
+            'current_file': current_file
+        })
+        socketio.sleep(1)  # Simulate delay between file downloads
 
 
 @app.route("/fetch_pdf_files", methods=['GET', 'POST'])
@@ -1826,7 +2087,14 @@ def Eda_Process():
                     blob_client = container_client.get_blob_client(blob)
                     blob_data = blob_client.download_blob().readall()
                     data_stream = BytesIO(blob_data)
-                    df = pd.read_excel(data_stream)
+
+                    # Determine the file type and load the data accordingly
+                    if file_url.endswith('.xlsx') or file_url.endswith('.xls'):
+                        df = pd.read_excel(data_stream)
+                    elif file_url.endswith('.csv'):
+                        df = pd.read_csv(data_stream)
+                    else:
+                        return jsonify({"message": "Unsupported file format"}), 400
                     print(df.head(5))
                     logger.info("Route Eda_Process Data Loaded Successfuly.")
                     return jsonify({"message": "Data Loaded Successfuly. Ask Virtual Analyst!"})
@@ -1943,4 +2211,4 @@ def _404():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, threaded=True)

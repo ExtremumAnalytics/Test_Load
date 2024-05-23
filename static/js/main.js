@@ -95,45 +95,96 @@
     // });
 
     // Ingestion Status Chart
-    var ctx2 = $("#ingestion_chart").get(0).getContext("2d");
-    var myChart2 = new Chart(ctx2, {
-        type: "pie",
-        data: {
-            labels: ['Read', 'In Progress', 'Failed'],
-            // labels: [],
-            datasets: [{
-                backgroundColor: [
-                    "rgba(0, 156, 255, 0.7)",
-                    "rgba(255, 165, 0, 0.7)",
-                    "rgba(255, 10, 10, 0.7)",
-                    "rgba(0, 0, 255, 0.1)",
-                ],
-                data: [50,20,30]
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                datalabels: {
-                    color: '#ffffff',
-                    formatter: (value, ctx2) => {
-                        let sum = 0;
-                        let dataArr = ctx2.chart.data.datasets[0].data;
-                        dataArr.map(data => {
-                            sum += data;
-                        });
-                        let percentage = (value*100 / sum).toFixed(2)+"%";
-                        return percentage;
-                    },
-                    display: true,
-                    align: 'center',
-                    anchor: 'center'
+    $(document).ready(function() {
+        const socket = io();
+
+        const ctx2 = $("#ingestion_chart").get(0).getContext("2d");
+        const myChart2 = new Chart(ctx2, {
+            type: "pie",
+            data: {
+                labels: ['Read', 'In Progress', 'Failed'],
+                datasets: [{
+                    backgroundColor: [
+                        "rgba(0, 156, 255, 0.7)",
+                        "rgba(255, 165, 0, 0.7)",
+                        "rgba(255, 10, 10, 0.7)",
+                        "rgba(0, 0, 255, 0.1)"
+                    ],
+                    data:[0,0,0]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    datalabels: {
+                        color: '#ffffff',
+                        formatter: (value, ctx2) => {
+                            let sum = 0;
+                            let dataArr = ctx2.chart.data.datasets[0].data;
+                            dataArr.map(data => {
+                                sum += data;
+                            });
+                            let percentage = (value * 100 / sum).toFixed(2) + "%";
+                            return percentage;
+                        },
+                        display: true,
+                        align: 'center',
+                        anchor: 'center'
+                    }
                 }
-            }
-        },
-        plugins: [ChartDataLabels]
-        
+            },
+            plugins: [ChartDataLabels]
+        });
+
+        socket.on('updatePieChart', function(data) {
+            updatePieChart(data);
+        });
+
+        function updatePieChart(data) {
+            myChart2.data.labels = data.labels;
+            myChart2.data.datasets[0].data = data.values;
+            myChart2.update();
+        }
     });
+    // var ctx2 = $("#ingestion_chart").get(0).getContext("2d");
+    // var myChart2 = new Chart(ctx2, {
+    //     type: "pie",
+    //     data: {
+    //         labels: ['Read', 'In Progress', 'Failed'],
+    //         // labels: [],
+    //         datasets: [{
+    //             backgroundColor: [
+    //                 "rgba(0, 156, 255, 0.7)",
+    //                 "rgba(255, 165, 0, 0.7)",
+    //                 "rgba(255, 10, 10, 0.7)",
+    //                 "rgba(0, 0, 255, 0.1)",
+    //             ],
+    //             data: [50,20,30]
+    //         }]
+    //     },
+    //     options: {
+    //         responsive: true,
+    //         plugins: {
+    //             datalabels: {
+    //                 color: '#ffffff',
+    //                 formatter: (value, ctx2) => {
+    //                     let sum = 0;
+    //                     let dataArr = ctx2.chart.data.datasets[0].data;
+    //                     dataArr.map(data => {
+    //                         sum += data;
+    //                     });
+    //                     let percentage = (value*100 / sum).toFixed(2)+"%";
+    //                     return percentage;
+    //                 },
+    //                 display: true,
+    //                 align: 'center',
+    //                 anchor: 'center'
+    //             }
+    //         }
+    //     },
+    //     plugins: [ChartDataLabels]
+        
+    // });
 
     // Overall Readiness chart
     var ctx1 = $("#bar_file_chart").get(0).getContext("2d");

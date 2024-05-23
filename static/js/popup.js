@@ -351,30 +351,59 @@ function toggleAllCheckboxes() {
 }
 
 
-//table fetch data.
-function fetchProgress() {
-    fetch("/download_progress")
-      .then(response => response.json())
-      .then(data => {
-        console.log("Total Files:", data.total_files);
-        console.log("Files Downloaded:", data.files_downloaded);
-        console.log("Progress Percentage:", data.progress_percentage + "%");
-        console.log("Current File:", data.current_file);
-        
-        // Update progress display
-        document.getElementById("progress").innerHTML = `
-          <label>Current Status: ${data.current_status}</label>
-          <label>Total Files:  ${data.total_files}</label>
-          <label>Files Downloaded:  ${data.files_downloaded}</label>
-          <label>Progress Percentage:  ${data.progress_percentage}%</label>
-          <label>Current File Name:  ${data.current_file}</label>
-        `;
-      })
-      .catch(error => console.error("Error fetching progress:", error));
-    }
+// //table fetch data for web crawling.
 
-  // Fetch progress every second
-setInterval(fetchProgress, 1000);
+var socket = io();
+
+socket.on('progress', function(data) {
+    console.log(data);
+    document.getElementById('status').innerText = `Current Status: ${data.current_status}`;
+    document.getElementById('totalFiles').innerText = `Total Files: ${data.total_files}`;
+    document.getElementById('filesDownloaded').innerText = `Files Downloaded: ${data.files_downloaded}`;
+    document.getElementById('progressPercentage').innerText = `Progress Percentage: ${data.progress_percentage}%`;
+    document.getElementById('currentFileName').innerText = `Current File Name: ${data.current_file}`;
+});
+
+
+
+// var socket = io();
+
+// socket.on('progress', function(data) {
+//     console.log(data);
+//     // Update progress display
+//     document.getElementById("progress").innerHTML = `
+//         <label style="font-size: 14px;">Current Status: ${data.current_status}</label>
+//         <label style="font-size: 14px;">Total Files: ${data.total_files}</label>
+//         <label style="font-size: 14px;">Files Downloaded: ${data.files_downloaded}</label>
+//         <label style="font-size: 14px;">Progress Percentage: ${data.progress_percentage}%</label>
+//         <label style="font-size: 14px;">Current File Name: ${data.current_file}</label>
+//     `;
+// });
+
+
+// function fetchProgress() {
+//     fetch("/download_progress")
+//       .then(response => response.json())
+//       .then(data => {
+//         console.log("Total Files:", data.total_files);
+//         console.log("Files Downloaded:", data.files_downloaded);
+//         console.log("Progress Percentage:", data.progress_percentage + "%");
+//         console.log("Current File:", data.current_file);
+        
+    //     // Update progress display
+    //     document.getElementById("progress").innerHTML = `
+    //       <label>Current Status: ${data.current_status}</label>
+    //       <label>Total Files:  ${data.total_files}</label>
+    //       <label>Files Downloaded:  ${data.files_downloaded}</label>
+    //       <label>Progress Percentage:  ${data.progress_percentage}%</label>
+    //       <label>Current File Name:  ${data.current_file}</label>
+    //     `;
+    //   })
+//       .catch(error => console.error("Error fetching progress:", error));
+//     }
+
+//   // Fetch progress every second
+// setInterval(fetchProgress, 1000);
 
 
 // this is default program
@@ -397,6 +426,12 @@ function runDefaultProgram() {
     for (var i = 0; i < files.length; i++) {
         formData.append('myFile', files[i]);
     }
+    
+
+    // var dbURL = document.getElementsByName('dbURL')[0].value;
+    // var username = document.getElementsByName('username')[0].value;
+    // var password = document.getElementsByName('password')[0].value;
+    // var Source_URL = document.getElementsByName('Source_URL')[0].value;
 
     var dbType = document.getElementsByName('dbType')[0].value;
     var hostname = document.getElementsByName('hostname')[0].value;
@@ -405,11 +440,6 @@ function runDefaultProgram() {
     var password = document.getElementsByName('password')[0].value;
     var query = document.getElementsByName('query')[0].value;
     var Source_URL = document.getElementsByName('Source_URL')[0].value;
-
-    // var dbURL = document.getElementsByName('dbURL')[0].value;
-    // var username = document.getElementsByName('username')[0].value;
-    // var password = document.getElementsByName('password')[0].value;
-    // var Source_URL = document.getElementsByName('Source_URL')[0].value;
     
     //$("#myDiv").html('<img src="/static/images/wait.gif" alt="Wait" />');
     $("#waitImg").show(); // Show the loading image
@@ -418,8 +448,7 @@ function runDefaultProgram() {
     // formData.append('username', username);
     // formData.append('password', password);
     // formData.append('Source_URL', Source_URL);
-
-    // Append additional fields
+      // Append additional fields
     formData.append('dbType', dbType);
     formData.append('hostname', hostname);
     formData.append('port', port);
@@ -427,7 +456,6 @@ function runDefaultProgram() {
     formData.append('password', password);
     formData.append('query', query);
     formData.append('Source_URL', Source_URL);
-
 
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/popup_form');
@@ -458,12 +486,38 @@ function runDefaultProgram() {
 
 
 
-// load cognilink button
+// // load cognilink button
+
+
+// $(document).ready(function () {
+//     $("#loadCogniLink").click(function () {
+//         //$("#myDiv").html('');
+//         $("#waitImg").show(); // Show the loading image
+//         $.ajax({
+//             url: '/Cogni_button',
+//             type: 'GET',
+//             success: function (data) {
+//                 $("#waitImg").hide(); // Hide the loading image on success
+//                 $('#message').text(data.message);
+//                 setTimeout(function() {
+//                     $('#message').text('');
+//                 }, 8000);
+//                 console.log('Data is Loaded:', data);
+//                 dataLoadUpdate();
+//             },
+//             error: function (error) {
+//                 console.error('Error in Loading CogniLink data:', error);
+//                 $("#waitImg").hide(); // Hide the loading image on error
+//             }
+//         });
+//     });
+// });
 
 
 $(document).ready(function () {
+    var socket = io();
+
     $("#loadCogniLink").click(function () {
-        //$("#myDiv").html('');
         $("#waitImg").show(); // Show the loading image
         $.ajax({
             url: '/Cogni_button',
@@ -483,4 +537,16 @@ $(document).ready(function () {
             }
         });
     });
+
+    socket.on('button_response', function(msg) {
+        $('#message').text(msg.message);
+        setTimeout(function() {
+            $('#message').text('');
+        }, 8000);
+    });
 });
+
+function dataLoadUpdate() {
+    // Add your logic here to handle data load update
+    console.log('Data load update function called');
+}

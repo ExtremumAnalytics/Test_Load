@@ -1,0 +1,107 @@
+2024-05-23 14:45:06,909 - INFO - Function create_or_pass_folder error with flag 0 -- Function create_or_pass_folder error is::Value for one of the query parameters specified in the request URI is invalid.
+RequestId:07759f35-601e-006d-0ff1-acdf28000000
+Time:2024-05-23T09:15:06.0447400Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:07759f35-601e-006d-0ff1-acdf28000000
+Time:2024-05-23T09:15:06.0447400Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>
+2024-05-23 14:45:06,909 - INFO - Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:07759f35-601e-006d-0ff1-acdf28000000
+Time:2024-05-23T09:15:06.0447400Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:07759f35-601e-006d-0ff1-acdf28000000
+Time:2024-05-23T09:15:06.0447400Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> 
+2024-05-23 14:45:07,757 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:45:07,757 - INFO - User asif24 logged in successfully with flag 1
+2024-05-23 14:45:08,735 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:45:10,682 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:45:10,754 - INFO - Route download_progress success
+2024-05-23 14:45:11,756 - INFO - Route download_progress success
+2024-05-23 14:45:12,754 - INFO - Route download_progress success
+2024-05-23 14:45:13,769 - INFO - Route download_progress success
+2024-05-23 14:45:14,751 - INFO - Route download_progress success
+2024-05-23 14:45:15,464 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:45:15,753 - INFO - Route download_progress success
+2024-05-23 14:45:16,757 - INFO - Route download_progress success
+2024-05-23 14:45:17,765 - INFO - Route download_progress success
+2024-05-23 14:45:18,597 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:45:18,747 - INFO - Route download_progress success
+2024-05-23 14:45:19,745 - INFO - Route download_progress success
+2024-05-23 14:45:20,544 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:45:20,878 - INFO - Route download_progress success
+2024-05-23 14:45:21,960 - INFO - Route download_progress success
+2024-05-23 14:45:23,776 - INFO - Route download_progress success
+2024-05-23 14:45:24,741 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:45:25,722 - INFO - Route download_progress success
+2024-05-23 14:45:26,362 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:45:27,838 - INFO - Route download_progress success
+2024-05-23 14:45:28,749 - INFO - Route download_progress success
+2024-05-23 14:45:29,759 - INFO - Route download_progress success
+2024-05-23 14:45:30,177 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:45:30,177 - INFO - Function update_when_file_delete Data Loaded Successfully with flag 1
+2024-05-23 14:45:30,177 - INFO - Cogni_button route succeeded with flag 1
+2024-05-23 14:45:30,769 - INFO - Route download_progress success
+2024-05-23 14:45:31,475 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:45:31,754 - INFO - Route download_progress success
+2024-05-23 14:45:32,750 - INFO - Route download_progress success
+2024-05-23 14:45:33,749 - INFO - Route download_progress success
+2024-05-23 14:45:34,759 - INFO - Route download_progress success
+2024-05-23 14:45:35,490 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:45:35,760 - INFO - Route download_progress success
+2024-05-23 14:45:36,749 - INFO - Route download_progress success
+2024-05-23 14:45:37,740 - INFO - Route download_progress success
+2024-05-23 14:45:38,762 - INFO - Route download_progress success
+2024-05-23 14:45:39,765 - INFO - Route download_progress success
+2024-05-23 14:45:40,518 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:45:40,757 - INFO - Route download_progress success
+2024-05-23 14:45:40,943 - INFO - User Source_URL uploded successfully.
+2024-05-23 14:45:41,604 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:45:41,604 - INFO - Popup_form route succeeded with flag 1
+2024-05-23 14:45:41,765 - INFO - Route download_progress success
+2024-05-23 14:45:42,756 - INFO - Route download_progress success
+2024-05-23 14:45:43,755 - INFO - Route download_progress success
+2024-05-23 14:45:44,755 - INFO - Route download_progress success
+2024-05-23 14:45:45,553 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:45:45,752 - INFO - Route download_progress success
+2024-05-23 14:45:46,755 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:45:46,755 - INFO - Route download_progress success
+2024-05-23 14:45:47,785 - INFO - Route download_progress success
+2024-05-23 14:45:48,820 - INFO - Route download_progress success
+2024-05-23 14:45:50,034 - INFO - Route download_progress success
+2024-05-23 14:45:50,752 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:45:50,752 - INFO - Route download_progress success
+2024-05-23 14:45:51,453 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:45:51,755 - INFO - Route download_progress success
+2024-05-23 14:45:52,771 - INFO - Route download_progress success
+2024-05-23 14:45:53,750 - INFO - Route download_progress success
+2024-05-23 14:45:54,749 - INFO - Route download_progress success
+2024-05-23 14:45:55,499 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:45:55,766 - INFO - Route download_progress success
+2024-05-23 14:45:56,501 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:45:56,751 - INFO - Route download_progress success
+2024-05-23 14:45:57,933 - INFO - Route download_progress success
+2024-05-23 14:45:58,748 - INFO - Route download_progress success
+2024-05-23 14:45:59,773 - INFO - Route download_progress success
+2024-05-23 14:46:00,447 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:46:00,482 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-23 14:46:00,482 - INFO - Function update_when_file_delete Data Loaded Successfully with flag 1
+2024-05-23 14:46:00,482 - INFO - Cogni_button route succeeded with flag 1
+2024-05-23 14:46:00,759 - INFO - Route download_progress success
+2024-05-23 14:46:01,766 - INFO - Route download_progress success
+2024-05-23 14:46:02,750 - INFO - Route download_progress success
+2024-05-23 14:46:03,752 - INFO - Route download_progress success
+2024-05-23 14:46:04,766 - INFO - Route download_progress success
+2024-05-23 14:46:05,483 - INFO - table_update route successfully send data with flag 1
+2024-05-23 14:46:05,781 - INFO - Route download_progress success
+2024-05-23 14:46:06,751 - INFO - Route download_progress success
+2024-05-23 14:46:07,763 - INFO - Route download_progress success
+2024-05-23 14:46:25,756 - INFO - ask_question route successfully send data. 1 
+2024-05-23 14:46:42,689 - INFO - Cogservice_Value_Updated route Value updated successfully: 1
+2024-05-23 14:47:41,214 - INFO - summary_input route succeeded with flag 1
