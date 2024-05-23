@@ -828,7 +828,8 @@ app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = False
 
 Session(app)
-socketio = SocketIO(app, manage_session=False)
+# socketio = SocketIO(app, manage_session=False)
+socketio = SocketIO(app, manage_session=False, engineio_logger=True, ping_timeout=5, ping_interval=5)
 
 
 class FileStorage(db.Model):
