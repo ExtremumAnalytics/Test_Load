@@ -475,11 +475,11 @@ def update_when_file_delete():
         session['failed_list'] = 0
         session['progress_list'] = 0
         print("No data Load in storage")
-        return jsonify({'message':'No data Load in storage'})
+        return jsonify({'message': 'No data Load in storage'})
 
-    session['total_files_list'] = blob_list_length+csv_files_count
-    #blob_list_for = blob_service_client.get_container_client(container_name).list_blobs(
-     #   name_starts_with=folder_name_azure)
+    session['total_files_list'] = blob_list_length + csv_files_count
+    # blob_list_for = blob_service_client.get_container_client(container_name).list_blobs(
+    #   name_starts_with=folder_name_azure)
 
     try:
         if blob_list_length != 0:
@@ -619,7 +619,8 @@ def update_when_file_delete():
         return jsonify({"message": "Data Loaded Successfully"})
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
-        logger.info(f"Function update_when_file_delete error with flag {g.flag} -- Function update_when_file_delete error is::{e}")
+        logger.info(
+            f"Function update_when_file_delete error with flag {g.flag} -- Function update_when_file_delete error is::{e}")
         print("update_when_file_delete----->", str(e))
         return jsonify({'message': str(e)})
 
@@ -1984,20 +1985,28 @@ def update_progress():
         socketio.sleep(1)  # Simulate delay between file downloads
 
 
-@app.route("/fetch_pdf_files", methods=['GET', 'POST'])
-def fetch_pdf_files():
-    # Directory path where PDF files are located
+# @app.route("/fetch_pdf_files", methods=['GET', 'POST'])
+# def fetch_pdf_files():
+#     # Directory path where PDF files are located
+#     directory_path = "static/files/" + session.get('login_pin', '')
+#
+#     # Get list of PDF files in the directory
+#     pdf_files = [file for file in os.listdir(directory_path) if file.endswith(".pdf")]
+#     logger.info(f"Route fetch_pdf_files success")
+#
+#     # Return the list of PDF files to the client
+#     return jsonify({"pdf_files": pdf_files})
+
+@socketio.on('fetch_pdf_files')
+def handle_fetch_pdf_files():
     directory_path = "static/files/" + session.get('login_pin', '')
-
-    # Get list of PDF files in the directory
     pdf_files = [file for file in os.listdir(directory_path) if file.endswith(".pdf")]
-    logger.info(f"Route fetch_pdf_files success")
-
-    # Return the list of PDF files to the client
-    return jsonify({"pdf_files": pdf_files})
+    emit('pdf_files', {"pdf_files": pdf_files})
 
 
 # This function should contain your file deletion logic
+
+
 def delete_file(directory_path, file_name):
     try:
         file_path = os.path.join(directory_path, file_name)
@@ -2212,4 +2221,4 @@ def _404():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True, threaded=True)
+    socketio.run(app, debug=True)

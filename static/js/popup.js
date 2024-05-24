@@ -366,46 +366,6 @@ socket.on('progress', function(data) {
 
 
 
-// var socket = io();
-
-// socket.on('progress', function(data) {
-//     console.log(data);
-//     // Update progress display
-//     document.getElementById("progress").innerHTML = `
-//         <label style="font-size: 14px;">Current Status: ${data.current_status}</label>
-//         <label style="font-size: 14px;">Total Files: ${data.total_files}</label>
-//         <label style="font-size: 14px;">Files Downloaded: ${data.files_downloaded}</label>
-//         <label style="font-size: 14px;">Progress Percentage: ${data.progress_percentage}%</label>
-//         <label style="font-size: 14px;">Current File Name: ${data.current_file}</label>
-//     `;
-// });
-
-
-// function fetchProgress() {
-//     fetch("/download_progress")
-//       .then(response => response.json())
-//       .then(data => {
-//         console.log("Total Files:", data.total_files);
-//         console.log("Files Downloaded:", data.files_downloaded);
-//         console.log("Progress Percentage:", data.progress_percentage + "%");
-//         console.log("Current File:", data.current_file);
-        
-    //     // Update progress display
-    //     document.getElementById("progress").innerHTML = `
-    //       <label>Current Status: ${data.current_status}</label>
-    //       <label>Total Files:  ${data.total_files}</label>
-    //       <label>Files Downloaded:  ${data.files_downloaded}</label>
-    //       <label>Progress Percentage:  ${data.progress_percentage}%</label>
-    //       <label>Current File Name:  ${data.current_file}</label>
-    //     `;
-    //   })
-//       .catch(error => console.error("Error fetching progress:", error));
-//     }
-
-//   // Fetch progress every second
-// setInterval(fetchProgress, 1000);
-
-
 // this is default program
 
 function runDefaultProgram() {

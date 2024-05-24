@@ -1,21 +1,48 @@
-fetchPDFFiles();
+// fetchPDFFiles();
 
-// Fetch PDF files from the server
-function fetchPDFFiles() {
-    fetch("/fetch_pdf_files")
-    .then(response => response.json()) // Parse response as JSON
-    .then(data => {
-        console.log(data); // Check the data received
+// // Fetch PDF files from the server
+// function fetchPDFFiles() {
+//     fetch("/fetch_pdf_files")
+//     .then(response => response.json()) // Parse response as JSON
+//     .then(data => {
+//         console.log(data); // Check the data received
 
-        // Pass the received data directly to displayPDFFiles
-        displayPDFFiles(data.pdf_files);
-    })
-    .catch(error => console.error('Error fetching PDF files:', error));
-}
+//         // Pass the received data directly to displayPDFFiles
+//         displayPDFFiles(data.pdf_files);
+//     })
+//     .catch(error => console.error('Error fetching PDF files:', error));
+// }
 
 function closeWindow(){
     self.close();
 }
+
+
+
+document.addEventListener('DOMContentLoaded', (event) => {
+    // const socket = io("wss://ea-resource.azurewebsites.net");
+    const socket = io();
+
+    socket.on('connect', () => {
+        console.log('Connected to server');
+        fetchPDFFiles();
+    });
+
+    socket.on('pdf_files', (data) => {
+        console.log(data); // Check the data received
+        displayPDFFiles(data.pdf_files);
+    });
+
+    function fetchPDFFiles() {
+        socket.emit('fetch_pdf_files');
+    }
+    // Pass the received data directly to displayPDFFiles
+    displayPDFFiles(data.pdf_files);
+
+    // function closeWindow() {
+    //     self.close();
+    // }
+});
 
 // Display PDF files in the table
 function displayPDFFiles(pdfFiles) {

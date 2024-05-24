@@ -31,13 +31,14 @@
     <!-- jQuery UI CSS -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <!-- jQuery and jQuery UI JS -->
-
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <!-- Include Plotly.js library -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@1.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
-
+    <!-- Socket IO library -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+    
     <link href="{{ url_for('static', filename='lib/owlcarousel/assets/owl.carousel.min.css')}}" rel="stylesheet">
     <link href="{{ url_for('static', filename='lib/tempusdominus/css/tempusdominus-bootstrap-4.min.css')}}" rel="stylesheet" />
 
@@ -216,6 +217,7 @@
     <script src="{{ url_for('static', filename='js/cogni_QueAns.js') }}"></script>
     <script src="{{ url_for('static', filename='js/audio_q_a.js') }}"></script>
     <script src="{{ url_for('static', filename='js/warningpop.js') }}"></script>
+    <!--script src="{{ url_for('static', filename='js/socket_io_lib.js') }}"></script-->
 </body>
 
 </html>
