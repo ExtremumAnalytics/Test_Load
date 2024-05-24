@@ -23,14 +23,14 @@ jobs:
       uses: docker/login-action@v2
       with:
         registry: https://cognilinkregistor.azurecr.io/
-        username: ${{ secrets.AzureAppService_ContainerUsername_43b5d21b146b4ebeb1a566cec28155f2 }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_da1df3ef37df4d2f965bb28173298cd8 }}
+        username: ${{ secrets.AzureAppService_ContainerUsername_1d095b016ef24c3f82455cc486fabf73 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_a464f0073d8f40aa93874645e8bcffd6 }}
 
     - name: Build and push container image to registry
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: cognilinkregistor.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_43b5d21b146b4ebeb1a566cec28155f2 }}/cogniapp:${{ github.sha }}
+        tags: cognilinkregistor.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_1d095b016ef24c3f82455cc486fabf73 }}/cogniapp:${{ github.sha }}
         file: ./Dockerfile
 
   deploy:
@@ -47,5 +47,5 @@ jobs:
       with:
         app-name: 'test-socketio-web'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_973c942bdc20449086950f91dd5fd767 }}
-        images: 'cognilinkregistor.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_43b5d21b146b4ebeb1a566cec28155f2 }}/cogniapp:${{ github.sha }}'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_a01362b11f544550b07ecb5d24b34da4 }}
+        images: 'cognilinkregistor.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_1d095b016ef24c3f82455cc486fabf73 }}/cogniapp:${{ github.sha }}'
