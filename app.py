@@ -830,7 +830,7 @@ app.config['SESSION_PERMANENT'] = False
 
 Session(app)
 # socketio = SocketIO(app, manage_session=False)
-socketio = SocketIO(app, manage_session=False, engineio_logger=True, ping_timeout=5, ping_interval=5)
+socketio = SocketIO(app, async_mode='eventlet')
 
 
 class FileStorage(db.Model):
