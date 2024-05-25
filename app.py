@@ -405,13 +405,19 @@ def update_when_file_delete():
                 #     # Manually save the session
                 #     session_interface = app.session_interface
                 #     session_interface.save_session(app, session, None)
-
-                    # session_interface.save_session(app, session)
+                #     session_interface.save_session(app, session)
                 pie_chart_data = create_pie_chart()
                 socketio.emit('updatePieChart', pie_chart_data)
+
                 update_bar_chart_from_blob(session, blob_service_client, container_name)
-                gauge_chart_data = gauge_chart_auth()
-                socketio.emit('update_gauge_chart', gauge_chart_data)
+
+                gauge_source_chart_data = gauge_chart_auth()
+                socketio.emit('update_gauge_chart', gauge_source_chart_data)
+
+                gauge_ask_chart_data = gauge_chart_Q_A()
+                gauge_summary_chart_data = gauge_chart_CogS()
+                socketio.emit('update_gauge_ask_chart', gauge_ask_chart_data)
+                socketio.emit('update_gauge_summary_chart', gauge_summary_chart_data)
 
         if Source_URL != "":
             session['total_files_list'] += 1
@@ -443,8 +449,13 @@ def update_when_file_delete():
             session['over_all_readiness'] = session['total_files_list']
             session['total_success_rate'] = session['successful_list']
             update_bar_chart_from_blob(session, blob_service_client, container_name)
-            gauge_chart_data = gauge_chart_auth()
-            socketio.emit('update_gauge_chart', gauge_chart_data)
+
+            gauge_source_chart_data = gauge_chart_auth()
+            socketio.emit('update_gauge_chart', gauge_source_chart_data)
+            gauge_ask_chart_data = gauge_chart_Q_A()
+            gauge_summary_chart_data = gauge_chart_CogS()
+            socketio.emit('update_gauge_ask_chart', gauge_ask_chart_data)
+            socketio.emit('update_gauge_summary_chart', gauge_summary_chart_data)
 
         print("Complete")
 
@@ -477,6 +488,12 @@ def analyze_sentiment_summ(senti_text_summ):
     senti_Positive_summ = sentiment_scores['pos'] / total * 100
     senti_Negative_summ = sentiment_scores['neg'] / total * 100
     senti_neutral_summ = sentiment_scores['neu'] / total * 100
+
+    socketio.emit('update_summary_bar_chart', {
+        'values': [senti_Positive_summ, senti_Negative_summ, senti_neutral_summ],
+        'labels': ['Positive', 'Negative', 'Neutral']
+    })
+
     return senti_Positive_summ, senti_Negative_summ, senti_neutral_summ
 
 
@@ -580,6 +597,12 @@ def analyze_sentiment_Q_A(senti_text_Q_A):
     senti_Positive_Q_A = sentiment_scores['pos'] / total * 100
     senti_Negative_Q_A = sentiment_scores['neg'] / total * 100
     senti_neutral_Q_A = sentiment_scores['neu'] / total * 100
+
+    socketio.emit('update_ask_bar_chart', {
+        'values': [senti_Positive_Q_A, senti_Negative_Q_A, senti_neutral_Q_A],
+        'labels': ['Positive', 'Negative', 'Neutral']
+    })
+
     return senti_Positive_Q_A, senti_Negative_Q_A, senti_neutral_Q_A
 
 
@@ -736,22 +759,6 @@ def create_pie_chart():
     percentages = [(value / total_files_list) * 100 for value in values]
     text = [f"{label}: {value} ({percentage:.2f}%)" for label, value, percentage in zip(labels, values, percentages)]
 
-    # # Create Pie Chart
-    # trace = go.Pie(values=values, labels=labels, text=text, hoverinfo='text+value', hole=.4)
-    # layout = go.Layout(title=title)
-    #
-    # pie_chart = go.Figure(data=[trace], layout=layout)
-    #
-    # # Optional: Customize layout parameters
-    # pie_chart.update_layout(
-    #     width=260,  # Set width in pixels
-    #     height=180,  # Set height in pixels
-    #     margin=dict(l=10, r=60, t=50, b=20),
-    #     legend=dict(font=dict(size=10)),  # Adjust label text size in legend
-    #     font=dict(size=10),  # Adjust default text size
-    #     showlegend=False
-    # )
-
     pie_chart = {"labels": labels, "values": values, "percentages": percentages, "text": text}
 
     # pie_chart_data = json.loads(pie_chart)
@@ -788,49 +795,7 @@ def gauge_chart_CogS():
         over_all_readiness = 0
 
     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
-    #
-    # # Create the gauge figure
-    # gauge_fig = go.Figure(go.Indicator(
-    #     mode="gauge+number",
-    #     value=success_rate,
-    #     domain={'x': [0, 1], 'y': [0, 1]},
-    #     title={'text': "", 'font': {'size': 5}},
-    #     number={'suffix': '%', 'font': {'size': 25}},  # Add percentage sign as suffix
-    #     gauge={
-    #         'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
-    #         'bar': {'color': "darkblue"},
-    #         'bgcolor': "white",
-    #         'borderwidth': 2,
-    #         'bordercolor': "gray",
-    #         'steps': [
-    #             {'range': [0, 50], 'color': 'cyan'},
-    #             {'range': [50, 100], 'color': 'royalblue'}],
-    #         'threshold': {
-    #             'line': {'color': "red", 'width': 4},
-    #             'thickness': 0.75,
-    #             'value': success_rate}
-    #     }))
-    #
-    # # Add total files below the gauge
-    # gauge_fig.add_annotation(
-    #     x=0.5,
-    #     y=-0.3,
-    #     text=f"Total Files: {over_all_readiness}",
-    #     showarrow=False,
-    #     font=dict(
-    #         color="darkblue",
-    #         size=12
-    #     )
-    # )
-    #
-    # gauge_fig.update_layout(
-    #     paper_bgcolor="white",
-    #     height=180,
-    #     width=300,
-    #     margin=dict(l=20, r=0, t=40, b=40),  # Adjust as needed
-    #     font={'color': "darkblue", 'family': "Arial"}
-    # )
-    # gauge_chart_CogS = pio.to_json(gauge_fig)
+
     return gauge_fig
 
 
@@ -846,48 +811,7 @@ def gauge_chart_Q_A():
         over_all_readiness = 0
 
     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
-    # Create the gauge figure
-    # gauge_fig = go.Figure(go.Indicator(
-    #     mode="gauge+number",
-    #     value=success_rate,
-    #     domain={'x': [0, 1], 'y': [0, 1]},
-    #     title={'text': "", 'font': {'size': 5}},
-    #     number={'suffix': '%', 'font': {'size': 25}},  # Add percentage sign as suffix
-    #     gauge={
-    #         'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
-    #         'bar': {'color': "darkblue"},
-    #         'bgcolor': "white",
-    #         'borderwidth': 2,
-    #         'bordercolor': "gray",
-    #         'steps': [
-    #             {'range': [0, 50], 'color': 'cyan'},
-    #             {'range': [50, 100], 'color': 'royalblue'}],
-    #         'threshold': {
-    #             'line': {'color': "red", 'width': 4},
-    #             'thickness': 0.75,
-    #             'value': success_rate}
-    #     }))
-    #
-    # # Add total files below the gauge
-    # gauge_fig.add_annotation(
-    #     x=0.5,
-    #     y=-0.3,
-    #     text=f"Total Files: {over_all_readiness}",
-    #     showarrow=False,
-    #     font=dict(
-    #         color="darkblue",
-    #         size=12
-    #     )
-    # )
-    #
-    # gauge_fig.update_layout(
-    #     paper_bgcolor="white",
-    #     height=180,
-    #     width=300,
-    #     margin=dict(l=0, r=0, t=40, b=40),  # Adjust as needed
-    #     font={'color': "darkblue", 'family': "Arial"}
-    # )
-    # gauge_chart_Q_A = pio.to_json(gauge_fig)
+
     return gauge_fig
 
 
@@ -908,6 +832,7 @@ def indicator():
     # Set height, width, and margin
     indicator.update_layout(height=75, width=80, margin=dict(l=0, r=20, t=0, b=0))
     indi = pio.to_json(indicator)
+
     return indi
 
 
@@ -919,22 +844,7 @@ def Sentiment_Chart_Summ(senti_Positive_summ=None, senti_Negative_summ=None, sen
         x1 = [0, 0, 0, 0]  # Values for the bars
         y1 = ['Positive', 'Negative', 'Neutral']  # Labels for the bars
     senti = {'x': x1, 'y': y1}
-    # # Create a bar chart
-    # senti = go.Figure(data=[go.Bar(
-    #     x=x1,
-    #     y=y1,
-    #     orientation='h',  # Horizontal orientation
-    #     marker_color=['blue', 'red', 'green']  # Color for each sentiment category
-    # )])
 
-    # Update chart layout
-    # senti.update_layout(xaxis_title='Count %',
-    #                     margin=dict(l=0, r=0, t=0, b=0),
-    #                     height=180,
-    #                     width=310
-    #                     )
-
-    # senti_json_graph = pio.to_json(senti)
     return senti
 
 
@@ -946,22 +856,7 @@ def Sentiment_Chart_Q_A(senti_Positive_Q_A=None, senti_Negative_Q_A=None, senti_
         x1 = [0, 0, 0, 0]  # Values for the bars
         y1 = ['Positive', 'Negative', 'Neutral']  # Labels for the bars
     senti = {'x': x1, 'y': y1}
-    # Create a bar chart
-    # senti = go.Figure(data=[go.Bar(
-    #     x=x1,
-    #     y=y1,
-    #     orientation='h',  # Horizontal orientation
-    #     marker_color=['blue', 'red', 'green']  # Color for each sentiment category
-    # )])
-    #
-    # # Update chart layout
-    # senti.update_layout(xaxis_title='Count %',
-    #                     margin=dict(l=0, r=0, t=0, b=0),
-    #                     height=180,
-    #                     width=310
-    #                     )
 
-    # senti_json_graph = pio.to_json(senti)
     return senti
 
 
@@ -1151,10 +1046,19 @@ def data_source():
 def handle_connect():
     pie_chart_data = create_pie_chart()
     bar_chart_data = create_bar_chart()
-    gauge_chart_data = gauge_chart_auth()
+    gauge_source_chart_data = gauge_chart_auth()
+    gauge_ask_chart_data = gauge_chart_Q_A()
+    gauge_summary_chart_data = gauge_chart_CogS()
+    ask_bar_senti = Sentiment_Chart_Q_A()
+    summary_bar_senti = Sentiment_Chart_Summ()
+
     emit('update_pie_chart', pie_chart_data)
     emit('update_bar_chart', bar_chart_data)
-    emit('update_gauge_chart', gauge_chart_data)
+    emit('update_gauge_chart', gauge_source_chart_data)
+    emit('update_gauge_ask_chart', gauge_ask_chart_data)
+    emit('update_gauge_summary_chart', gauge_summary_chart_data)
+    emit('update_ask_bar_chart', ask_bar_senti)
+    emit('update_summary_bar_chart', summary_bar_senti)
 
 
 @app.route("/test_pie", methods=['GET', 'POST'])
@@ -1162,35 +1066,35 @@ def test_pie():
     return render_template('test_pie.html')
 
 
-@app.route('/graph_update')
-def graph_update():
-    bar_chart_json = create_bar_chart()
-    pie_chart_json = create_pie_chart()
-    gauge_auth = gauge_chart_auth()
-    gauge_CogS = gauge_chart_CogS()
-    gauge_Q_A = gauge_chart_Q_A()
-    indi = indicator()
-    try:
-        senti_summ = Sentiment_Chart_Summ(session['senti_Positive_summ'], session['senti_Negative_summ'],
-                                          session['senti_neutral_summ'])
-    except:
-        senti_summ = Sentiment_Chart_Summ()
-    try:
-        senti_Q_A = Sentiment_Chart_Q_A(session['senti_Positive_Q_A'], session['senti_Negative_Q_A'],
-                                        session['senti_neutral_Q_A'])
-    except:
-        senti_Q_A = Sentiment_Chart_Q_A()
-    # Return a JSON object containing all the updated data
-    return jsonify({
-        # 'bars': bar_chart_json,
-        # 'pie_chart': pie_chart_json,
-        # 'gauge_auth': gauge_auth,
-        'gauge_CogS': gauge_CogS,
-        'gauge_Q_A': gauge_Q_A,
-        'indicator': indi,
-        'senti_summ': senti_summ,
-        'senti_Q_A': senti_Q_A
-    })
+# @app.route('/graph_update')
+# def graph_update():
+#     bar_chart_json = create_bar_chart()
+#     pie_chart_json = create_pie_chart()
+#     gauge_auth = gauge_chart_auth()
+#     gauge_CogS = gauge_chart_CogS()
+#     gauge_Q_A = gauge_chart_Q_A()
+#     indi = indicator()
+#     try:
+#         senti_summ = Sentiment_Chart_Summ(session['senti_Positive_summ'], session['senti_Negative_summ'],
+#                                           session['senti_neutral_summ'])
+#     except:
+#         senti_summ = Sentiment_Chart_Summ()
+#     try:
+#         senti_Q_A = Sentiment_Chart_Q_A(session['senti_Positive_Q_A'], session['senti_Negative_Q_A'],
+#                                         session['senti_neutral_Q_A'])
+#     except:
+#         senti_Q_A = Sentiment_Chart_Q_A()
+#     # Return a JSON object containing all the updated data
+#     return jsonify({
+#         # 'bars': bar_chart_json,
+#         # 'pie_chart': pie_chart_json,
+#         # 'gauge_auth': gauge_auth,
+#         # 'gauge_CogS': gauge_CogS,
+#         # 'gauge_Q_A': gauge_Q_A,
+#         'indicator': indi,
+#         'senti_summ': senti_summ,
+#         'senti_Q_A': senti_Q_A
+#     })
 
 
 @app.route('/send_data', methods=['POST'])
@@ -1287,6 +1191,8 @@ def popup_form():
         return jsonify({'message': 'Invalid request method'}), 405
 
 
+import pyodbc, datetime
+
 @app.route('/run_query', methods=['POST'])
 def run_query():
     db_type = request.json['dbType']
@@ -1295,9 +1201,14 @@ def run_query():
     username = request.json['username']
     password = request.json['password']
     query = request.json['query']
+    database = 'master'
+
+    # Generate a timestamp
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
     folder_name_azure = str(session['login_pin'])
-    file_name = "query_results.csv"
+    file_name = f"query_results_{timestamp}.csv"
+
     try:
         if db_type == 'MySQL':
             conn = mysql.connector.connect(
@@ -1329,23 +1240,166 @@ def run_query():
                 content_settings=ContentSettings(content_type="text/csv"),
                 overwrite=True
             )
+            # socketio.emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
 
             return jsonify({'message': 'Data Fetched and Uploaded successfully.'})
-
-            # return send_file(
-            #     io.BytesIO(csv_buffer.getvalue().encode()),
-            #     mimetype='text/csv',
-            #     as_attachment=True,
-            #     download_name='query_results.csv'
-            # )
 
         elif db_type == 'MongoDB':
             client = MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
             db = client.test  # Replace 'test' with your database name
             result = db.command('eval', query)
+            socketio.emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
             return jsonify(str(result))
+
+        elif db_type == 'SQLServer':
+            conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE=master;UID={username};PWD={password}'
+            conn = pyodbc.connect(conn_str)
+            cursor = conn.cursor()
+            cursor.execute(query)
+            columns = [desc[0] for desc in cursor.description]
+            results = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            # Convert to DataFrame and then to CSV
+            df = pd.DataFrame(results, columns=columns)
+            csv_buffer = io.StringIO()
+            csv_file = df.to_csv(csv_buffer, index=False)
+            csv_buffer.seek(0)
+
+            blob_name = f"{folder_name_azure}/{file_name}"
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+
+            # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
+            blob_client.upload_blob(
+                csv_buffer.getvalue(),
+                blob_type="BlockBlob",
+                content_settings=ContentSettings(content_type="text/csv"),
+                overwrite=True
+            )
+            # socketio.emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
+            return jsonify({'message': 'Data Fetched and Uploaded successfully.'})
+
+        else:
+            # socketio.emit('query_error', {'error': 'Unsupported database type'})
+            return jsonify({'error': 'Unsupported database type'}), 400
+
     except Exception as e:
+        # socketio.emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
         return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
+
+# @app.route('/run_query', methods=['POST'])
+# def run_query():
+#     db_type = request.json['dbType']
+#     hostname = request.json['hostname']
+#     port = request.json['port']
+#     username = request.json['username']
+#     password = request.json['password']
+#     query = request.json['query']
+#     database = 'master'
+#
+#     folder_name_azure = str(session['login_pin'])
+#     file_name = "query_results.csv"
+#     try:
+#         if db_type == 'MySQL':
+#             conn = mysql.connector.connect(
+#                 host=hostname,
+#                 user=username,
+#                 password=password,
+#                 port=port
+#             )
+#             cursor = conn.cursor()
+#             cursor.execute(query)
+#             columns = [desc[0] for desc in cursor.description]
+#             results = cursor.fetchall()
+#             cursor.close()
+#             conn.close()
+#
+#             # Convert to DataFrame and then to CSV
+#             df = pd.DataFrame(results, columns=columns)
+#             csv_buffer = io.StringIO()
+#             # csv_file = df.to_csv(csv_buffer, index=False)
+#             csv_buffer.seek(0)
+#
+#             blob_name = f"{folder_name_azure}/{file_name}"
+#             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+#
+#             # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
+#             blob_client.upload_blob(
+#                 csv_buffer.getvalue(),
+#                 blob_type="BlockBlob",
+#                 content_settings=ContentSettings(content_type="text/csv"),
+#                 overwrite=True
+#             )
+#
+#             socketio.emit('query_success', {'message': 'MySQL data fetched and uploaded successfully.'})
+#             return '', 200
+#
+#         elif db_type == 'MongoDB':
+#             client = MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
+#             db = client.test  # Replace 'test' with your database name
+#             result = db.command('eval', query)
+#             columns = result.keys()
+#             results = [result.values()]
+#
+#             # Convert to DataFrame and then to CSV
+#             df = pd.DataFrame(results, columns=columns)
+#             csv_buffer = io.StringIO()
+#             # csv_file = df.to_csv(csv_buffer, index=False)
+#             csv_buffer.seek(0)
+#
+#             blob_name = f"{folder_name_azure}/{file_name}"
+#             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+#
+#             # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
+#             blob_client.upload_blob(
+#                 csv_buffer.getvalue(),
+#                 blob_type="BlockBlob",
+#                 content_settings=ContentSettings(content_type="text/csv"),
+#                 overwrite=True
+#             )
+#
+#             socketio.emit('query_success', {'message': 'MongoDB data fetched and uploaded successfully.'})
+#             return '', 200
+#
+#         elif db_type == 'SQLServer':
+#             conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE={database};UID={username};PWD={password}'
+#             conn = pyodbc.connect(conn_str)
+#             cursor = conn.cursor()
+#             cursor.execute(query)
+#             columns = [desc[0] for desc in cursor.description]
+#             results = cursor.fetchall()
+#             cursor.close()
+#             conn.close()
+#
+#             # Convert to DataFrame and then to CSV
+#             df = pd.DataFrame(results, columns=columns)
+#             csv_buffer = io.StringIO()
+#             # csv_file = df.to_csv(csv_buffer, index=False)
+#             csv_buffer.seek(0)
+#
+#             blob_name = f"{folder_name_azure}/{file_name}"
+#             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+#
+#             # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
+#             blob_client.upload_blob(
+#                 csv_buffer.getvalue(),
+#                 blob_type="BlockBlob",
+#                 content_settings=ContentSettings(content_type="text/csv"),
+#                 overwrite=True
+#             )
+#
+#             socketio.emit('query_success', {'message': 'SQL Server Data data fetched and uploaded successfully.'})
+#             return '', 200
+#
+#         else:
+#             socketio.emit('query_error', {'error': 'Unsupported database type'})
+#             return '', 400
+#
+#     except Exception as e:
+#         socketio.emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
+#         return '', 500
+
 
 
 @app.route('/Cogni_button', methods=['GET'])
@@ -1418,6 +1472,9 @@ def Cogni_button():
 @app.route("/Summary", methods=['GET', 'POST'])
 def summary():
     session['summary_word_cpunt'] = 0
+
+    # gauge_summary_chart_data = gauge_chart_CogS()
+    # socketio.emit('update_gauge_summary_chart', gauge_summary_chart_data)
     return render_template('summary.html')
 
 
@@ -1505,6 +1562,8 @@ def Cogservice_Value_Updated():
 
 @app.route('/CogniLink_Services_QA', methods=['GET', 'POST'])
 def ask():
+    # gauge_ask_chart_data = gauge_chart_Q_A()
+    # socketio.emit('update_gauge_ask_chart', gauge_ask_chart_data)
     return render_template('ask.html')
 
 
@@ -2003,3 +2062,4 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True, threaded=True)
+

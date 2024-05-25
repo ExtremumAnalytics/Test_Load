@@ -1,0 +1,171 @@
+2024-05-25 19:08:17,918 - INFO - Function create_or_pass_folder error with flag 0 -- Function create_or_pass_folder error is::Value for one of the query parameters specified in the request URI is invalid.
+RequestId:c5296d1b-901e-0078-16a8-ae1db1000000
+Time:2024-05-25T13:38:19.5009834Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:san123
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:c5296d1b-901e-0078-16a8-ae1db1000000
+Time:2024-05-25T13:38:19.5009834Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>san123</QueryParameterValue></Error>
+2024-05-25 19:08:17,919 - INFO - Function create_or_pass_folder Error creating folder'san123': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:c5296d1b-901e-0078-16a8-ae1db1000000
+Time:2024-05-25T13:38:19.5009834Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:san123
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:c5296d1b-901e-0078-16a8-ae1db1000000
+Time:2024-05-25T13:38:19.5009834Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>san123</QueryParameterValue></Error> 
+2024-05-25 19:08:18,196 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-25 19:08:18,197 - INFO - User san123 logged in successfully with flag 1
+2024-05-25 19:08:18,559 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-25 19:08:20,083 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:08:20,214 - INFO - Route download_progress success
+2024-05-25 19:08:21,195 - INFO - Route download_progress success
+2024-05-25 19:08:22,196 - INFO - Route download_progress success
+2024-05-25 19:08:23,206 - INFO - Route download_progress success
+2024-05-25 19:08:24,217 - INFO - Route download_progress success
+2024-05-25 19:08:24,644 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:08:25,218 - INFO - Route download_progress success
+2024-05-25 19:08:26,216 - INFO - Route download_progress success
+2024-05-25 19:08:27,202 - INFO - Route download_progress success
+2024-05-25 19:08:28,221 - INFO - Route download_progress success
+2024-05-25 19:08:29,209 - INFO - Route download_progress success
+2024-05-25 19:08:29,682 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:08:30,388 - INFO - Route download_progress success
+2024-05-25 19:08:31,313 - INFO - Route download_progress success
+2024-05-25 19:08:32,334 - INFO - Route download_progress success
+2024-05-25 19:08:33,264 - INFO - Route download_progress success
+2024-05-25 19:08:34,197 - INFO - Route download_progress success
+2024-05-25 19:08:34,653 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:08:35,282 - INFO - Route download_progress success
+2024-05-25 19:08:36,212 - INFO - Route download_progress success
+2024-05-25 19:08:37,215 - INFO - Route download_progress success
+2024-05-25 19:08:38,192 - INFO - Route download_progress success
+2024-05-25 19:08:39,217 - INFO - Route download_progress success
+2024-05-25 19:08:39,648 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:08:40,202 - INFO - Route download_progress success
+2024-05-25 19:08:41,206 - INFO - Route download_progress success
+2024-05-25 19:08:42,208 - INFO - Route download_progress success
+2024-05-25 19:08:43,216 - INFO - Route download_progress success
+2024-05-25 19:08:44,210 - INFO - Route download_progress success
+2024-05-25 19:08:44,644 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:08:45,245 - INFO - Route download_progress success
+2024-05-25 19:08:46,263 - INFO - Route download_progress success
+2024-05-25 19:08:47,486 - INFO - Route download_progress success
+2024-05-25 19:08:48,225 - INFO - Route download_progress success
+2024-05-25 19:08:49,203 - INFO - Route download_progress success
+2024-05-25 19:08:49,654 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:08:50,194 - INFO - Route download_progress success
+2024-05-25 19:08:51,191 - INFO - Route download_progress success
+2024-05-25 19:08:52,207 - INFO - Route download_progress success
+2024-05-25 19:08:53,208 - INFO - Route download_progress success
+2024-05-25 19:08:54,217 - INFO - Route download_progress success
+2024-05-25 19:08:54,664 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:08:55,218 - INFO - Route download_progress success
+2024-05-25 19:08:56,202 - INFO - Route download_progress success
+2024-05-25 19:08:57,223 - INFO - Route download_progress success
+2024-05-25 19:08:58,225 - INFO - Route download_progress success
+2024-05-25 19:08:59,224 - INFO - Route download_progress success
+2024-05-25 19:08:59,697 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:00,391 - INFO - Route download_progress success
+2024-05-25 19:09:01,267 - INFO - Route download_progress success
+2024-05-25 19:09:02,261 - INFO - Route download_progress success
+2024-05-25 19:09:03,209 - INFO - Route download_progress success
+2024-05-25 19:09:04,196 - INFO - Route download_progress success
+2024-05-25 19:09:04,648 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:05,206 - INFO - Route download_progress success
+2024-05-25 19:09:06,195 - INFO - Route download_progress success
+2024-05-25 19:09:07,234 - INFO - Route download_progress success
+2024-05-25 19:09:08,208 - INFO - Route download_progress success
+2024-05-25 19:09:09,236 - INFO - Route download_progress success
+2024-05-25 19:09:09,673 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:10,486 - INFO - Route download_progress success
+2024-05-25 19:09:11,391 - INFO - Route download_progress success
+2024-05-25 19:09:12,258 - INFO - Route download_progress success
+2024-05-25 19:09:13,308 - INFO - Route download_progress success
+2024-05-25 19:09:14,210 - INFO - Route download_progress success
+2024-05-25 19:09:14,694 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:15,197 - INFO - Route download_progress success
+2024-05-25 19:09:16,212 - INFO - Route download_progress success
+2024-05-25 19:09:17,221 - INFO - Route download_progress success
+2024-05-25 19:09:18,207 - INFO - Route download_progress success
+2024-05-25 19:09:19,225 - INFO - Route download_progress success
+2024-05-25 19:09:19,657 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:20,200 - INFO - Route download_progress success
+2024-05-25 19:09:21,214 - INFO - Route download_progress success
+2024-05-25 19:09:22,210 - INFO - Route download_progress success
+2024-05-25 19:09:23,197 - INFO - Route download_progress success
+2024-05-25 19:09:24,221 - INFO - Route download_progress success
+2024-05-25 19:09:24,654 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:25,202 - INFO - Route download_progress success
+2024-05-25 19:09:26,261 - INFO - Route download_progress success
+2024-05-25 19:09:27,373 - INFO - Route download_progress success
+2024-05-25 19:09:28,242 - INFO - Route download_progress success
+2024-05-25 19:09:29,214 - INFO - Route download_progress success
+2024-05-25 19:09:29,653 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:30,205 - INFO - Route download_progress success
+2024-05-25 19:09:31,204 - INFO - Route download_progress success
+2024-05-25 19:09:32,202 - INFO - Route download_progress success
+2024-05-25 19:09:33,203 - INFO - Route download_progress success
+2024-05-25 19:09:34,205 - INFO - Route download_progress success
+2024-05-25 19:09:34,669 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:35,224 - INFO - Route download_progress success
+2024-05-25 19:09:36,227 - INFO - Route download_progress success
+2024-05-25 19:09:37,230 - INFO - Route download_progress success
+2024-05-25 19:09:38,201 - INFO - Route download_progress success
+2024-05-25 19:09:39,218 - INFO - Route download_progress success
+2024-05-25 19:09:39,666 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:40,198 - INFO - Route download_progress success
+2024-05-25 19:09:41,251 - INFO - Route download_progress success
+2024-05-25 19:09:42,272 - INFO - Route download_progress success
+2024-05-25 19:09:43,273 - INFO - Route download_progress success
+2024-05-25 19:09:44,200 - INFO - Route download_progress success
+2024-05-25 19:09:44,682 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:45,198 - INFO - Route download_progress success
+2024-05-25 19:09:46,199 - INFO - Route download_progress success
+2024-05-25 19:09:48,047 - INFO - Route download_progress success
+2024-05-25 19:09:49,019 - INFO - Route download_progress success
+2024-05-25 19:09:50,033 - INFO - Route download_progress success
+2024-05-25 19:09:50,306 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:51,038 - INFO - Route download_progress success
+2024-05-25 19:09:52,048 - INFO - Route download_progress success
+2024-05-25 19:09:53,019 - INFO - Route download_progress success
+2024-05-25 19:09:54,037 - INFO - Route download_progress success
+2024-05-25 19:09:55,040 - INFO - Route download_progress success
+2024-05-25 19:09:55,319 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:09:57,817 - INFO - Route download_progress success
+2024-05-25 19:09:59,014 - INFO - Route download_progress success
+2024-05-25 19:10:00,037 - INFO - Route download_progress success
+2024-05-25 19:10:00,409 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:10:01,011 - INFO - Route download_progress success
+2024-05-25 19:10:02,014 - INFO - Route download_progress success
+2024-05-25 19:10:03,014 - INFO - Route download_progress success
+2024-05-25 19:10:04,032 - INFO - Route download_progress success
+2024-05-25 19:10:05,051 - INFO - Route download_progress success
+2024-05-25 19:10:05,321 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:10:06,006 - INFO - Route download_progress success
+2024-05-25 19:10:07,051 - INFO - Route download_progress success
+2024-05-25 19:10:08,042 - INFO - Route download_progress success
+2024-05-25 19:10:09,044 - INFO - Route download_progress success
+2024-05-25 19:10:10,015 - INFO - Route download_progress success
+2024-05-25 19:10:10,301 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:10:12,534 - INFO - Route download_progress success
+2024-05-25 19:10:14,021 - INFO - Route download_progress success
+2024-05-25 19:10:15,009 - INFO - Route download_progress success
+2024-05-25 19:10:15,295 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:10:16,026 - INFO - Route download_progress success
+2024-05-25 19:10:17,052 - INFO - Route download_progress success
+2024-05-25 19:10:18,038 - INFO - Route download_progress success
+2024-05-25 19:10:19,056 - INFO - Route download_progress success
+2024-05-25 19:10:20,012 - INFO - Route download_progress success
+2024-05-25 19:10:20,328 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:10:21,044 - INFO - Route download_progress success
+2024-05-25 19:10:22,030 - INFO - Route download_progress success
+2024-05-25 19:10:23,032 - INFO - Route download_progress success
+2024-05-25 19:10:24,033 - INFO - Route download_progress success
+2024-05-25 19:10:25,053 - INFO - Route download_progress success
+2024-05-25 19:10:25,389 - INFO - table_update route successfully send data with flag 1
+2024-05-25 19:10:27,887 - INFO - Route download_progress success

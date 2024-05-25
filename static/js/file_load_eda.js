@@ -29,7 +29,7 @@ function table_data_retrieve() {
         });
       }
     });
-  }
+}
 
 
 // Close the modal if close button is clicked
