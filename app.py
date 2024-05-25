@@ -8,6 +8,7 @@ import base64
 import json
 from io import BytesIO
 
+import pymongo
 from flask import Flask, jsonify, url_for, flash
 from flask import render_template, request, g, redirect, session
 from flask_sqlalchemy import SQLAlchemy
@@ -1014,8 +1015,6 @@ def logout():
     log_out_forall()
     flash('You have been successfully logged out!', 'success')
 
-    # socketio.emit('logout_success', {'message': 'You have been successfully logged out!'})
-
     return redirect(url_for('home'))
 
 
@@ -1065,71 +1064,29 @@ def handle_connect():
 def test_pie():
     return render_template('test_pie.html')
 
-
-# @app.route('/graph_update')
-# def graph_update():
-#     bar_chart_json = create_bar_chart()
-#     pie_chart_json = create_pie_chart()
-#     gauge_auth = gauge_chart_auth()
-#     gauge_CogS = gauge_chart_CogS()
-#     gauge_Q_A = gauge_chart_Q_A()
-#     indi = indicator()
-#     try:
-#         senti_summ = Sentiment_Chart_Summ(session['senti_Positive_summ'], session['senti_Negative_summ'],
-#                                           session['senti_neutral_summ'])
-#     except:
-#         senti_summ = Sentiment_Chart_Summ()
-#     try:
-#         senti_Q_A = Sentiment_Chart_Q_A(session['senti_Positive_Q_A'], session['senti_Negative_Q_A'],
-#                                         session['senti_neutral_Q_A'])
-#     except:
-#         senti_Q_A = Sentiment_Chart_Q_A()
-#     # Return a JSON object containing all the updated data
-#     return jsonify({
-#         # 'bars': bar_chart_json,
-#         # 'pie_chart': pie_chart_json,
-#         # 'gauge_auth': gauge_auth,
-#         # 'gauge_CogS': gauge_CogS,
-#         # 'gauge_Q_A': gauge_Q_A,
-#         'indicator': indi,
-#         'senti_summ': senti_summ,
-#         'senti_Q_A': senti_Q_A
-#     })
-
-
-@app.route('/send_data', methods=['POST'])
-def send_data():
-    Data = request.json
-    min_date = Data.get('minDate')
-    max_date = Data.get('maxDate')
+@socketio.on('send_data')
+def handle_send_data(data):
+    min_date = data.get('minDate')
+    max_date = data.get('maxDate')
 
     # Process the received data as needed
     print(f"Received data: Min Date: {min_date}, Max Date: {max_date}")
 
     # Emit an event to notify clients about the new data
-    socketio.emit('data_received', {
+    emit('data_received', {
         'min_date': min_date,
         'max_date': max_date,
         'message': 'Data received successfully!'
     })
 
-    return '', 204  # No Content response
-
-
-@app.route("/update_value", methods=["POST"])
-def update_value():
+@socketio.on('update_value')
+def handle_update_value(data):
     global Limit_By_Size
-    if request.is_json:
-        Limit_By_Size = request.json["value"]
-        print('Limit By Size(K/Count)', Limit_By_Size)
-        # Do something with the value (e.g., store in database, update graph)
+    Limit_By_Size = data.get('value')
+    print('Limit By Size(K/Count)', Limit_By_Size)
 
-        # Emit an event to notify clients about the updated value
-        socketio.emit('size_value_updated', {'value': Limit_By_Size, 'message': 'Value updated successfully'})
-
-        return '', 204  # No Content response
-    else:
-        return jsonify({"error": "Unsupported Media Type"}), 415
+    # Emit an event to notify clients about the updated value
+    emit('size_value_updated', {'value': Limit_By_Size, 'message': 'Value updated successfully'})
 
 
 @app.route('/popup_form', methods=['POST'])
@@ -1193,19 +1150,16 @@ def popup_form():
 
 import pyodbc, datetime
 
-@app.route('/run_query', methods=['POST'])
-def run_query():
-    db_type = request.json['dbType']
-    hostname = request.json['hostname']
-    port = request.json['port']
-    username = request.json['username']
-    password = request.json['password']
-    query = request.json['query']
+@socketio.on('run_query')
+def run_query(data):
+    db_type = data['dbType']
+    hostname = data['hostname']
+    port = data['port']
+    username = data['username']
+    password = data['password']
+    query = data['query']
     database = 'master'
-
-    # Generate a timestamp
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-
     folder_name_azure = str(session['login_pin'])
     file_name = f"query_results_{timestamp}.csv"
 
@@ -1224,32 +1178,27 @@ def run_query():
             cursor.close()
             conn.close()
 
-            # Convert to DataFrame and then to CSV
             df = pd.DataFrame(results, columns=columns)
             csv_buffer = io.StringIO()
-            csv_file = df.to_csv(csv_buffer, index=False)
+            df.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
 
             blob_name = f"{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-
-            # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
             blob_client.upload_blob(
                 csv_buffer.getvalue(),
                 blob_type="BlockBlob",
                 content_settings=ContentSettings(content_type="text/csv"),
                 overwrite=True
             )
-            # socketio.emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
 
-            return jsonify({'message': 'Data Fetched and Uploaded successfully.'})
+            emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
 
         elif db_type == 'MongoDB':
-            client = MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
-            db = client.test  # Replace 'test' with your database name
+            client = pymongo.MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
+            db = client[database]
             result = db.command('eval', query)
-            socketio.emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
-            return jsonify(str(result))
+            emit('query_success', {'message': 'Data fetched and uploaded successfully.', 'result': str(result)})
 
         elif db_type == 'SQLServer':
             conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE=master;UID={username};PWD={password}'
@@ -1261,32 +1210,29 @@ def run_query():
             cursor.close()
             conn.close()
 
-            # Convert to DataFrame and then to CSV
             df = pd.DataFrame(results, columns=columns)
             csv_buffer = io.StringIO()
-            csv_file = df.to_csv(csv_buffer, index=False)
+            df.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
 
             blob_name = f"{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-
-            # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
             blob_client.upload_blob(
                 csv_buffer.getvalue(),
                 blob_type="BlockBlob",
                 content_settings=ContentSettings(content_type="text/csv"),
                 overwrite=True
             )
-            # socketio.emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
-            return jsonify({'message': 'Data Fetched and Uploaded successfully.'})
+
+            emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
 
         else:
-            # socketio.emit('query_error', {'error': 'Unsupported database type'})
-            return jsonify({'error': 'Unsupported database type'}), 400
+            emit('query_error', {'error': 'Unsupported database type'})
 
     except Exception as e:
-        # socketio.emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
-        return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
+        import traceback
+        emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
+
 
 # @app.route('/run_query', methods=['POST'])
 # def run_query():
@@ -1298,8 +1244,12 @@ def run_query():
 #     query = request.json['query']
 #     database = 'master'
 #
+#     # Generate a timestamp
+#     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+#
 #     folder_name_azure = str(session['login_pin'])
-#     file_name = "query_results.csv"
+#     file_name = f"query_results_{timestamp}.csv"
+#
 #     try:
 #         if db_type == 'MySQL':
 #             conn = mysql.connector.connect(
@@ -1318,7 +1268,7 @@ def run_query():
 #             # Convert to DataFrame and then to CSV
 #             df = pd.DataFrame(results, columns=columns)
 #             csv_buffer = io.StringIO()
-#             # csv_file = df.to_csv(csv_buffer, index=False)
+#             csv_file = df.to_csv(csv_buffer, index=False)
 #             csv_buffer.seek(0)
 #
 #             blob_name = f"{folder_name_azure}/{file_name}"
@@ -1331,39 +1281,19 @@ def run_query():
 #                 content_settings=ContentSettings(content_type="text/csv"),
 #                 overwrite=True
 #             )
+#             # socketio.emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
 #
-#             socketio.emit('query_success', {'message': 'MySQL data fetched and uploaded successfully.'})
-#             return '', 200
+#             return jsonify({'message': 'Data Fetched and Uploaded successfully.'})
 #
 #         elif db_type == 'MongoDB':
 #             client = MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
 #             db = client.test  # Replace 'test' with your database name
 #             result = db.command('eval', query)
-#             columns = result.keys()
-#             results = [result.values()]
-#
-#             # Convert to DataFrame and then to CSV
-#             df = pd.DataFrame(results, columns=columns)
-#             csv_buffer = io.StringIO()
-#             # csv_file = df.to_csv(csv_buffer, index=False)
-#             csv_buffer.seek(0)
-#
-#             blob_name = f"{folder_name_azure}/{file_name}"
-#             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-#
-#             # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
-#             blob_client.upload_blob(
-#                 csv_buffer.getvalue(),
-#                 blob_type="BlockBlob",
-#                 content_settings=ContentSettings(content_type="text/csv"),
-#                 overwrite=True
-#             )
-#
-#             socketio.emit('query_success', {'message': 'MongoDB data fetched and uploaded successfully.'})
-#             return '', 200
+#             socketio.emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
+#             return jsonify(str(result))
 #
 #         elif db_type == 'SQLServer':
-#             conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE={database};UID={username};PWD={password}'
+#             conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE=master;UID={username};PWD={password}'
 #             conn = pyodbc.connect(conn_str)
 #             cursor = conn.cursor()
 #             cursor.execute(query)
@@ -1375,7 +1305,7 @@ def run_query():
 #             # Convert to DataFrame and then to CSV
 #             df = pd.DataFrame(results, columns=columns)
 #             csv_buffer = io.StringIO()
-#             # csv_file = df.to_csv(csv_buffer, index=False)
+#             csv_file = df.to_csv(csv_buffer, index=False)
 #             csv_buffer.seek(0)
 #
 #             blob_name = f"{folder_name_azure}/{file_name}"
@@ -1388,17 +1318,17 @@ def run_query():
 #                 content_settings=ContentSettings(content_type="text/csv"),
 #                 overwrite=True
 #             )
-#
-#             socketio.emit('query_success', {'message': 'SQL Server Data data fetched and uploaded successfully.'})
-#             return '', 200
+#             # socketio.emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
+#             return jsonify({'message': 'Data Fetched and Uploaded successfully.'})
 #
 #         else:
-#             socketio.emit('query_error', {'error': 'Unsupported database type'})
-#             return '', 400
+#             # socketio.emit('query_error', {'error': 'Unsupported database type'})
+#             return jsonify({'error': 'Unsupported database type'}), 400
 #
 #     except Exception as e:
-#         socketio.emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
-#         return '', 500
+#         # socketio.emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
+#         return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
+
 
 
 
@@ -2061,5 +1991,6 @@ def _404():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True, threaded=True)
+    socketio.run(app, debug=True)
+    # app.run(debug=True, threaded=True)
 
