@@ -829,7 +829,7 @@ app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = False
 
 Session(app)
-socketio = SocketIO(app, manage_session=False)
+socketio = SocketIO(app, async_mode='eventlet')
 
 
 class FileStorage(db.Model):
@@ -1846,6 +1846,25 @@ def delete(file_name):
         return jsonify({'error': str(e)}), 500
 
 
+# @app.route("/table_update", methods=['GET'])
+# def get_data_source():
+#     try:
+#         folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
+#         blobs = container_client.list_blobs(name_starts_with=folder_name)
+#
+#         # Construct the URLs for each blob based on your Azure Blob Storage configuration
+#         data = [{'name': blob.name.split('/')[1],
+#                  'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"}
+#                 for blob in blobs]
+#         g.flag = 1  # Set flag to 1 on success
+#         logger.info(f"table_update route successfully send data with flag {g.flag}")
+#         return jsonify(data)
+#     except Exception as e:
+#         g.flag = 0  # Set flag to 1 on success
+#         logger.info(f"table_update route error with flag {g.flag} -- table_update route error is::{e}")
+#         print(f"Exceptions is{e}")
+
+
 @app.route("/table_update", methods=['GET'])
 def get_data_source():
     try:
@@ -1858,12 +1877,14 @@ def get_data_source():
                 for blob in blobs]
         g.flag = 1  # Set flag to 1 on success
         logger.info(f"table_update route successfully send data with flag {g.flag}")
+        # Emit the data to the socket channel 'updateTable'
+        socketio.emit('updateTable', data)
         return jsonify(data)
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success
         logger.info(f"table_update route error with flag {g.flag} -- table_update route error is::{e}")
         print(f"Exceptions is{e}")
-
+        return jsonify({'error': str(e)}), 500
 
 @app.route("/webcrawler", methods=['GET', 'POST'])
 def webcrawler():
@@ -2080,92 +2101,196 @@ def select_pdf_file():
         return jsonify({'message': 'Error occurred while deleting file: {}'.format(str(e))}), 500
 
 
-@app.route("/Eda_Process", methods=['POST'])
-def Eda_Process():
+# @app.route("/Eda_Process", methods=['POST'])
+# def Eda_Process():
+#     global df, png_file
+#     img_base64 = None
+#     folder_name = str(session['login_pin'])
+#     try:
+#         file_url = request.json.get('fileUrl')
+#         logger.info("Route Eda_Process File name recieve")
+#         if file_url is not None:
+#             blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(
+#                 name_starts_with=folder_name)
+#             for blob in blob_list_eda:
+#                 if blob.name in file_url:
+#                     blob_client = container_client.get_blob_client(blob)
+#                     blob_data = blob_client.download_blob().readall()
+#                     data_stream = BytesIO(blob_data)
+#
+#                     # Determine the file type and load the data accordingly
+#                     if file_url.endswith('.xlsx') or file_url.endswith('.xls'):
+#                         df = pd.read_excel(data_stream)
+#                     elif file_url.endswith('.csv'):
+#                         df = pd.read_csv(data_stream)
+#                     else:
+#                         return jsonify({"message": "Unsupported file format"}), 400
+#                     print(df.head(5))
+#                     logger.info("Route Eda_Process Data Loaded Successfuly.")
+#                     return jsonify({"message": "Data Loaded Successfuly. Ask Virtual Analyst!"})
+#         question = request.json.get('question')
+#
+#         if question is not None and question.strip():
+#             print("question---->", question)
+#             logger.info("Route Eda_Process Question received.")
+#             llm = AzureOpenAI(
+#                 deployment_name="gpt-4-0125-preview",
+#                 api_key=main_key,
+#                 azure_endpoint=("https://ea-openai.openai.azure.com/"),
+#                 api_version="2023-05-15")
+#
+#             agent = Agent(df, config={"llm": llm,
+#                                       "save_charts": True,
+#                                       "save_logs": False,
+#                                       "enable_cache": False,
+#                                       "save_charts_path": f'static/files/image',
+#                                       "open_charts": False,
+#                                       "max_retries": 1
+#                                       })
+#
+#             output = agent.chat(question)
+#             logger.info("Route Eda_Process output received.")
+#             print(type(output))
+#             print(output)
+#             # Determine the type of output and handle accordingly
+#             if isinstance(output, pd.DataFrame):
+#                 # It's a DataFrame, convert to JSON
+#                 output_json = output.to_json(orient='records')
+#                 output_type = 'table'
+#             elif isinstance(output, (int, float)):
+#                 # It's a numeric value, convert to JSON serializable format directly
+#                 output_json = json.dumps(output)
+#                 output_type = 'numeric'
+#             elif isinstance(output, str):
+#                 # It's text, serialize directly
+#                 output_json = json.dumps(output)
+#                 output_type = 'text'
+#             else:
+#                 # For other types, convert to string first (fallback case)
+#                 output_json = json.dumps(str(output))
+#                 output_type = 'unknown'
+#             #     # Check if the image file exists
+#             # Construct the path to the image
+#             image_path = f'static/files/image/'
+#             png_file = None
+#             # Check if the directory exists
+#             if os.path.exists(image_path):
+#                 print(image_path)
+#                 # Find a PNG file in the directory
+#                 for file_name in os.listdir(image_path):
+#                     if file_name.endswith('.png'):
+#                         png_file = os.path.join(image_path, file_name)
+#                         break
+#             # If a PNG file was found, read and encode it
+#             if png_file:
+#                 with open(png_file, "rb") as img_file:
+#                     img_data = img_file.read()
+#                     img_base64 = base64.b64encode(img_data).decode('utf-8')
+#                 # Delete the file after reading it
+#                 output_json = json.dumps(question)
+#                 output_type = 'text'
+#                 os.remove(png_file)
+#
+#             response = {
+#                 'success': True,
+#                 'message': 'Question Processed Successfully!',
+#                 'output_any': output_json,
+#                 'output_type': output_type,
+#                 'image': img_base64  # Sending base64 encoded image or None if image doesn't exist
+#             }
+#             g.flag = 1  # Set flag to 1 on success1
+#             logger.info(f"Processed Successfully in Eda_Process with flag {g.flag}")
+#             return jsonify(response)
+#         else:
+#             response = {
+#                 'success': False,
+#                 'message': 'No Question Provided!!'
+#             }
+#             return jsonify(response)
+#     except Exception as e:
+#         g.flag = 0  # Set flag to 1 on success1
+#         logger.info(f"Error in Eda_Process with flag {g.flag} -- Eda_Process route error is::{e}")
+#         return jsonify({'message': 'Error occurred while EDA process: {}'.format(str(e))}), 500
+
+
+@socketio.on('eda_process')
+def handle_eda_process(data):
     global df, png_file
     img_base64 = None
-    folder_name = str(session['login_pin'])
+    folder_name = str(session.get('login_pin', 'default'))
     try:
-        file_url = request.json.get('fileUrl')
-        logger.info("Route Eda_Process File name recieve")
-        if file_url is not None:
-            blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(
-                name_starts_with=folder_name)
+        file_url = data.get('fileUrl')
+        if file_url:
+            logger.info("SocketIO Eda_Process File name received")
+            blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name)
             for blob in blob_list_eda:
                 if blob.name in file_url:
                     blob_client = container_client.get_blob_client(blob)
                     blob_data = blob_client.download_blob().readall()
                     data_stream = BytesIO(blob_data)
 
-                    # Determine the file type and load the data accordingly
                     if file_url.endswith('.xlsx') or file_url.endswith('.xls'):
                         df = pd.read_excel(data_stream)
                     elif file_url.endswith('.csv'):
                         df = pd.read_csv(data_stream)
                     else:
-                        return jsonify({"message": "Unsupported file format"}), 400
-                    print(df.head(5))
-                    logger.info("Route Eda_Process Data Loaded Successfuly.")
-                    return jsonify({"message": "Data Loaded Successfuly. Ask Virtual Analyst!"})
-        question = request.json.get('question')
+                        emit('eda_response', {'message': 'Unsupported file format', 'success': False})
+                        return
 
-        if question is not None and question.strip():
-            print("question---->", question)
-            logger.info("Route Eda_Process Question received.")
+                    logger.info("SocketIO Eda_Process Data Loaded Successfully.")
+                    emit('eda_response', {'message': 'Data Loaded Successfully. Ask Virtual Analyst!', 'success': True})
+                    return
+
+        question = data.get('question')
+        print("question----->",question)
+        if question:
+            logger.info("SocketIO Eda_Process Question received.")
             llm = AzureOpenAI(
                 deployment_name="gpt-4-0125-preview",
                 api_key=main_key,
-                azure_endpoint=("https://ea-openai.openai.azure.com/"),
-                api_version="2023-05-15")
+                azure_endpoint="https://ea-openai.openai.azure.com/",
+                api_version="2023-05-15"
+            )
 
-            agent = Agent(df, config={"llm": llm,
-                                      "save_charts": True,
-                                      "save_logs": False,
-                                      "enable_cache": False,
-                                      "save_charts_path": f'static/files/image',
-                                      "open_charts": False,
-                                      "max_retries": 1
-                                      })
+            agent = Agent(df, config={
+                "llm": llm,
+                "save_charts": True,
+                "save_logs": False,
+                "enable_cache": False,
+                "save_charts_path": 'static/files/image',
+                "open_charts": False,
+                "max_retries": 1
+            })
 
             output = agent.chat(question)
-            logger.info("Route Eda_Process output received.")
-            print(type(output))
-            print(output)
-            # Determine the type of output and handle accordingly
+            logger.info("SocketIO Eda_Process output received.")
+
             if isinstance(output, pd.DataFrame):
-                # It's a DataFrame, convert to JSON
                 output_json = output.to_json(orient='records')
                 output_type = 'table'
             elif isinstance(output, (int, float)):
-                # It's a numeric value, convert to JSON serializable format directly
                 output_json = json.dumps(output)
                 output_type = 'numeric'
             elif isinstance(output, str):
-                # It's text, serialize directly
                 output_json = json.dumps(output)
                 output_type = 'text'
             else:
-                # For other types, convert to string first (fallback case)
                 output_json = json.dumps(str(output))
                 output_type = 'unknown'
-            #     # Check if the image file exists
-            # Construct the path to the image
-            image_path = f'static/files/image/'
+
+            image_path = 'static/files/image/'
             png_file = None
-            # Check if the directory exists
+
             if os.path.exists(image_path):
-                print(image_path)
-                # Find a PNG file in the directory
                 for file_name in os.listdir(image_path):
                     if file_name.endswith('.png'):
                         png_file = os.path.join(image_path, file_name)
                         break
-            # If a PNG file was found, read and encode it
+
             if png_file:
                 with open(png_file, "rb") as img_file:
                     img_data = img_file.read()
                     img_base64 = base64.b64encode(img_data).decode('utf-8')
-                # Delete the file after reading it
                 output_json = json.dumps(question)
                 output_type = 'text'
                 os.remove(png_file)
@@ -2175,21 +2300,14 @@ def Eda_Process():
                 'message': 'Question Processed Successfully!',
                 'output_any': output_json,
                 'output_type': output_type,
-                'image': img_base64  # Sending base64 encoded image or None if image doesn't exist
+                'image': img_base64
             }
-            g.flag = 1  # Set flag to 1 on success1
-            logger.info(f"Processed Successfully in Eda_Process with flag {g.flag}")
-            return jsonify(response)
+            emit('eda_response', response)
         else:
-            response = {
-                'success': False,
-                'message': 'No Question Provided!!'
-            }
-            return jsonify(response)
+            emit('eda_response', {'success': False, 'message': 'No Question Provided!'})
     except Exception as e:
-        g.flag = 0  # Set flag to 1 on success1
-        logger.info(f"Error in Eda_Process with flag {g.flag} -- Eda_Process route error is::{e}")
-        return jsonify({'message': 'Error occurred while EDA process: {}'.format(str(e))}), 500
+        logger.error(f"Error in Eda_Process: {e}")
+        emit('eda_response', {'message': f'Error occurred while EDA process: {str(e)}', 'success': False})
 
 
 @app.route('/blank')
