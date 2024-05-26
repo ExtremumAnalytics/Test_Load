@@ -63,3 +63,4 @@ Flask-Session==0.8.0
 Flask-SocketIO==5.3.6
 pymongo==4.7.2
 mysql-connector-python==8.4.0
+eventlet

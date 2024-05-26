@@ -96,9 +96,7 @@
 
     // Ingestion Status Chart
     $(document).ready(function() {
-        const socket = io("wss://ea-resource.azurewebsites.net");
-        // const socket = io();
-        
+        const socket = io();
 
         const ctx2 = $("#ingestion_chart").get(0).getContext("2d");
         const myChart2 = new Chart(ctx2, {

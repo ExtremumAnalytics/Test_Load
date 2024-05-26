@@ -20,8 +20,8 @@ function closeWindow(){
 
 
 document.addEventListener('DOMContentLoaded', (event) => {
-    // const socket = io();
-    const socket = io("wss://ea-resource.azurewebsites.net");
+    // const socket = io("wss://ea-resource.azurewebsites.net");
+    const socket = io();
 
     socket.on('connect', () => {
         console.log('Connected to server');
