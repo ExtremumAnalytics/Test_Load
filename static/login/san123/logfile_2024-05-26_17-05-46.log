@@ -1,0 +1,66 @@
+2024-05-26 17:05:49,809 - INFO - Function create_or_pass_folder error with flag 0 -- Function create_or_pass_folder error is::Value for one of the query parameters specified in the request URI is invalid.
+RequestId:38be1bf5-201e-002e-1f60-aff5c1000000
+Time:2024-05-26T11:35:50.2809360Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:san123
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:38be1bf5-201e-002e-1f60-aff5c1000000
+Time:2024-05-26T11:35:50.2809360Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>san123</QueryParameterValue></Error>
+2024-05-26 17:05:49,809 - INFO - Function create_or_pass_folder Error creating folder'san123': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:38be1bf5-201e-002e-1f60-aff5c1000000
+Time:2024-05-26T11:35:50.2809360Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:san123
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:38be1bf5-201e-002e-1f60-aff5c1000000
+Time:2024-05-26T11:35:50.2809360Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>san123</QueryParameterValue></Error> 
+2024-05-26 17:05:50,463 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:05:50,463 - INFO - User san123 logged in successfully with flag 1
+2024-05-26 17:05:51,177 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:05:53,708 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:05:58,830 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:06:03,997 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:06:10,063 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:06:13,744 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:06:19,071 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:06:23,492 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:06:24,858 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:06:25,409 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:06:28,563 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:06:33,488 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:06:36,003 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:06:36,546 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:06:38,505 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:06:43,026 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:06:43,576 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:06:43,584 - INFO - Function update_when_file_delete Data Loaded Successfully with flag 1
+2024-05-26 17:06:43,584 - INFO - Cogni_button route succeeded with flag 1
+2024-05-26 17:06:43,732 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:06:48,639 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:00,869 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:07:03,510 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:08,420 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:13,571 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:18,274 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:23,517 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:28,740 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:31,304 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:07:31,921 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:07:34,276 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:39,032 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:43,667 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:44,785 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:07:45,413 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:07:48,776 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:53,531 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:07:54,810 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:07:55,459 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-26 17:07:55,459 - INFO - Function update_when_file_delete Data Loaded Successfully with flag 1
+2024-05-26 17:07:55,459 - INFO - Cogni_button route succeeded with flag 1
+2024-05-26 17:07:58,623 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:08:06,688 - INFO - table_update route successfully send data with flag 1
+2024-05-26 17:08:09,101 - INFO - table_update route successfully send data with flag 1

@@ -139,6 +139,7 @@ function toggleSelectAll(){
     });
 }
 
+
 document.getElementById('dbForm').onsubmit = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -173,21 +174,20 @@ document.getElementById('dbForm').onsubmit = async (event) => {
 //             'Content-Type': 'application/json'
 //         }
 //     });
-//     const result = await response.json();
+ 
 //     if (response.ok) {
-//         // Handle success message
-//         document.getElementById('message').innerText = result.message || 'Query executed successfully.';
-//         setTimeout(() => {
-//             document.getElementById('message').innerText = '';
-//         }, 8000); // Clear message after 8 seconds
-//     }
-//     else {
-//         // const result = await response.json();
-//         document.getElementById('message').innerText = JSON.stringify(result);
-//         setTimeout(() => {
-//             document.getElementById('message').innerText = '';
-//         }, 10000); // Clear message after 8 seconds
+//         $('#message').text(response.message);
+//         // const blob = await response.blob();
+//         // const url = window.URL.createObjectURL(blob);
+//         // const a = document.createElement('a');
+//         // a.style.display = 'none';
+//         // a.href = url;
+//         // a.download = 'query_results.csv';
+//         // document.body.appendChild(a);
+//         // a.click();
+//         // window.URL.revokeObjectURL(url);
+//     } else {
+//         const result = await response.json();
+//         document.getElementById('results').innerText = JSON.stringify(result);
 //     }
 // };
-
-

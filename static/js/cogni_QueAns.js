@@ -1,3 +1,4 @@
+var socket=io();
 function openFileInNewTab(url) {
     var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(url);
     var win = window.open(googleDocsUrl, '_blank');
@@ -5,6 +6,9 @@ function openFileInNewTab(url) {
 }
 
 function sendQuestion() {
+    socket.on('data_received',function(data){
+    console.log(`Received data: question: ${data.question}`);
+});
     var question = document.getElementById("question").value.trim(); // Trim the question
 
     if (question === "") {
@@ -57,6 +61,9 @@ function sendQuestion() {
 
 
 function clearChat() {
+    socket.on('chat_cleared', function(data) {
+
+    });
     // AJAX request to Flask server to clear chat history
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "/clear_chat", true);
@@ -64,8 +71,8 @@ function clearChat() {
     xhr.onreadystatechange = function () {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.status === 200) {
-                var response = JSON.parse(xhr.responseText);                
-                $('#message').text(response.message); 
+                var response = JSON.parse(xhr.responseText);
+                $('#message').text(response.message);
                 setTimeout(function() {
                     $('#message').text('');
                 }, 8000); // 8 seconds ke baad delete
@@ -123,27 +130,71 @@ function clearChat() {
 
 
 
+// function getLdaData(type) {
+//     fetch('/lda_data?type=' + type)
+//     .then(response => response.json())
+//     .then(data => {
+//         let htmlString = '';
+//         for (const topic in data) {
+//             if (data.hasOwnProperty(topic)) {
+//                 htmlString += `<b>${topic}:</b>`;
+//                 const values = data[topic];
+//                 values.forEach((value, index) => {
+//                     htmlString += (index % 2 === 0) ? `<span style="color: #0D076A">${value}</span>` : value;
+//                     htmlString += ', ';
+//                 });
+//                 htmlString = htmlString.slice(0, -2); // Remove the trailing comma and space
+//                 htmlString += '<br>';
+//             }
+//         }
+//         document.getElementById('ldaQAText').innerHTML = htmlString;
+//     })
+//     .catch(error => console.error('Error:', error));
+// }
+
+// // Load data initially when the page loads
+// getLdaData('Q_A');
+
+// // Periodically check for new data every 5 seconds
+// setInterval(() => {
+//     getLdaData('Q_A');
+// }, 5000);
+
+
+socket.on('lda_data_response', function(data) {
+  console.log('Received LDA data:', data);  // Add this line to debug
+  const ldaType = data.type;
+  const ldaData = data.data;
+
+  let htmlString = '';
+  for (const topic in ldaData) {
+    if (ldaData.hasOwnProperty(topic)) {
+      htmlString += `<b>${topic}:</b>`;
+      const values = ldaData[topic];
+      values.forEach((value, index) => {
+        htmlString += (index % 2 === 0) ? `<span style="color: #0D076A">${value}</span>` : value;
+        htmlString += ', ';
+      });
+      htmlString = htmlString.slice(0, -2); // Remove the trailing comma and space
+      htmlString += '<br>';
+    }
+  }
+
+  // Update the UI element based on the LDA type
+  if (ldaType === 'Q_A') {
+    document.getElementById('ldaQAText').innerHTML = htmlString;
+  } else if (ldaType === 'summ') {
+    document.getElementById('ldaSummText').innerHTML = htmlString;
+  }
+});
+
+
+// Function to request LDA data from the server using Socket.IO
 function getLdaData(type) {
-    fetch('/lda_data?type=' + type)
-    .then(response => response.json())
-    .then(data => {
-        let htmlString = '';
-        for (const topic in data) {
-            if (data.hasOwnProperty(topic)) {
-                htmlString += `<b>${topic}:</b>`;
-                const values = data[topic];
-                values.forEach((value, index) => {
-                    htmlString += (index % 2 === 0) ? `<span style="color: #0D076A">${value}</span>` : value;
-                    htmlString += ', ';
-                });
-                htmlString = htmlString.slice(0, -2); // Remove the trailing comma and space
-                htmlString += '<br>';
-            }
-        }
-        document.getElementById('ldaQAText').innerHTML = htmlString;
-    })
-    .catch(error => console.error('Error:', error));
+    // Emit a Socket.IO event to request LDA data
+    socket.emit('request_lda_data', { type: type });
 }
+
 
 // Load data initially when the page loads
 getLdaData('Q_A');

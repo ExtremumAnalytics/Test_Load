@@ -1,0 +1,31 @@
+2024-05-25 22:50:12,554 - INFO - Function create_or_pass_folder error with flag 0 -- Function create_or_pass_folder error is::Value for one of the query parameters specified in the request URI is invalid.
+RequestId:a428631b-e01e-0038-26c7-ae345f000000
+Time:2024-05-25T17:20:12.8646223Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:a428631b-e01e-0038-26c7-ae345f000000
+Time:2024-05-25T17:20:12.8646223Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>
+2024-05-25 22:50:12,555 - INFO - Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:a428631b-e01e-0038-26c7-ae345f000000
+Time:2024-05-25T17:20:12.8646223Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:a428631b-e01e-0038-26c7-ae345f000000
+Time:2024-05-25T17:20:12.8646223Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> 
+2024-05-25 22:50:13,103 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-25 22:50:13,103 - INFO - User asif24 logged in successfully with flag 1
+2024-05-25 22:50:13,737 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-25 22:50:15,557 - INFO - table_update route successfully send data with flag 1
+2024-05-25 22:50:21,716 - INFO - table_update route successfully send data with flag 1
+2024-05-25 22:54:54,779 - INFO - table_update route successfully send data with flag 1
+2024-05-25 22:54:56,713 - INFO - SocketIO Eda_Process File name received
+2024-05-25 22:54:58,112 - INFO - SocketIO Eda_Process Data Loaded Successfully.
+2024-05-25 22:59:10,788 - INFO - table_update route successfully send data with flag 1
+2024-05-25 22:59:12,119 - INFO - SocketIO Eda_Process File name received
+2024-05-25 22:59:12,962 - INFO - SocketIO Eda_Process Data Loaded Successfully.

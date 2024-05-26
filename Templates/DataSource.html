@@ -27,7 +27,7 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     
     <!-- Socket IO library -->
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
 
 
     <!-- Include Plotly.js library -->
@@ -96,7 +96,7 @@
                         <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
                             <a href="#" class="dropdown-item">My Profile</a>
                             <a href="#" class="dropdown-item">Settings</a>
-                            <a href="{{url_for('logout')}}" id="logoutButton" class="dropdown-item">Log Out</a>
+                            <a href="{{url_for('logout')}}" class="dropdown-item">Log Out</a>
                         </div>
                     </div>
                 </div>
@@ -226,6 +226,7 @@
                     </div>
 
                     <!-- Data Base Container -->
+                    <!-- Data Base Container -->
                     <div id="databaseForm" class="database-container p-2" style="display: none;">
                         <label class="mb-2" style="color:#000000;" for="database">Database Connection:</label>
                         <form id="dbForm" style="text-align: center;">
@@ -239,8 +240,8 @@
                             <input type="text" name="username" id="username" class="form-control mb-2" placeholder="Enter Username" required>
                             <input type="password" name="password" id="password" class="form-control mb-2" placeholder="Enter Password" required>
                             <textarea type="text" name="query" id="query" class="form-control mb-2" placeholder="Enter query here" required></textarea>
-                            <!-- <div id="results"></div> -->
-                            
+                            <div id="results"></div>
+                        
                             <!-- Button Group -->
                             <div class="row mt-4">
                                 <div class="col-lg-12 d-flex justify-content-center">
@@ -251,7 +252,7 @@
                                 </div>
                             </div>
                         </form>
-                    </div>          
+                    </div>               
 
                     <!-- Source URL Container -->
                     <div id="SourceURL" class="source-url-container p-2" style="display: none;">
@@ -280,11 +281,11 @@
                             <!-- Second Container (Progress) -->
                             <div class="col-lg-8 progress-container rounded border p-2 m-2">
                                 <div id="progress" class="d-flex flex-column p-2">
-                                    <!-- <label for="status" style="font-size: 14px;">Current Status:</label>
-                                    <label for="totalFiles" style="font-size: 14px;">Total Files:</label>
-                                    <label for="filesDownloaded" style="font-size: 14px;">Files Downloaded:</label>
-                                    <label for="progressPercentage" style="font-size: 14px;">Progress Percentage:</label>
-                                    <label for="currentFileName" style="font-size: 14px;">Current File Name:</label> -->
+                                    <label id="status" style="font-size: 14px;">Current Status:</label>
+                                    <label id="totalFiles" style="font-size: 14px;">Total Files:</label>
+                                    <label id="filesDownloaded" style="font-size: 14px;">Files Downloaded:</label>
+                                    <label id="progressPercentage" style="font-size: 14px;">Progress Percentage:</label>
+                                    <label id="currentFileName" style="font-size: 14px;">Current File Name:</label>
                                 </div>
                             </div>
                         </div>
@@ -495,6 +496,7 @@
     <script src="{{ url_for('static', filename='js/warningpop.js') }}"></script>
     <script src="{{ url_for('static', filename='js/DigitalVault.js') }}"></script>
     <script src="{{ url_for('static', filename='js/path_dd.js') }}"></script>
+    <!--script src="{{ url_for('static', filename='js/socket_io_lib.js') }}" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script-->
 </body>
 
 </html>

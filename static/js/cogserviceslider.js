@@ -1,24 +1,24 @@
-const slider = document.getElementById("mySlider");
-const valueBox = document.querySelector(".value-box");
+// const slider = document.getElementById("mySlider");
+// const valueBox = document.querySelector(".value-box");
 
-// Update the value box when the slider changes
-slider.addEventListener("input", () => {
-  valueBox.textContent = slider.value;
-});
+// // Update the value box when the slider changes
+// slider.addEventListener("input", () => {
+//   valueBox.textContent = slider.value;
+// });
 
-// Send a POST request to the /update_value route when the slider changes
-slider.addEventListener("change", () => {
-  fetch("/Cogservice_Value_Updated", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ value: slider.value })
-  })
-  .then(response => response.json())
-  .then(data => console.log(data.message)) // Log success message
-  .catch(error => console.error(error));
-});
+// // Send a POST request to the /update_value route when the slider changes
+// slider.addEventListener("change", () => {
+//   fetch("/Cogservice_Value_Updated", {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json"
+//     },
+//     body: JSON.stringify({ value: slider.value })
+//   })
+//   .then(response => response.json())
+//   .then(data => console.log(data.message)) // Log success message
+//   .catch(error => console.error(error));
+// });
 
 
 // // Update Gauge Cogniservice Chart
@@ -41,3 +41,32 @@ slider.addEventListener("change", () => {
 
 // // Initial update
 // updateCharts();
+
+
+
+
+const slider = document.getElementById("mySlider");
+const valueBox = document.querySelector(".value-box");
+const socket=io();
+// Update the value box when the slider changes
+slider.addEventListener("input", () => {
+  valueBox.textContent = slider.value;
+});
+socket.on('data_received',function(data){
+    console.log(`Received data: Word_Count: ${data.word_Count}`);
+});
+
+// Send a POST request to the /update_value route when the slider changes
+slider.addEventListener("change", () => {
+  fetch("/Cogservice_Value_Updated", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ value: slider.value })
+  })
+  .then(response => response.json())
+  .then(data => console.log(data.message)) // Log success message
+   socket.emit('data_sent',{'word_Count' : valueBox})
+  .catch(error => console.error(error));
+});
