@@ -1,0 +1,31 @@
+2024-05-25 22:27:22,118 - INFO - Function create_or_pass_folder error with flag 0 -- Function create_or_pass_folder error is::Value for one of the query parameters specified in the request URI is invalid.
+RequestId:d56dbbe9-b01e-0046-37c4-aeab90000000
+Time:2024-05-25T16:57:22.4005271Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:d56dbbe9-b01e-0046-37c4-aeab90000000
+Time:2024-05-25T16:57:22.4005271Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>
+2024-05-25 22:27:22,121 - INFO - Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:d56dbbe9-b01e-0046-37c4-aeab90000000
+Time:2024-05-25T16:57:22.4005271Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version="1.0" encoding="utf-8"?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:d56dbbe9-b01e-0046-37c4-aeab90000000
+Time:2024-05-25T16:57:22.4005271Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> 
+2024-05-25 22:27:22,712 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-25 22:27:22,712 - INFO - User asif24 logged in successfully with flag 1
+2024-05-25 22:27:23,459 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-25 22:27:28,492 - INFO - SocketIO table_update event successfully sent data with flag 1
+2024-05-25 22:27:32,930 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-25 22:27:56,174 - INFO - Function upload_to_blob successfully created blob_client.url
+2024-05-25 22:27:56,175 - INFO - User documents uploded successfully.
+2024-05-25 22:27:56,717 - INFO - Function update_bar_chart_from_blob successfully Return blob_list with flag 1
+2024-05-25 22:27:56,717 - INFO - Popup_form route succeeded with flag 1
+2024-05-25 22:28:03,145 - INFO - SocketIO table_update event successfully sent data with flag 1
+2024-05-25 22:31:10,813 - INFO - SocketIO table_update event successfully sent data with flag 1
