@@ -100,7 +100,7 @@ main_key = retrieved_secret.value
 # load_dotenv()
 # main_key = os.environ["Main_key"]
 
-# os.environ["OPENAI_API_TYPE"] = "azure"
+# os.environ["OPENAI_API_TYPE"] s= "azure"
 # os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
 # os.environ["OPENAI_API_KEY"] = main_key
 # os.environ["OPENAI_API_VERSION"] = "2023-05-15"
@@ -1206,49 +1206,49 @@ def popup_form():
     global Limit_By_Size, Source_URL
     if request.method == 'POST':
         if 'myFile' in request.files:
-            mb_pop = 0
+            # if 'myFile' in request.files or 'audio_file' in request.files:
+            #     print('Not Any File Fond')
+            #     return jsonify({'message': 'File not Fond'}), 400
+            mb_pop = 0  # Initialize mb_pop before the loop
             files = request.files.getlist('myFile')
             if not len(files):
-                return emit('upload_status', {'message': 'File not Found'})
-                # return jsonify({'message': 'File not Found'}), 400
+                return jsonify({'message': 'File not Fond'}), 400
+            print('name of file is', files)
             for file in files:
-                file.seek(0, os.SEEK_END)
-                file_size_bytes = file.tell()
-                file.seek(0)
+                file.seek(0, os.SEEK_END)  # Move the cursor to the end of the file
+                file_size_bytes = file.tell()  # Get the current cursor position, which is the file size in bytes
+                file.seek(0)  # Reset the cursor back to the beginning of the file
                 mb_pop += file_size_bytes / (1024 * 1024)
 
-            mb_p = int(mb_pop)
+            mb_p = int(mb_pop)  # Move this line here
             Limit_By_Size = int(Limit_By_Size)
 
+            # print('Limit By Size(K/Count) file size exceeds', Limit_By_Size, mb_p)
             if mb_p >= Limit_By_Size != 0:
-                return emit('upload_status', {'message': 'Limit By Size(K/Count) file size exceeds'})
-                # return jsonify({'message': 'Limit By Size(K/Count) file size exceeds'}), 400
-
+                print('Limit By Size(K/Count) file size exceeds')
+                return jsonify({'message': 'Limit By Size(K/Count) file size exceeds'}), 400
+                # Convert bytes to megabytes
             session['MB'] += float("{:.2f}".format(mb_pop))
-
+            # Calculate total number of files
             for file in files:
                 upload_to_blob(file, session, blob_service_client, container_name)
-            logger.info('User documents uploaded successfully.')
-            return emit('upload_status', {'message': 'Files uploaded successfully'})
+
+        elif request.form.get('dbURL', ''):
+            db_url = request.form.get('dbURL', '')
+            username = request.form.get('username', '')
+            password = request.form.get('password', '')
+            print('database url n all.......', db_url, username, password)
         else:
             if not request.form.get('Source_URL', ''):
-                return emit('upload_status', {'message': 'No Source_URL Found'})
-                # return jsonify({'message': 'No Source_URL Found'}), 400
+                print('No Source_URL Fond')
+                return jsonify({'message': 'No Source_URL Fond'}), 400
             Source_URL = request.form.get('Source_URL', '')
-            logger.info('User Source_URL uploaded successfully.')
-            return emit('upload_status', {'message': 'Source_URL Found'})
-
+            print("Source_URL Fond---->", Source_URL)
         update_bar_chart_from_blob(session, blob_service_client, container_name)
-        g.flag = 1
-        logger.info(f"Popup_form route succeeded with flag {g.flag}")
-        return emit('upload_status', {'message': 'Data uploaded successfully'}), 200
 
-        # return jsonify({'message': 'Data uploaded successfully'}), 200
+        return jsonify({'message': 'Data uploaded successfully'}), 200
     else:
-        g.flag = 0
-        logger.info(f"Popup_form route invalid request method with flag {g.flag}")
-        return emit('upload_status', {'message': 'Invalid request method'}), 405
-        # return jsonify({'message': 'Invalid request method'}), 405
+        return jsonify({'message': 'Invalid request method'}), 405
 
 
 @socketio.on('run_query')
@@ -1360,7 +1360,7 @@ def Cogni_button():
         logger.info(f"Cogni_button route succeeded with flag {g.flag}")
 
         print(f"Function took--------->  {elapsed_time} <--------- seconds to execute.")
-        socketio.emit('button_response', {'message': 'Operation successful'})
+        socketio.emit('button_response', {'message': 'Data Loaded successfully'})
         return response
     except Exception as e:
         g.flag = 0
@@ -1430,6 +1430,10 @@ def handle_clear_chat_summ(data):
             wordcloud_image = os.path.join(folder_name, 'wordcloud.png')
             if os.path.exists(wordcloud_image):
                 os.remove(wordcloud_image)
+        lda_topics_summ = {}
+        socketio.emit('lda_topics_summ', lda_topics_summ)
+        senti = {}
+        socketio.emit('analyze_sentiment_summ', senti)
 
         text_word_cloud = ''
         session['summary_word_cpunt'] = 0
@@ -1508,6 +1512,10 @@ def handle_clear_chat():
         session['senti_Negative_Q_A'] = 0
         session['senti_neutral_Q_A'] = 0
         session['chat_history_qa'] = []
+        senti_Q_A = {}
+        socketio.emit('analyze_sentiment_Q_A', senti_Q_A)
+        lda_topics_Q_A = {}
+        socketio.emit('lda_topics_QA', lda_topics_Q_A)
         g.flag = 1  # Set flag to 1 on success
         logger.info(f"clear_chat for ask_question route Chat history cleared successfully with flag {g.flag}")
         emit('chat_cleared', {'message': 'Chat history cleared successfully'})
@@ -1596,8 +1604,6 @@ def webcrawler_start(data):
                 files_downloaded += 1
                 progress_percentage = int(files_downloaded / total_files * 100)
                 current_file = name
-                print('update_progress------>', current_status, total_files, files_downloaded, progress_percentage,
-                      current_file)
                 socketio.emit('update_progress', {
                     'current_status': current_status,
                     'total_files': total_files,
@@ -1607,8 +1613,14 @@ def webcrawler_start(data):
                 })
             except Exception as e:
                 print(f"Error occurred: {e}")
-
         current_status = "File downloaded successfully"
+        socketio.emit('update_progress', {
+            'current_status': current_status,
+            'total_files': total_files,
+            'files_downloaded': files_downloaded,
+            'progress_percentage': progress_percentage,
+            'current_file': current_file
+        })
         socketio.emit('update_status', {'status': current_status})
         return jsonify({'message': 'All files downloaded successfully'})
     except Exception as e:

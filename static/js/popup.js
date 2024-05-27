@@ -693,9 +693,9 @@ function executeNewProgram() {
     socket.on('update_status', function(data) {
         console.log("Status Update:", data.status);
         // Update UI with the new status, if needed
-        $('#messageweb').text(data.status);
+        $('#message').text(data.status);
         setTimeout(function() {
-            $('#messageweb').text('');
+            $('#message').text('');
         }, 8000); // 8 seconds later, clear the message
     });
 
@@ -977,32 +977,6 @@ function toggleAllCheckboxes() {
 }
 
 
-// //table fetch data.
-// function fetchProgress() {
-//     fetch("/download_progress")
-//       .then(response => response.json())
-//       .then(data => {
-//         console.log("Total Files:", data.total_files);
-//         console.log("Files Downloaded:", data.files_downloaded);
-//         console.log("Progress Percentage:", data.progress_percentage + "%");
-//         console.log("Current File:", data.current_file);
-        
-//         // Update progress display
-//         document.getElementById("progress").innerHTML = `
-//           <label>Current Status: ${data.current_status}</label>
-//           <label>Total Files:  ${data.total_files}</label>
-//           <label>Files Downloaded:  ${data.files_downloaded}</label>
-//           <label>Progress Percentage:  ${data.progress_percentage}%</label>
-//           <label>Current File Name:  ${data.current_file}</label>
-//         `;
-//       })
-//       .catch(error => console.error("Error fetching progress:", error));
-//     }
-
-//   // Fetch progress every second
-// setInterval(fetchProgress, 1000);
-
-
 // this is default program
 
 function runDefaultProgram() {
@@ -1030,12 +1004,12 @@ function runDefaultProgram() {
     // var password = document.getElementsByName('password')[0].value;
     // var Source_URL = document.getElementsByName('Source_URL')[0].value;
 
-    var dbType = document.getElementsByName('dbType')[0].value;
-    var hostname = document.getElementsByName('hostname')[0].value;
-    var port = document.getElementsByName('port')[0].value;
-    var username = document.getElementsByName('username')[0].value;
-    var password = document.getElementsByName('password')[0].value;
-    var query = document.getElementsByName('query')[0].value;
+    // var dbType = document.getElementsByName('dbType')[0].value;
+    // var hostname = document.getElementsByName('hostname')[0].value;
+    // var port = document.getElementsByName('port')[0].value;
+    // var username = document.getElementsByName('username')[0].value;
+    // var password = document.getElementsByName('password')[0].value;
+    // var query = document.getElementsByName('query')[0].value;
     var Source_URL = document.getElementsByName('Source_URL')[0].value;
     
     //$("#myDiv").html('<img src="/static/images/wait.gif" alt="Wait" />');
@@ -1046,12 +1020,12 @@ function runDefaultProgram() {
     // formData.append('password', password);
     // formData.append('Source_URL', Source_URL);
       // Append additional fields
-    formData.append('dbType', dbType);
-    formData.append('hostname', hostname);
-    formData.append('port', port);
-    formData.append('username', username);
-    formData.append('password', password);
-    formData.append('query', query);
+    // formData.append('dbType', dbType);
+    // formData.append('hostname', hostname);
+    // formData.append('port', port);
+    // formData.append('username', username);
+    // formData.append('password', password);
+    // formData.append('query', query);
     formData.append('Source_URL', Source_URL);
 
     var xhr = new XMLHttpRequest();
