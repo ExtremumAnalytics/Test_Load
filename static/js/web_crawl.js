@@ -104,89 +104,99 @@ function displayStats(totalScrapedFiles) {
 }
 
 
+// function deleteSelectedFiles() {
+//     const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
+//     selectedRows.forEach(row => {
+//         const fileName = row.dataset.fileName; // Get the file name from the row's data attribute
+//         row.remove();
+        
+//         // Print the file name before sending the request
+//         console.log('File name:', fileName);
+
+//         // Send a request to Flask route
+//         fetch('/select_pdf_file', {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json'
+//             },
+//             body: JSON.stringify({
+//                 fileName: fileName,
+//             })
+//         })
+//         .then(response => {
+//             if (response.ok) {
+//                 // Parse the JSON response to extract the message
+//                 return response.json();
+//             } else {
+//                 // If the response is not OK, throw an error
+//                 throw new Error('Network response was not ok');
+//             }
+//         })
+//         .then(data => {
+//             // Now, data should contain the parsed JSON response
+//             $('#messagedelopload').text(data.message);
+//             setTimeout(function() {
+//                 $('#messagedelopload').text('');
+//             }, 8000); // Clear the message after 8 seconds
+//             console.log(data.message);
+//         })
+//         .catch(error => console.error('Error:', error));
+//     });
+// }
+
 function deleteSelectedFiles() {
+    const socket = io();
     const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
     selectedRows.forEach(row => {
         const fileName = row.dataset.fileName; // Get the file name from the row's data attribute
+
+        // Send a request to Flask route via Socket.IO
+        socket.emit('delete_pdf_file', {
+            fileName: fileName
+        });
         row.remove();
-        
         // Print the file name before sending the request
         console.log('File name:', fileName);
+    });
 
-        // Send a request to Flask route
-        fetch('/select_pdf_file', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                fileName: fileName,
-            })
-        })
-        .then(response => {
-            if (response.ok) {
-                // Parse the JSON response to extract the message
-                return response.json();
-            } else {
-                // If the response is not OK, throw an error
-                throw new Error('Network response was not ok');
-            }
-        })
-        .then(data => {
-            // Now, data should contain the parsed JSON response
-            $('#messagedelopload').text(data.message);
-            setTimeout(function() {
-                $('#messagedelopload').text('');
-            }, 8000); // Clear the message after 8 seconds
-            console.log(data.message);
-        })
-        .catch(error => console.error('Error:', error));
+    // Define the event listener for delete_response outside the deleteSelectedFiles function
+    socket.on('delete_response', function(data) {
+        $('#messagedelopload').text(data.message);
+        setTimeout(function() {
+            $('#messagedelopload').text('');
+        }, 8000); // Clear the message after 8 seconds
+        console.log(data.message);
     });
 }
 
 
-function deletefilelocal() {
-    const deletePopup = document.getElementsByName('deletepopupn3')[0].getAttribute('name');
-    console.log(deletePopup);
-    const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
-    selectedRows.forEach(row => {
-        const fileName = row.dataset.fileName; // Get the file name from the row's data attribute
-        row.remove();
+// function deletefilelocal() {
+//     const socket = io();
+//     const deletePopup = document.getElementsByName('deletepopupn3')[0].getAttribute('name');
+//     console.log(deletePopup);
+//     const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
+//     selectedRows.forEach(row => {
+//         const fileName = row.dataset.fileName; // Get the file name from the row's data attribute
+//         row.remove();
         
-        // Print the file name before sending the request
-        console.log('File name:', fileName);
+//         // Print the file name before sending the request
+//         console.log('File name:', fileName);
 
-        // Send a request to Flask route
-        fetch('/select_pdf_file', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                fileName: fileName,
-                deletePopup: deletePopup
-            })
-        })
-        .then(response => {
-            if (response.ok) {
-                // Parse the JSON response to extract the message
-                return response.json();
-            } else {
-                // If the response is not OK, throw an error
-                throw new Error('Network response was not ok');
-            }
-        })
-        .then(data => {
-            // Now, data should contain the parsed JSON response
-            $('#messagedelopload').text(data.message);
-            setTimeout(function() {
-                $('#messagedelopload').text('');
-            }, 8000); // Clear the message after 8 seconds
-            console.log(data.message);
-        })
-        .catch(error => console.error('Error:', error));
-    });
-}
+//         // Send a request to Flask route
+//         socket.emit('delete_pdf_file', {
+//             fileName: fileName,
+//             deletePopup: deletePopup,
+//             login_pin: your_login_pin // provide the login pin here
+//         });
+//     });
+// }
+// socket.on('delete_response', function(data) {
+//     $('#messagedelopload').text(data.message);
+//     setTimeout(function() {
+//         $('#messagedelopload').text('');
+//     }, 8000); // Clear the message after 8 seconds
+//     console.log(data.message);
+// });
 
 // Function to toggle all checkboxes (select/deselect)
 function toggleAllCheckboxes() {
