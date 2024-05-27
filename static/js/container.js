@@ -143,27 +143,51 @@ function toggleSelectAll(){
 document.getElementById('dbForm').onsubmit = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
-    const response = await fetch('/run_query', {
-        method: 'POST',
-        body: JSON.stringify(Object.fromEntries(formData)),
-        headers: {
-            'Content-Type': 'application/json'
-        }
+
+    // Initialize Socket.IO client
+    const socket = io();
+
+    socket.emit('run_query', Object.fromEntries(formData));
+
+    socket.on('query_success', (data) => {
+        document.getElementById('message').innerText = data.message || 'Query executed successfully.';
+        setTimeout(() => {
+            document.getElementById('message').innerText = '';
+        }, 8000); // Clear message after 8 seconds
     });
- 
-    if (response.ok) {
-        $('#message').text(response.message);
-        // const blob = await response.blob();
-        // const url = window.URL.createObjectURL(blob);
-        // const a = document.createElement('a');
-        // a.style.display = 'none';
-        // a.href = url;
-        // a.download = 'query_results.csv';
-        // document.body.appendChild(a);
-        // a.click();
-        // window.URL.revokeObjectURL(url);
-    } else {
-        const result = await response.json();
-        document.getElementById('results').innerText = JSON.stringify(result);
-    }
+
+    socket.on('query_error', (data) => {
+        document.getElementById('message').innerText = JSON.stringify(data);
+        setTimeout(() => {
+            document.getElementById('message').innerText = '';
+        }, 8000); // Clear message after 8 seconds
+    });
 };
+
+// document.getElementById('dbForm').onsubmit = async (event) => {
+//     event.preventDefault();
+//     const formData = new FormData(event.target);
+//     const response = await fetch('/run_query', {
+//         method: 'POST',
+//         body: JSON.stringify(Object.fromEntries(formData)),
+//         headers: {
+//             'Content-Type': 'application/json'
+//         }
+//     });
+ 
+//     if (response.ok) {
+//         $('#message').text(response.message);
+//         // const blob = await response.blob();
+//         // const url = window.URL.createObjectURL(blob);
+//         // const a = document.createElement('a');
+//         // a.style.display = 'none';
+//         // a.href = url;
+//         // a.download = 'query_results.csv';
+//         // document.body.appendChild(a);
+//         // a.click();
+//         // window.URL.revokeObjectURL(url);
+//     } else {
+//         const result = await response.json();
+//         document.getElementById('results').innerText = JSON.stringify(result);
+//     }
+// };

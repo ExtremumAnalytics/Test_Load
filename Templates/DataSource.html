@@ -232,6 +232,7 @@
                         <form id="dbForm" style="text-align: center;">
                             <select name="dbType" class="form-control">
                                 <option value="MySQL">MySQL</option>
+                                <option value="SQLServer">SQLServer</option>
                                 <option value="MongoDB">MongoDB</option>
                             </select><br>
                             <input type="text" name="hostname" id="hostname" class="form-control mb-2" placeholder="Enter Hostname" required>
@@ -488,9 +489,7 @@
     <!-- Template Javascript -->
     <script src="{{ url_for('static', filename='js/main.js')}}"></script>
     <script src="{{ url_for('static', filename='js/container.js')}}"></script>
-    <script src="{{ url_for('static', filename='js/ask_chart.js')}}"></script>
-    <!-- <script src="{{ url_for('static', filename='js/data_source_chart.js')}}"></script> -->
-    <!-- <script src="{{ url_for('static', filename='js/auth_chart.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/data_source_chart.js')}}"></script>
     <script src="{{ url_for('static', filename='js/popup.js') }}"></script>
     <script src="{{ url_for('static', filename='js/slider.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dateslide.js') }}"></script>
