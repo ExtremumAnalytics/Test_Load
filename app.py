@@ -89,16 +89,16 @@ import traceback
 import io
 
 # for default Azure account use only
-openapi_key = "OPENAI-API-KEY"
-KVUri = f"https://eavault.vault.azure.net/"
-credential = DefaultAzureCredential()
-client = SecretClient(vault_url=KVUri, credential=credential)
-retrieved_secret = client.get_secret(openapi_key)
-main_key = retrieved_secret.value
+# openapi_key = "OPENAI-API-KEY"
+# KVUri = f"https://eavault.vault.azure.net/"
+# credential = DefaultAzureCredential()
+# client = SecretClient(vault_url=KVUri, credential=credential)
+# retrieved_secret = client.get_secret(openapi_key)
+# main_key = retrieved_secret.value
 
-# # for local use only
-# load_dotenv()
-# main_key = os.environ["Main_key"]
+# for local use only
+load_dotenv()
+main_key = os.environ["Main_key"]
 
 # os.environ["OPENAI_API_TYPE"] s= "azure"
 # os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
@@ -112,7 +112,6 @@ os.environ["OPENAI_API_KEY"] = main_key
 os.environ["OPENAI_API_VERSION"] = "2023-05-15"
 os.environ["AZURE_OPENAI_ENDPOINT"] = "https://ea-openai.openai.azure.com/"
 
-llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
 embeddings = AzureOpenAIEmbeddings(azure_deployment='text-embedding')
 
 chunk_size = 8000
@@ -147,25 +146,39 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# # blob storage use locally.
-# account_name = os.environ['account_name']
-# account_key = os.environ['account_key']
-# container_name = os.environ['container_name']
-# # Create a BlobServiceClient object
-# connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-# blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+# blob storage use locally.
+account_name = os.environ['account_name']
+account_key = os.environ['account_key']
+container_name = os.environ['container_name']
+# Create a BlobServiceClient object
+connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+container_client = blob_service_client.get_container_client(container_name)
+
+
+# # for Azure server use only
+# account_name = "testcongnilink"
+# container_name = "congnilink-container"
+#
+# account_url = "https://testcongnilink.blob.core.windows.net"
+# default_credential = DefaultAzureCredential()
+#
+# blob_service_client = BlobServiceClient(account_url, credential=default_credential)
 # container_client = blob_service_client.get_container_client(container_name)
 
 
-# for Azure server use only
-account_name = "testcongnilink"
-container_name = "congnilink-container"
+def set_model():
+    model = session.get('engine', 'gpt-4-0125-preview')  # Default to 'gpt-4-0125-preview'
+    if model == "GPT-3.5 turbo":
+        deployment_name = "gpt-35-turbo"
+    elif model == "GPT-4":
+        deployment_name = "gpt-4-0125-preview"
+    elif model == "GPT-4o":
+        deployment_name = ""
+    else:
+        deployment_name = "gpt-4-0125-preview"
+    return  deployment_name
 
-account_url = "https://testcongnilink.blob.core.windows.net"
-default_credential = DefaultAzureCredential()
-
-blob_service_client = BlobServiceClient(account_url, credential=default_credential)
-container_client = blob_service_client.get_container_client(container_name)
 
 
 def create_or_pass_folder(container_client, session):
@@ -506,7 +519,10 @@ def get_vectostore(text_chunks):
 
 
 def get_conversation_chain(vectorstore):
-    llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo")
+
+    # llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo")
+    deployment_name=set_model()
+    llm = AzureChatOpenAI(azure_deployment=deployment_name)
 
     template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, 
     just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible. 
@@ -527,10 +543,14 @@ def get_conversation_chain(vectorstore):
 
 # Start Summarization section --------
 
-def custom_summary(docs, llm, custom_prompt, chain_type):
+def custom_summary(docs, custom_prompt, chain_type):
     custom_prompt = custom_prompt + """:\n {text}"""
     COMBINE_PROMPT = PromptTemplate(template=custom_prompt, input_variables=["text"])
     MAP_PROMPT = PromptTemplate(template="Summarize:\n{text}", input_variables=["text"])
+    model=session['engine']
+    deployment_name=set_model()
+    llm = AzureChatOpenAI(azure_deployment=deployment_name, model_name=model, temperature=0.50)
+
     if chain_type == "map_reduce":
         chain = load_summarize_chain(llm, chain_type=chain_type,
                                      map_prompt=MAP_PROMPT,
@@ -1055,6 +1075,9 @@ def home():
     if request.method == "POST":
         pin = request.form.get('authpin')
         group_user = request.form.get('Grp_usr')
+            # Select Engine
+        engine= request.form.get('engine')
+
         print(group_user, pin)
 
         # Map group_user to role_id (Admin=1, Guest=2, ML Engine=3)
@@ -1073,6 +1096,7 @@ def home():
             session.modified = True
             session['logged_in'] = True
             session['login_pin'] = user.login_pin
+            session['engine']=engine
             session['bar_chart_ss'] = {}
             session['over_all_readiness'] = 0
             session['total_success_rate'] = 0
@@ -1402,7 +1426,7 @@ def handle_summary_input(data):
                              for document in documents_list]
 
         for filename, document in flattened_entries:
-            summary = custom_summary(document, llm, custom_p, chain_type)
+            summary = custom_summary(document, custom_p, chain_type)
             key = f'{filename}--{counter}--'
             summary_dict = {'key': key, 'value': summary}
             summ.append(summary_dict)
@@ -1780,13 +1804,14 @@ def handle_eda_process(data):
         print("question----->", question)
         if question:
             logger.info("SocketIO Eda_Process Question received.")
+
+            deployment_name = set_model()
             llm = AzureOpenAI(
-                deployment_name="gpt-4-0125-preview",
+                deployment_name=deployment_name,
                 api_key=main_key,
                 azure_endpoint="https://ea-openai.openai.azure.com/",
                 api_version="2023-05-15"
             )
-
             agent = Agent(df, config={
                 "llm": llm,
                 "save_charts": True,
