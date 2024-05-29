@@ -41,7 +41,6 @@ typing_extensions==4.9.0
 tzdata==2023.4
 urllib3==2.1.0
 Werkzeug==3.0.1
-tiktoken==0.5.2
 langchain
 wordcloud==1.9.3
 scikit-learn==1.4.0
@@ -72,3 +71,4 @@ azure-common==1.1.28
 contractions==0.1.73
 openai==1.30.3
 langchain-openai==0.1.7
+tiktoken==0.7.0
