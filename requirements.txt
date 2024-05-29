@@ -63,7 +63,7 @@ eventlet
 pymongo==4.7.2
 mysql-connector-python==8.4.0
 pyodbc==5.1.0
-azure-search-documents==11.4.0b8
+azure-search-documents==11.4.0
 azure-functions
 azure-identity==1.15.0
 azure-core==1.29.5
