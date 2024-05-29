@@ -102,7 +102,7 @@ client = SecretClient(vault_url=KVUri, credential=credential)
 retrieved_secret = client.get_secret(openapi_key)
 main_key = retrieved_secret.value
 retrieved = client.get_secret(vectorsecret)
-vector_store = retrieved.value
+# vector_store = retrieved.value
 
 # # for local use only
 # load_dotenv()
@@ -121,7 +121,7 @@ os.environ["OPENAI_API_VERSION"] = "2023-05-15"
 os.environ["AZURE_OPENAI_ENDPOINT"] = "https://ea-openai.openai.azure.com/"
 # for vector db
 vector_store_address = "https://cognilink-vectordb.search.windows.net"
-vector_store_password = vector_store
+vector_store_password = "fH39wimOaK8Evb46Jx0NzNkSjcPw7dm0phktmCCV4oAzSeBD6zWA"
 
 
 # # for vector db
