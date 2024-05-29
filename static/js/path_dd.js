@@ -290,16 +290,16 @@ function updateTable(searchTerm) {
                 // Check the file type and provide appropriate action
                 if (isExcel(name)) {
                     // If it's an Excel file, open it in a new tab
-                    row += '<a href="#" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
                 }else if (isPDF(name)) {
                     // If it's a PDF, open it in a new tab
-                    row += '<a href="#" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
+                    row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
                 } else if (isWord(name)) {
                     // If it's a Word document, open it in a new tab
-                    row += '<a href="#" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
                 } else if (isPowerPoint(name)) {
                     // If it's a PowerPoint presentation, open it in a new tab
-                    row += '<a href="#" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
                 } else {
                     // If it's none of the above, open it directly in the browser
                     row += '<a href="' + blob.url + '" target="_blank">View</a>';
@@ -307,6 +307,7 @@ function updateTable(searchTerm) {
 
                 row += '</td>' +
                     '<td class="action-links">' +
+                    //'<a href="' + blob.url + '" target="_blank" download>Download</a> </td>' +
                     '<a href="' + blob.url + '" download="' + name + '">Download</a> </td>' +
                     '<td><a href="javascript:void(0);" onclick="deleteFile(\'' + blob.name + '\')" style="color: var(--primary);">Delete</a>' +
                     '</td>' +

@@ -20,7 +20,7 @@
                     rotation : 270,
                     aspectRatio : 2,
                     borderRadius:8,
-                    cutout: 95,
+                    cutout: 80,
                     data: [75,25]
                 }]
             },
@@ -41,7 +41,7 @@
             plugins: [ChartDataLabels]
         });
 
-        socket.on('update_gauge_summary_chart', function(data) {
+        socket.on('update_gauge_chart', function(data) {
             updateReadinessChart(data);
         });
         
