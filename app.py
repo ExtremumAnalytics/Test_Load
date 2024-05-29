@@ -101,7 +101,7 @@ credential = DefaultAzureCredential()
 client = SecretClient(vault_url=KVUri, credential=credential)
 retrieved_secret = client.get_secret(openapi_key)
 main_key = retrieved_secret.value
-retrieved = client.get_secret(vectorsecret)
+# retrieved = client.get_secret(vectorsecret)
 # vector_store = retrieved.value
 
 # # for local use only
