@@ -94,6 +94,7 @@ import traceback
 import io
 
 # for default Azure account use only
+vectorsecret = "vectorsecret"
 openapi_key = "OPENAI-API-KEY"
 KVUri = f"https://eavault.vault.azure.net/"
 credential = DefaultAzureCredential()
