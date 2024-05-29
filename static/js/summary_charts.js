@@ -41,7 +41,7 @@
             plugins: [ChartDataLabels]
         });
 
-        socket.on('update_gauge_summary_chart', function(data) {
+        socket.on('update_gauge_chart', function(data) {
             updateReadinessChart(data);
         });
         

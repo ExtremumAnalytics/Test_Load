@@ -11,7 +11,7 @@ from io import BytesIO
 from flask import Flask, jsonify, url_for, flash
 from flask import render_template, request, g, redirect, session
 from flask_sqlalchemy import SQLAlchemy
-from flask_session import Session
+# from flask_session import Session
 import tempfile
 import pickle
 
@@ -42,8 +42,13 @@ from langchain_community.document_loaders import AzureBlobStorageFileLoader, PyP
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.chat_models import AzureChatOpenAI
-from langchain_community.embeddings import AzureOpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
+# from langchain_community.embeddings import AzureOpenAIEmbeddings
+from langchain_openai import AzureOpenAIEmbeddings
+from langchain_community.vectorstores.azuresearch import AzureSearch
+# changing here faiss to AzureSearch
+# from langchain_community.vectorstores import faiss
+# from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import AzureSearch
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 
@@ -88,30 +93,48 @@ from pymongo import MongoClient
 import traceback
 import io
 
-# for default Azure account use only
+# # for default Azure account use only
 # openapi_key = "OPENAI-API-KEY"
 # KVUri = f"https://eavault.vault.azure.net/"
 # credential = DefaultAzureCredential()
 # client = SecretClient(vault_url=KVUri, credential=credential)
 # retrieved_secret = client.get_secret(openapi_key)
 # main_key = retrieved_secret.value
+# retrieved = client.get_secret(vectordb)
+# vector_store = retrieved
 
 # for local use only
 load_dotenv()
 main_key = os.environ["Main_key"]
+vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
 
-# os.environ["OPENAI_API_TYPE"] s= "azure"
+# os.environ["OPENAI_API_TYPE"] = "azure"
 # os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
 # os.environ["OPENAI_API_KEY"] = main_key
 # os.environ["OPENAI_API_VERSION"] = "2023-05-15"
 
 
 os.environ["OPENAI_API_TYPE"] = "azure"
-# os.environ["OPENAI_API_BASE"] = "https://ea-openai.openai.azure.com/"
 os.environ["OPENAI_API_KEY"] = main_key
 os.environ["OPENAI_API_VERSION"] = "2023-05-15"
 os.environ["AZURE_OPENAI_ENDPOINT"] = "https://ea-openai.openai.azure.com/"
+# for vector db
+vector_store_address = "https://cognilink-vectordb.search.windows.net"
+vector_store_password = vector_store
 
+
+# # for vector db
+# vector_store_address: str = os.getenv("VECTOR_STORE_ADDRESS")
+# vector_store_password: str = os.getenv("AZURE_COGNITIVE_SEARCH_API_KEY")
+
+llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
+
+# embeddings: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings(azure_deployment=embedding_model_name,
+#     openai_api_version="https://ea-openai.openai.azure.com/",
+#     azure_endpoint="2023-05-15",
+#     api_key=main_key)
+
+# 1 - text-embedding-3large testing  2- text-embedding
 embeddings = AzureOpenAIEmbeddings(azure_deployment='text-embedding')
 
 chunk_size = 8000
@@ -122,30 +145,19 @@ num_summaries = 1
 
 # logger variable:
 logger = ''
-
-# # Define global variables for download progress
-# current_status = ""
-# current_file = ""
-# total_files = 0
-# files_downloaded = 0
-# progress_percentage = 0
-
+summary_word_cpunt = 0
 blob_list_length = 0
 tot_file = 0
 tot_succ = 0
 tot_fail = 0
-final_chunks = []
-summary_chunk = []
 Limit_By_Size = 0
 Source_URL = ""
 bar_chart_url = {}
-senti_text_Q_A = ""
 # word cloud
 text_word_cloud = ''
 nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
-
 # blob storage use locally.
 account_name = os.environ['account_name']
 account_key = os.environ['account_key']
@@ -177,8 +189,7 @@ def set_model():
         deployment_name = ""
     else:
         deployment_name = "gpt-4-0125-preview"
-    return  deployment_name
-
+    return deployment_name
 
 
 def create_or_pass_folder(container_client, session):
@@ -423,7 +434,7 @@ def update_when_file_delete():
                     pickle.dump(summary_chunk, f)
 
                 vectorstore = get_vectostore(final_chunks)
-                vectorstore.save_local(os.path.join(folder_name, 'faiss_index'))
+                # vectorstore.save_local(os.path.join(folder_name, 'faiss_index'))
                 session['over_all_readiness'] = session['total_files_list']
                 session['total_success_rate'] = session['successful_list']
                 # Check if session is modified and save it if necessary
@@ -440,13 +451,13 @@ def update_when_file_delete():
                 gauge_source_chart_data = gauge_chart_auth()
                 socketio.emit('update_gauge_chart', gauge_source_chart_data)
 
-                gauge_ask_chart_data = gauge_chart_Q_A()
-                gauge_summary_chart_data = gauge_chart_CogS()
-                socketio.emit('update_gauge_ask_chart', gauge_ask_chart_data)
-                socketio.emit('update_gauge_summary_chart', gauge_summary_chart_data)
+                # gauge_ask_chart_data = gauge_chart_Q_A()
+                # gauge_summary_chart_data = gauge_chart_CogS()
+                # socketio.emit('update_gauge_ask_chart', gauge_ask_chart_data)
+                # socketio.emit('update_gauge_summary_chart', gauge_summary_chart_data)
 
                 # session_interface.save_session(app, session)
-                update_bar_chart_from_blob(session, blob_service_client, container_name)
+                # update_bar_chart_from_blob(session, blob_service_client, container_name)
         if Source_URL != "":
             session['total_files_list'] += 1
             f_name_url = Source_URL
@@ -473,7 +484,7 @@ def update_when_file_delete():
                 pickle.dump(summary_chunk, f)
 
             vectorstore = get_vectostore(final_chunks)
-            vectorstore.save_local(os.path.join(folder_name, 'faiss_index'))
+            # vectorstore.save_local(os.path.join(folder_name, 'faiss_index'))
             session['over_all_readiness'] = session['total_files_list']
             session['total_success_rate'] = session['successful_list']
 
@@ -483,10 +494,11 @@ def update_when_file_delete():
             socketio.emit('updatePieChart', pie_chart_data)
             gauge_source_chart_data = gauge_chart_auth()
             socketio.emit('update_gauge_chart', gauge_source_chart_data)
-            gauge_ask_chart_data = gauge_chart_Q_A()
-            gauge_summary_chart_data = gauge_chart_CogS()
-            socketio.emit('update_gauge_ask_chart', gauge_ask_chart_data)
-            socketio.emit('update_gauge_summary_chart', gauge_summary_chart_data)
+
+            # gauge_ask_chart_data = gauge_chart_Q_A()
+            # gauge_summary_chart_data = gauge_chart_CogS()
+            # socketio.emit('update_gauge_ask_chart', gauge_ask_chart_data)
+            # socketio.emit('update_gauge_summary_chart', gauge_summary_chart_data)
         print("Complete")
         g.flag = 1  # Set flag to 1 on success1
         logger.info(f"Function update_when_file_delete Data Loaded Successfully with flag {g.flag}")
@@ -514,14 +526,39 @@ def generate_word_cloud(text_word_cloud):
 
 
 def get_vectostore(text_chunks):
-    vectorstore = FAISS.from_documents(text_chunks, embedding=embeddings)
-    return vectorstore
+    index_name: str = str(session['login_pin'])
+    vector_store: AzureSearch = AzureSearch(
+        azure_search_endpoint=vector_store_address,
+        azure_search_key=vector_store_password,
+        index_name=index_name,
+        embedding_function=embeddings.embed_query,
+    )
+    vectorstore = vector_store.add_documents(text_chunks)
+    # return vectorstore
 
+
+# def get_conversation_chain(vectorstore):
+#     llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo")
+#
+#     template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
+#     just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
+#     {context}
+#     Question: {question}
+#     Helpful Answer:"""
+#     CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
+#     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
+#                                       output_key="answer")
+#     conversation_chain = ConversationalRetrievalChain.from_llm(
+#         llm=llm,
+#         retriever=vectorstore.as_retriever(),
+#         memory=memory,
+#         return_source_documents=True
+#     )
+#     return conversation_chain
 
 def get_conversation_chain(vectorstore):
-
     # llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo")
-    deployment_name=set_model()
+    deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name)
 
     template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, 
@@ -543,12 +580,31 @@ def get_conversation_chain(vectorstore):
 
 # Start Summarization section --------
 
+# def custom_summary(docs, llm, custom_prompt, chain_type):
+#     custom_prompt = custom_prompt + """:\n {text}"""
+#     COMBINE_PROMPT = PromptTemplate(template=custom_prompt, input_variables=["text"])
+#     MAP_PROMPT = PromptTemplate(template="Summarize:\n{text}", input_variables=["text"])
+#     if chain_type == "map_reduce":
+#         chain = load_summarize_chain(llm, chain_type=chain_type,
+#                                      map_prompt=MAP_PROMPT,
+#                                      combine_prompt=COMBINE_PROMPT)
+#     else:
+#         chain = load_summarize_chain(llm, chain_type=chain_type)
+#
+#     summaries = chain({"input_documents": docs}, return_only_outputs=True)["output_text"]
+#     # summaries = []
+#     # for i in range(num_summaries):
+#     #     summary_output = chain({"input_documents": docs}, return_only_outputs=True)["output_text"]
+#     #     summaries.append(summary_output)
+#     # print(summaries)
+#     return summaries
+
 def custom_summary(docs, custom_prompt, chain_type):
     custom_prompt = custom_prompt + """:\n {text}"""
     COMBINE_PROMPT = PromptTemplate(template=custom_prompt, input_variables=["text"])
     MAP_PROMPT = PromptTemplate(template="Summarize:\n{text}", input_variables=["text"])
-    model=session['engine']
-    deployment_name=set_model()
+    model = session['engine']
+    deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name, model_name=model, temperature=0.50)
 
     if chain_type == "map_reduce":
@@ -590,12 +646,8 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///Dashboard.db"
 app.config['DEBUG'] = True
 db = SQLAlchemy(app)
 app.secret_key = os.urandom(24)
-# socket io
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_PERMANENT'] = False
-
-Session(app)
-socketio = SocketIO(app, manage_session=False)
+# Session(app)
+socketio = SocketIO(app, manage_session=True)
 
 
 class FileStorage(db.Model):
@@ -698,7 +750,7 @@ def create_bar_chart():
     return file_bar
 
 
-def perform_lda___Q_A(chat_history_list, num_topics=3, n_top_words=5):
+def perform_lda___Q_A(chat_history_list, num_topics=1, n_top_words=5):
     lda_topics_Q_A = {}
     # Declare the global variable
 
@@ -731,7 +783,7 @@ def perform_lda___Q_A(chat_history_list, num_topics=3, n_top_words=5):
     socketio.emit('lda_topics_QA', lda_topics_Q_A)
 
 
-def perform_lda____summ(senti_text_summ, num_topics=3, n_top_words=5):
+def perform_lda____summ(senti_text_summ, num_topics=2, n_top_words=3):
     lda_topics_summ = {}
     # Tokenization and stop words removal
     stop_words = set(stopwords.words('english'))
@@ -873,139 +925,139 @@ def gauge_chart_auth():
     return gauge_fig
 
 
-def gauge_chart_CogS():
-    if 'total_success_rate' in session and 'over_all_readiness' in session:
-        over_all_readiness = session['over_all_readiness']
-        if over_all_readiness != 0:
-            success_rate = (session['total_success_rate'] / over_all_readiness) * 100
-        else:
-            success_rate = 0
-    else:
-        success_rate = 0
-        over_all_readiness = 0
+# def gauge_chart_CogS():
+#     if 'total_success_rate' in session and 'over_all_readiness' in session:
+#         over_all_readiness = session['over_all_readiness']
+#         if over_all_readiness != 0:
+#             success_rate = (session['total_success_rate'] / over_all_readiness) * 100
+#         else:
+#             success_rate = 0
+#     else:
+#         success_rate = 0
+#         over_all_readiness = 0
+#
+#     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
+#     #
+#     # # Create the gauge figure
+#     # gauge_fig = go.Figure(go.Indicator(
+#     #     mode="gauge+number",
+#     #     value=success_rate,
+#     #     domain={'x': [0, 1], 'y': [0, 1]},
+#     #     title={'text': "", 'font': {'size': 5}},
+#     #     number={'suffix': '%', 'font': {'size': 25}},  # Add percentage sign as suffix
+#     #     gauge={
+#     #         'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
+#     #         'bar': {'color': "darkblue"},
+#     #         'bgcolor': "white",
+#     #         'borderwidth': 2,
+#     #         'bordercolor': "gray",
+#     #         'steps': [
+#     #             {'range': [0, 50], 'color': 'cyan'},
+#     #             {'range': [50, 100], 'color': 'royalblue'}],
+#     #         'threshold': {
+#     #             'line': {'color': "red", 'width': 4},
+#     #             'thickness': 0.75,
+#     #             'value': success_rate}
+#     #     }))
+#     #
+#     # # Add total files below the gauge
+#     # gauge_fig.add_annotation(
+#     #     x=0.5,
+#     #     y=-0.3,
+#     #     text=f"Total Files: {over_all_readiness}",
+#     #     showarrow=False,
+#     #     font=dict(
+#     #         color="darkblue",
+#     #         size=12
+#     #     )
+#     # )
+#     #
+#     # gauge_fig.update_layout(
+#     #     paper_bgcolor="white",
+#     #     height=180,
+#     #     width=300,
+#     #     margin=dict(l=20, r=0, t=40, b=40),  # Adjust as needed
+#     #     font={'color': "darkblue", 'family': "Arial"}
+#     # )
+#     # gauge_chart_CogS = pio.to_json(gauge_fig)
+#     return gauge_fig
+#
+#
+# def gauge_chart_Q_A():
+#     if 'total_success_rate' in session and 'over_all_readiness' in session:
+#         over_all_readiness = session['over_all_readiness']
+#         if over_all_readiness != 0:
+#             success_rate = (session['total_success_rate'] / over_all_readiness) * 100
+#         else:
+#             success_rate = 0
+#     else:
+#         success_rate = 0
+#         over_all_readiness = 0
+#
+#     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
+#     # Create the gauge figure
+#     # gauge_fig = go.Figure(go.Indicator(
+#     #     mode="gauge+number",
+#     #     value=success_rate,
+#     #     domain={'x': [0, 1], 'y': [0, 1]},
+#     #     title={'text': "", 'font': {'size': 5}},
+#     #     number={'suffix': '%', 'font': {'size': 25}},  # Add percentage sign as suffix
+#     #     gauge={
+#     #         'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
+#     #         'bar': {'color': "darkblue"},
+#     #         'bgcolor': "white",
+#     #         'borderwidth': 2,
+#     #         'bordercolor': "gray",
+#     #         'steps': [
+#     #             {'range': [0, 50], 'color': 'cyan'},
+#     #             {'range': [50, 100], 'color': 'royalblue'}],
+#     #         'threshold': {
+#     #             'line': {'color': "red", 'width': 4},
+#     #             'thickness': 0.75,
+#     #             'value': success_rate}
+#     #     }))
+#     #
+#     # # Add total files below the gauge
+#     # gauge_fig.add_annotation(
+#     #     x=0.5,
+#     #     y=-0.3,
+#     #     text=f"Total Files: {over_all_readiness}",
+#     #     showarrow=False,
+#     #     font=dict(
+#     #         color="darkblue",
+#     #         size=12
+#     #     )
+#     # )
+#     #
+#     # gauge_fig.update_layout(
+#     #     paper_bgcolor="white",
+#     #     height=180,
+#     #     width=300,
+#     #     margin=dict(l=0, r=0, t=40, b=40),  # Adjust as needed
+#     #     font={'color': "darkblue", 'family': "Arial"}
+#     # )
+#     # gauge_chart_Q_A = pio.to_json(gauge_fig)
+#     return gauge_fig
 
-    gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
-    #
-    # # Create the gauge figure
-    # gauge_fig = go.Figure(go.Indicator(
-    #     mode="gauge+number",
-    #     value=success_rate,
-    #     domain={'x': [0, 1], 'y': [0, 1]},
-    #     title={'text': "", 'font': {'size': 5}},
-    #     number={'suffix': '%', 'font': {'size': 25}},  # Add percentage sign as suffix
-    #     gauge={
-    #         'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
-    #         'bar': {'color': "darkblue"},
-    #         'bgcolor': "white",
-    #         'borderwidth': 2,
-    #         'bordercolor': "gray",
-    #         'steps': [
-    #             {'range': [0, 50], 'color': 'cyan'},
-    #             {'range': [50, 100], 'color': 'royalblue'}],
-    #         'threshold': {
-    #             'line': {'color': "red", 'width': 4},
-    #             'thickness': 0.75,
-    #             'value': success_rate}
-    #     }))
-    #
-    # # Add total files below the gauge
-    # gauge_fig.add_annotation(
-    #     x=0.5,
-    #     y=-0.3,
-    #     text=f"Total Files: {over_all_readiness}",
-    #     showarrow=False,
-    #     font=dict(
-    #         color="darkblue",
-    #         size=12
-    #     )
-    # )
-    #
-    # gauge_fig.update_layout(
-    #     paper_bgcolor="white",
-    #     height=180,
-    #     width=300,
-    #     margin=dict(l=20, r=0, t=40, b=40),  # Adjust as needed
-    #     font={'color': "darkblue", 'family': "Arial"}
-    # )
-    # gauge_chart_CogS = pio.to_json(gauge_fig)
-    return gauge_fig
 
-
-def gauge_chart_Q_A():
-    if 'total_success_rate' in session and 'over_all_readiness' in session:
-        over_all_readiness = session['over_all_readiness']
-        if over_all_readiness != 0:
-            success_rate = (session['total_success_rate'] / over_all_readiness) * 100
-        else:
-            success_rate = 0
-    else:
-        success_rate = 0
-        over_all_readiness = 0
-
-    gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
-    # Create the gauge figure
-    # gauge_fig = go.Figure(go.Indicator(
-    #     mode="gauge+number",
-    #     value=success_rate,
-    #     domain={'x': [0, 1], 'y': [0, 1]},
-    #     title={'text': "", 'font': {'size': 5}},
-    #     number={'suffix': '%', 'font': {'size': 25}},  # Add percentage sign as suffix
-    #     gauge={
-    #         'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
-    #         'bar': {'color': "darkblue"},
-    #         'bgcolor': "white",
-    #         'borderwidth': 2,
-    #         'bordercolor': "gray",
-    #         'steps': [
-    #             {'range': [0, 50], 'color': 'cyan'},
-    #             {'range': [50, 100], 'color': 'royalblue'}],
-    #         'threshold': {
-    #             'line': {'color': "red", 'width': 4},
-    #             'thickness': 0.75,
-    #             'value': success_rate}
-    #     }))
-    #
-    # # Add total files below the gauge
-    # gauge_fig.add_annotation(
-    #     x=0.5,
-    #     y=-0.3,
-    #     text=f"Total Files: {over_all_readiness}",
-    #     showarrow=False,
-    #     font=dict(
-    #         color="darkblue",
-    #         size=12
-    #     )
-    # )
-    #
-    # gauge_fig.update_layout(
-    #     paper_bgcolor="white",
-    #     height=180,
-    #     width=300,
-    #     margin=dict(l=0, r=0, t=40, b=40),  # Adjust as needed
-    #     font={'color': "darkblue", 'family': "Arial"}
-    # )
-    # gauge_chart_Q_A = pio.to_json(gauge_fig)
-    return gauge_fig
-
-
-def indicator():
-    if 'MB' in session:
-        MB = session['MB']
-        # print('MBMBMB',MB)
-    else:
-        MB = 0.0
-    indicator = go.Figure(go.Indicator(
-        mode="number+delta",
-        value=MB,  # Convert MB to string before concatenating
-        number={'suffix': '-MB', 'font': {'size': 15, 'color': '#0D076A'}},  # Set font color for the number
-        title={"text": "Size", "font": {"size": 15, "color": "#0D076A"}},  # Set text and font color for the title
-        delta={'reference': 200, 'relative': True},
-        domain={'x': [0.6, 1], 'y': [0, 1]}))
-
-    # Set height, width, and margin
-    indicator.update_layout(height=75, width=80, margin=dict(l=0, r=20, t=0, b=0))
-    indi = pio.to_json(indicator)
-    return indi
+# def indicator():
+#     if 'MB' in session:
+#         MB = session['MB']
+#         # print('MBMBMB',MB)
+#     else:
+#         MB = 0.0
+#     indicator = go.Figure(go.Indicator(
+#         mode="number+delta",
+#         value=MB,  # Convert MB to string before concatenating
+#         number={'suffix': '-MB', 'font': {'size': 15, 'color': '#0D076A'}},  # Set font color for the number
+#         title={"text": "Size", "font": {"size": 15, "color": "#0D076A"}},  # Set text and font color for the title
+#         delta={'reference': 200, 'relative': True},
+#         domain={'x': [0.6, 1], 'y': [0, 1]}))
+#
+#     # Set height, width, and margin
+#     indicator.update_layout(height=75, width=80, margin=dict(l=0, r=20, t=0, b=0))
+#     indi = pio.to_json(indicator)
+#     return indi
 
 
 def log_out_forall():
@@ -1016,14 +1068,7 @@ def log_out_forall():
     Limit_By_Size = 0
     Source_URL = ""
     tot_file = 0
-
-    # # Define global variables for download progress
-    # current_status = ""
-    # current_file = ""
-    # total_files = 0
-    # files_downloaded = 0
-    # progress_percentage = 0
-    # Delete the file 'final_chunks.pkl'
+    summary_word_cpunt = 0
     # Check if session login pin exists
     if 'login_pin' in session:
         # Define the folder path using session login pin
@@ -1061,7 +1106,7 @@ def log_out_forall():
             os.remove(wordcloud_image)
 
     session.clear()
-    # # Delete uploaded blob
+    # #$ Delete uploaded blobdj
     # if 'blob_name' in session:
     #     blob_name = session.pop('blob_name')  # Retrieve and remove blob name from session
     #     delete_blob_from_azure(blob_name)  # Delete the corresponding blob from Azure Blob Storage
@@ -1075,10 +1120,9 @@ def home():
     if request.method == "POST":
         pin = request.form.get('authpin')
         group_user = request.form.get('Grp_usr')
-            # Select Engine
-        engine= request.form.get('engine')
-
-        print(group_user, pin)
+        # Select Engine
+        engine = request.form.get('engine')
+        print(group_user, pin, engine)
 
         # Map group_user to role_id (Admin=1, Guest=2, ML Engine=3)
         role_id_mapping = {
@@ -1096,7 +1140,7 @@ def home():
             session.modified = True
             session['logged_in'] = True
             session['login_pin'] = user.login_pin
-            session['engine']=engine
+            session['engine'] = engine
             session['bar_chart_ss'] = {}
             session['over_all_readiness'] = 0
             session['total_success_rate'] = 0
@@ -1142,7 +1186,6 @@ def home():
             folder_files = os.path.join('static', 'files', str(session['login_pin']))
             if not os.path.exists(folder_files):
                 os.makedirs(folder_files)
-            update_bar_chart_from_blob(session, blob_service_client, container_name)
             g.flag = 1  # Set flag to 1 on success
             logger.info(f"User {str(session['login_pin'])} logged in successfully with flag {g.flag}")
 
@@ -1167,7 +1210,8 @@ def logout():
 def check_session():
     if 'login_pin' in session:
         # print("session is live!!!")
-        # Session is valid
+        # print("Session value on check:", session)
+        # Session is val
         return jsonify({'sessionValid': True}), 200
     else:
         print("session is expired!!!")
@@ -1177,24 +1221,22 @@ def check_session():
 
 @app.route('/data_source', methods=['GET', 'POST'])
 def data_source():
-    update_bar_chart_from_blob(session, blob_service_client, container_name)
-
     return render_template('DataSource.html')
 
 
 @socketio.on('connect')
 def handle_connect():
-    pie_chart_data = create_pie_chart()
+    # pie_chart_data = create_pie_chart()
     bar_chart_data = create_bar_chart()
     gauge_source_chart_data = gauge_chart_auth()
-    gauge_ask_chart_data = gauge_chart_Q_A()
-    gauge_summary_chart_data = gauge_chart_CogS()
+    # gauge_ask_chart_data = gauge_chart_Q_A()
+    # gauge_summary_chart_data = gauge_chart_CogS()
 
-    emit('update_pie_chart', pie_chart_data)
-    emit('update_bar_chart', bar_chart_data)
-    emit('update_gauge_chart', gauge_source_chart_data)
-    emit('update_gauge_ask_chart', gauge_ask_chart_data)
-    emit('update_gauge_summary_chart', gauge_summary_chart_data)
+    # socketio.emit('update_pie_chart', pie_chart_data)
+    socketio.emit('update_bar_chart', bar_chart_data)
+    socketio.emit('update_gauge_chart', gauge_source_chart_data)
+    # emit('update_gauge_ask_chart', gauge_ask_chart_data)
+    # emit('update_gauge_summary_chart', gauge_summary_chart_data)
     # emit('update_summary_bar_chart', summary_bar_senti)
 
 
@@ -1412,8 +1454,10 @@ def handle_summary_input(data):
             all_summary = pickle.load(f)
 
         custom_p = data.get('summary_que')
+        print("summary_word_cpunt_input_function--->", summary_word_cpunt)
 
-        if session.get('summary_word_cpunt', 0) == 0:
+        # if session.get('summary_word_cpunt', 0) == 0:
+        if summary_word_cpunt == 0:
             emit('summary_response', {'message': 'summary word count is zero'})
             return
         else:
@@ -1475,10 +1519,11 @@ def handle_clear_chat_summ(data):
 
 @socketio.on('Cogservice_Value_Updated')
 def handle_cogservice_value_updated(data):
+    global summary_word_cpunt
     if 'value' in data:
         summary_word_cpunt = data['value']
         session['summary_word_cpunt'] = summary_word_cpunt
-        print(session['summary_word_cpunt'])
+        print("Cogservice_Value_Updated-->", session['summary_word_cpunt'])
         emit('cogservice_response', {"message": "CogniLink Value updated successfully"})
     else:
         emit('cogservice_response', {"error": "Unsupported Media Type"}, 415)
@@ -1495,11 +1540,15 @@ def handle_ask_question(data):
     try:
         question = data['question']
 
-        folder_name = os.path.join('static', 'login', str(session['login_pin']))
-        faiss_index_path = os.path.join(folder_name, 'faiss_index')
-
-        new_db = FAISS.load_local(faiss_index_path, embeddings, allow_dangerous_deserialization=True)
-        conversation = get_conversation_chain(new_db)
+        index_name = str(session['login_pin'])
+        # faiss_index_path = os.path.join(folder_name, 'faiss_index')
+        vector_store: AzureSearch = AzureSearch(
+            azure_search_endpoint=vector_store_address,
+            azure_search_key=vector_store_password,
+            index_name=index_name,
+            embedding_function=embeddings.embed_query)
+        # new_db = FAISS.load_local(faiss_index_path, embeddings, allow_dangerous_deserialization=True)
+        conversation = get_conversation_chain(vector_store)
         response = conversation({"question": question})
 
         doc_source = [response["source_documents"][0].metadata["source"]]
@@ -1804,14 +1853,13 @@ def handle_eda_process(data):
         print("question----->", question)
         if question:
             logger.info("SocketIO Eda_Process Question received.")
-
-            deployment_name = set_model()
             llm = AzureOpenAI(
-                deployment_name=deployment_name,
+                deployment_name="gpt-4-0125-preview",
                 api_key=main_key,
                 azure_endpoint="https://ea-openai.openai.azure.com/",
                 api_version="2023-05-15"
             )
+
             agent = Agent(df, config={
                 "llm": llm,
                 "save_charts": True,
@@ -1899,3 +1947,4 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     socketio.run(app, debug=True)
+    # app.run(debug=True)

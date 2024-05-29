@@ -8,12 +8,10 @@ document.getElementById("submitButton").addEventListener("click", function (even
     var guser = document.querySelector('[name="user_roles"]').value;
     var engine = document.querySelector('[name="engine_menu"]').value; // Get the selected engine
 
-
     var formData = new FormData();
     formData.append('authpin', pin);
     formData.append('Grp_usr', guser);
     formData.append('engine', engine); // Include the engine in the FormData
-
 
     // Perform an AJAX request
     fetch('/', {
