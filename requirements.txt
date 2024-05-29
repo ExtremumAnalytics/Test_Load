@@ -1,4 +1,4 @@
-﻿alembic==1.13.1
+alembic==1.13.1
 blinker==1.7.0
 certifi==2023.11.17
 charset-normalizer==3.3.2
@@ -71,4 +71,5 @@ azure-identity==1.15.0
 azure-core==1.29.5
 azure-common==1.1.28
 contractions==0.1.73
-
+openai==1.30.3
+langchain-openai==0.1.7
