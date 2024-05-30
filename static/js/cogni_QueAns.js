@@ -1,9 +1,9 @@
+// Open the Source URL from Results 
 function openFileInNewTab(url) {
     var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(url);
     var win = window.open(googleDocsUrl, '_blank');
     win.focus();
 }
-
 
 // Define the sendQuestion function in the global scope
 function sendQuestion() {
@@ -25,7 +25,7 @@ function sendQuestion() {
             document.getElementById('message').innerText = response.message;
             setTimeout(function() {
                 document.getElementById('message').innerText = '';
-            }, 8000); // 8 seconds ke baad delete
+            }, 8000); // delete after 8 seconds
         }
 
         // Display chat history
@@ -44,7 +44,7 @@ function sendQuestion() {
     });
 }
 
-
+// Clear Chat
 function clearChat() {
     const socket=io();
     socket.emit('clear_chat');
@@ -65,9 +65,8 @@ function clearChat() {
     });
 }
 
-
-
 const socket=io();
+// Q/A Page Topics Defining using Latent Dirichlet Allocation
 socket.on('lda_topics_QA', function(ldaData) {
     console.log('Received LDA data:', ldaData); // Add this line to debug
 

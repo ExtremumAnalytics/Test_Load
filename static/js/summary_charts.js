@@ -1,6 +1,6 @@
 (function ($) {
 
-    // Readiness Chart
+    //Overall Readiness Chart
     $(document).ready(function() {
         const socket = io();
         const ctx2 = $("#readiness_chart").get(0).getContext("2d");
@@ -55,7 +55,7 @@
         }
     });
     
-    // New Sentiment Chart
+    // Summary Page Sentiment Bar Chart
     $(document).ready(function() {
         const socket = io();
 
@@ -123,4 +123,3 @@
     });
 
 })(jQuery);
-
