@@ -1235,7 +1235,7 @@ def run_query(data):
             emit('query_success', {'message': 'Data fetched and uploaded successfully.', 'result': str(result)})
 
         elif db_type == 'SQLServer':
-            conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE=master;UID={username};PWD={password}'
+            conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE=master;UID={username};PWD={password};TrustServerCertificate=no;Encrypt=yes;'
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
             cursor.execute(query)
