@@ -706,7 +706,9 @@ def analyze_sentiment_summ(senti_text_summ):
 
     x1 = [senti_Positive_summ, senti_Negative_summ, senti_neutral_summ]
     y1 = ['Positive', 'Negative', 'Neutral']
-    senti = {'values': x1, 'labels': y1}
+    pin = session['login_pin']
+
+    senti = {'values': x1, 'labels': y1, 'pin': pin}
     # print("Emitting sentiment data:", senti)
 
     socketio.emit('analyze_sentiment_summ', senti)
@@ -737,7 +739,8 @@ def analyze_sentiment_Q_A(senti_text_Q_A):
 
     x1 = [senti_Positive_Q_A, senti_Negative_Q_A, senti_neutral_Q_A]
     y1 = ['Positive', 'Negative', 'Neutral']
-    senti_Q_A = {'values': x1, 'labels': y1}
+    pin = session['login_pin']
+    senti_Q_A = {'values': x1, 'labels': y1, 'pin': pin}
     socketio.emit('analyze_sentiment_Q_A', senti_Q_A)
 
 
@@ -761,7 +764,7 @@ def create_bar_chart():
         y1 = ["PDF"]  # Labels for the bars
         pin = session['login_pin']
 
-    file_bar = {'x': x1, 'y': y1, 'pin' : pin}
+    file_bar = {'values': x1, 'labels': y1, 'pin' : pin}
 
     # bar_json_graph = pio.to_json(file_bar)
     return file_bar
@@ -782,7 +785,7 @@ def perform_lda___Q_A(chat_history_list, num_topics=1, n_top_words=5):
     Returns:
         None
     """
-    lda_topics_Q_A = {}
+    lda_topics_Q_A = {'pin' : session['login_pin']}
     # Declare the global variable
 
     # Tokenization and stop words removal
@@ -803,6 +806,9 @@ def perform_lda___Q_A(chat_history_list, num_topics=1, n_top_words=5):
     # Fit the LDA model
     lda = LatentDirichletAllocation(n_components=num_topics, random_state=42)
     lda.fit(X)
+
+    # Add the user's pin to the dictionary
+    lda_topics_Q_A['pin'] = session['login_pin']
 
     # Store topics and their top words in lda_topics_Q_A dictionary
     for topic_idx, topic in enumerate(lda.components_):
@@ -849,14 +855,19 @@ def perform_lda____summ(senti_text_summ, num_topics=2, n_top_words=3):
     lda = LatentDirichletAllocation(n_components=num_topics, random_state=42)
     lda.fit(X)
 
+    # Add the user's pin to the dictionary
+    lda_topics_summ['pin'] = session['login_pin']
+
     # Store topics and their top words in lda_topics_summ dictionary
     for topic_idx, topic in enumerate(lda.components_):
         topic_key = f"Topic{topic_idx + 1}"
         lda_topics_summ[topic_key] = [vectorizer.get_feature_names_out()[i] for i in
                                       topic.argsort()[:-n_top_words - 1:-1]]
 
-    # Return lda_topics_summ
+    # Emit the dictionary which now includes the pin
     socketio.emit('lda_topics_summ', lda_topics_summ)
+
+
 
 
 def create_pie_chart():
@@ -1310,10 +1321,12 @@ def handle_summary_input(data):
             all_summary = pickle.load(f)
 
         custom_p = data.get('summary_que')
-        print("summary_word_cpunt_input_function--->", summary_word_cpunt)
+        session['summary_word_cpunt'] = data['value']
+        # print("summary_word_cpunt_input_function--->", summary_word_cpunt)
+        print(f"summary_word_cpunt_input_function---> {session['login_pin']} --> {session['summary_word_cpunt']}")
 
-        # if session.get('summary_word_cpunt', 0) == 0:
-        if summary_word_cpunt == 0:
+        if session.get('summary_word_cpunt', 0) == 0:
+        # if summary_word_cpunt == 0:
             emit('summary_response', {'message': 'summary word count is zero'})
             return
         else:
@@ -1373,16 +1386,16 @@ def handle_clear_chat_summ(data):
         emit('clear_chat_response', {'message': str(e)})
 
 
-@socketio.on('Cogservice_Value_Updated')
-def handle_cogservice_value_updated(data):
-    global summary_word_cpunt
-    if 'value' in data:
-        summary_word_cpunt = data['value']
-        session['summary_word_cpunt'] = summary_word_cpunt
-        print("Cogservice_Value_Updated-->", session['summary_word_cpunt'])
-        emit('cogservice_response', {"message": "CogniLink Value updated successfully"})
-    else:
-        emit('cogservice_response', {"error": "Unsupported Media Type"}, 415)
+# @socketio.on('Cogservice_Value_Updated')
+# def handle_cogservice_value_updated(data):
+#     global summary_word_cpunt
+#     if 'value' in data:
+#         summary_word_cpunt = data['value']
+#         session['summary_word_cpunt'] = summary_word_cpunt
+#         print(f"Cogservice_Value_Updated for user {session['login_pin']} --> {session['summary_word_cpunt']}")
+#         emit('cogservice_response', {"message": "CogniLink Value updated successfully"})
+#     else:
+#         emit('cogservice_response', {"error": "Unsupported Media Type"}, 415)
 
 
 @app.route('/CogniLink_Services_QA', methods=['GET', 'POST'])

@@ -4,12 +4,19 @@ var pin = localStorage.getItem('pin');
 document.addEventListener('DOMContentLoaded', function() {
     const fetchSummaryBtn = document.getElementById('fetchSummaryBtn');
     const summaryList = document.getElementById('summaryList');
+    const slider = document.getElementById("mySlider");
+    const valueBox = document.querySelector(".value-box");
+
+    // Update the value box when the slider changes
+    slider.addEventListener("input", () => {
+        valueBox.textContent = slider.value;
+    });
 
     fetchSummaryBtn.addEventListener('click', function() {
         $("#waitImg").show(); // Show the loading image
         const summary_que = document.getElementById('summary_que').value; // Get the value of the input field
         
-        socket.emit('summary_input', { summary_que: summary_que });
+        socket.emit('summary_input', { summary_que: summary_que, value: slider.value });
     });
 
     socket.on('summary_response', function(data) {
@@ -65,23 +72,36 @@ socket.on('clear_chat_response', function(data) {
 });
 
 // New JavaScript function to handle LDA data received from the server
-socket.on('lda_topics_summ', function(ldaData) {
-    console.log('Received LDA data:', ldaData); // Add this line to debug
+socket.on('lda_topics_summ', function(data) {
 
-    let htmlString = '';
-    for (const topic in ldaData) {
-        if (ldaData.hasOwnProperty(topic)) {
-            htmlString += `<b>${topic}:</b>`;
-            const values = ldaData[topic];
-            values.forEach((value, index) => {
-                htmlString += (index % 2 === 0) ? `<span style="color: #0D076A">${value}</span>` : value;
-                htmlString += ', ';
-            });
-            htmlString = htmlString.slice(0, -2); // Remove the trailing comma and space
-            htmlString += '<br>';
+    // Only update the LDA topics if the data is for the current user
+    if (data.pin === pin) {
+        console.log('Received LDA data:', data); // Debug
+
+        let htmlString = '';
+        for (const topic in data) {
+            if (data.hasOwnProperty(topic)) {
+                htmlString += `<b>${topic}:</b>`;
+
+                const values = data[topic];
+                console.log(`Topic: ${topic}, Values:`, values); // Debug: Log the values
+
+                // Check if values is an array
+                if (Array.isArray(values)) {
+                    values.forEach((value, index) => {
+                        htmlString += (index % 2 === 0) ? `<span style="color: #0D076A">${value}</span>` : value;
+                        htmlString += ', ';
+                    });
+                } else {
+                    console.error(`Expected an array for topic ${topic}, but got:`, values);
+                }
+
+                htmlString = htmlString.slice(0, -2); // Remove the trailing comma and space
+                htmlString += '<br>';
+            }
         }
-    }
 
-    // Update the UI element based on the LDA type
-    document.getElementById('ldaSummText').innerHTML = htmlString;
+        // Update the UI element based on the LDA type
+        document.getElementById('ldaSummText').innerHTML = htmlString;
+    }
 });

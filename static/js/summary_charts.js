@@ -120,7 +120,16 @@
         });
 
         socket.on('analyze_sentiment_summ', function(data) {
-            updateSummaryBarChart(data);
+            // updateSummaryBarChart(data);
+            if(data.pin==pin){
+                updateSummaryBarChart(data);
+            }
+            // else{
+                // document.getElementById('message').innerHTML = '<p>Login Pin Not Verified!</p>';
+                // setTimeout(function () {
+                //     document.getElementById('message').innerHTML = '';
+                // }, 8000);
+            // }
         });
 
         // Function to update sentiment chart

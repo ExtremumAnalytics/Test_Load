@@ -66,24 +66,38 @@ function clearChat() {
 }
 
 const socket=io();
+var pin = localStorage.getItem('pin');
+
 // Q/A Page Topics Defining using Latent Dirichlet Allocation
-socket.on('lda_topics_QA', function(ldaData) {
-    console.log('Received LDA data:', ldaData); // Add this line to debug
+socket.on('lda_topics_QA', function(data) {
+    // Only update the LDA topics if the data is for the current user
+    if (data.pin === pin) {
+        console.log('Received LDA data:', data); // Debug
 
-    let htmlString = '';
-    for (const topic in ldaData) {
-        if (ldaData.hasOwnProperty(topic)) {
-            htmlString += `<b>${topic}:</b>`;
-            const values = ldaData[topic];
-            values.forEach((value, index) => {
-                htmlString += (index % 2 === 0) ? `<span style="color: #0D076A">${value}</span>` : value;
-                htmlString += ', ';
-            });
-            htmlString = htmlString.slice(0, -2); // Remove the trailing comma and space
-            htmlString += '<br>';
+        let htmlString = '';
+        for (const topic in data) {
+            if (data.hasOwnProperty(topic)) {
+                htmlString += `<b>${topic}:</b>`;
+
+                const values = data[topic];
+                console.log(`Topic: ${topic}, Values:`, values); // Debug: Log the values
+
+                // Check if values is an array
+                if (Array.isArray(values)) {
+                    values.forEach((value, index) => {
+                        htmlString += (index % 2 === 0) ? `<span style="color: #0D076A">${value}</span>` : value;
+                        htmlString += ', ';
+                    });
+                } else {
+                    console.error(`Expected an array for topic ${topic}, but got:`, values);
+                }
+
+                htmlString = htmlString.slice(0, -2); // Remove the trailing comma and space
+                htmlString += '<br>';
+            }
         }
-    }
 
-    // Update the UI element based on the LDA type
-    document.getElementById('ldaQAText').innerHTML = htmlString;
+        // Update the UI element based on the LDA type
+        document.getElementById('ldaQAText').innerHTML = htmlString;
+    }
 });

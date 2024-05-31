@@ -109,7 +109,6 @@
         });
 
         socket.on('update_bar_chart', function(data) {
-            // updateBarChart(data);
             if(data.pin==pin){
                 updateBarChart(data);
             }
@@ -122,7 +121,7 @@
         });
     
         function updateBarChart(data) {
-            console.log(data)
+            // console.log(data)
             myChart1.data.labels = data.labels; // Update labels
             myChart1.data.datasets[0].data = data.values; // Update data
             myChart1.update(); // Refresh the chart
