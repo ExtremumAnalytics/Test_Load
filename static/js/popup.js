@@ -75,30 +75,34 @@ function executeNewProgram() {
     console.log("URL to crawl:", url);
 
     // Sending the URL to the server using Socket.IO
-    socket.emit('webcrawler_start', { url: url });
+    socket.emit('webcrawler_start', { url: url, login_pin:pin });
+
     // Update status event
     socket.on('update_status', function(data) {
-        console.log("Status Update:", data.status);
-        // Update UI with the new status, if needed
-        $('#message').text(data.status);
-        setTimeout(function() {
-            $('#message').text('');
-        }, 8000); // 8 seconds later, clear the message
+        if(data.pin==pin){
+            console.log("Status Update:", data.status);
+            // Update UI with the new status, if needed
+            $('#message').text(data.status);
+            setTimeout(function() {
+                $('#message').text('');
+            }, 8000); // 8 seconds later, clear the message
+        }
     });
 
     // Update progress event
     socket.on('update_progress', function(data) {
-        console.log("Progress Update:", data);
-        // Update UI with the new progress, if needed
-        document.getElementById("progress").innerHTML = `
-            <label>Current Status: ${data.current_status}</label>
-            <label>Total Files:  ${data.total_files}</label>
-            <label>Files Downloaded:  ${data.files_downloaded}</label>
-            <label>Progress Percentage:  ${data.progress_percentage}%</label>
-            <label>Current File Name:  ${data.current_file}</label>
-        `;
+        if(data.pin==pin){
+            console.log("Progress Update:", data);
+            // Update UI with the new progress, if needed
+            document.getElementById("progress").innerHTML = `
+                <label>Current Status: ${data.current_status}</label>
+                <label>Total Files:  ${data.total_files}</label>
+                <label>Files Downloaded:  ${data.files_downloaded}</label>
+                <label>Download Percentage:  ${data.progress_percentage}%</label>
+                <label>Current File Name:  ${data.current_file}</label>
+            `;
+        }
     });
-
 }
 
 
@@ -335,10 +339,12 @@ $(document).ready(function () {
     });
 
     socket.on('button_response', function(msg) {
-        $('#message').text(msg.message);
-        setTimeout(function() {
-            $('#message').text('');
-        }, 8000);
+        if(msg.pin==pin){
+            $('#message').text(msg.message);
+            setTimeout(function() {
+                $('#message').text('');
+            }, 8000);
+        }
     });
 });
 

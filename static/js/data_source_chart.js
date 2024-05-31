@@ -1,4 +1,5 @@
 (function ($) {
+    var pin = localStorage.getItem('pin');
 
     // Ingestion Status Chart
     $(document).ready(function() {
@@ -43,7 +44,15 @@
         });
 
         socket.on('updatePieChart', function(data) {
-            updatePieChart(data);
+            if(data.pin==pin){
+                updatePieChart(data);
+            }
+            // else{
+            //     // document.getElementById('message').innerHTML = '<p>Login Pin Not Verified!</p>';
+            //     // setTimeout(function () {
+            //     //     document.getElementById('message').innerHTML = '';
+            //     // }, 8000);
+            // }
         });
 
         function updatePieChart(data) {
@@ -100,7 +109,16 @@
         });
 
         socket.on('update_bar_chart', function(data) {
-            updateBarChart(data);
+            // updateBarChart(data);
+            if(data.pin==pin){
+                updateBarChart(data);
+            }
+            // else{
+            //     // document.getElementById('message').innerHTML = '<p>Login Pin Not Verified!</p>';
+            //     // setTimeout(function () {
+            //     //     document.getElementById('message').innerHTML = '';
+            //     // }, 8000);
+            // }
         });
     
         function updateBarChart(data) {
@@ -163,7 +181,16 @@
         });
 
         socket.on('update_gauge_chart', function(data) {
-            updateReadinessChart(data);
+            // updateReadinessChart(data);
+            if(data.pin==pin){
+                updateReadinessChart(data);
+            }
+            // else{
+                // document.getElementById('message').innerHTML = '<p>Login Pin Not Verified!</p>';
+                // setTimeout(function () {
+                //     document.getElementById('message').innerHTML = '';
+                // }, 8000);
+            // }
         });
     
         function updateReadinessChart(data) {

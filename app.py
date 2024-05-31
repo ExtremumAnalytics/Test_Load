@@ -753,11 +753,13 @@ def create_bar_chart():
     if bar_chart:
         x1 = list(bar_chart.values())  # Values for the bars
         y1 = list(bar_chart.keys())  # Labels for the bars
+        pin = session['login_pin']
     else:
         x1 = [0]  # Values for the bars
         y1 = ["PDF"]  # Labels for the bars
+        pin = session['login_pin']
 
-    file_bar = {'x': x1, 'y': y1}
+    file_bar = {'x': x1, 'y': y1, 'pin' : pin}
 
     # bar_json_graph = pio.to_json(file_bar)
     return file_bar
@@ -870,11 +872,13 @@ def create_pie_chart():
         successful_list = session['successful_list']
         progress_list = session['progress_list']
         failed_list = session['failed_list']
+        pin = session['login_pin']
     else:
         total_files_list = 1
         successful_list = 0
         progress_list = 0
         failed_list = 0
+        pin = session['login_pin']
 
     # Calculate percentages
     labels = ['Read', 'In Progress', 'Failed']
@@ -884,7 +888,7 @@ def create_pie_chart():
     percentages = [(value / total_files_list) * 100 for value in values]
     text = [f"{label}: {value} ({percentage:.2f}%)" for label, value, percentage in zip(labels, values, percentages)]
 
-    pie_chart = {"labels": labels, "values": values, "percentages": percentages, "text": text}
+    pie_chart = {"labels": labels, "values": values, "percentages": percentages, "text": text, "pin": pin}
 
     # pie_chart_data = json.loads(pie_chart)
     return pie_chart
@@ -901,15 +905,18 @@ def gauge_chart_auth():
         over_all_readiness = session['over_all_readiness']
         if over_all_readiness != 0:
             success_rate = (session['total_success_rate'] / over_all_readiness) * 100
+            pin = session['login_pin']
         else:
             success_rate = 0
+            pin = session['login_pin']
     else:
         success_rate = 0
         over_all_readiness = 0
+        pin = session['login_pin']
 
     # print("gauge-------->auth", success_rate, over_all_readiness)
 
-    gauge_fig = {'x': [success_rate], 'y': [over_all_readiness]}
+    gauge_fig = {'x': [success_rate], 'y': [over_all_readiness], 'pin': pin}
     return gauge_fig
 
 
@@ -1040,7 +1047,7 @@ def home():
                 os.makedirs(folder_files)
             g.flag = 1  # Set flag to 1 on success
             logger.info(f"User {str(session['login_pin'])} logged in successfully with flag {g.flag}")
-
+            update_bar_chart_from_blob(session, blob_service_client, container_name)
             return jsonify({'redirect': url_for('data_source')})
 
         # Handle invalid cases
@@ -1073,6 +1080,7 @@ def check_session():
 
 @app.route('/data_source', methods=['GET', 'POST'])
 def data_source():
+    update_bar_chart_from_blob(session, blob_service_client, container_name)
     return render_template('DataSource.html')
 
 
@@ -1263,7 +1271,7 @@ def Cogni_button():
             session['failed_list'] = 0
             session['progress_list'] = 0
             print("No data Load in storage cogni button code")
-            socketio.emit('button_response', {'message': 'No data Load in storage'})
+            socketio.emit('button_response', {'message': 'No data Load in storage', 'pin':session['login_pin']})
             return jsonify({'message': 'No data Load in storage'})
 
         end_time = time.time()
@@ -1272,7 +1280,7 @@ def Cogni_button():
         logger.info(f"Cogni_button route succeeded with flag {g.flag}")
 
         print(f"Function took--------->  {elapsed_time} <--------- seconds to execute.")
-        socketio.emit('button_response', {'message': 'Data Loaded successfully'})
+        socketio.emit('button_response', {'message': 'Data Loaded successfully', 'pin':session['login_pin']})
         return response
     except Exception as e:
         g.flag = 0
@@ -1497,20 +1505,27 @@ def get_data_source():
 @socketio.on('webcrawler_start')
 def webcrawler_start(data):
     url = data['url']
-    folder_name = os.path.join('static', 'files', str(session.get('login_pin', 'default')))
+    login_pin = data['login_pin']
+    session['login_pin'] = login_pin  # Store the login_pin in session
+
+    # Create a unique folder for each user's downloaded files
+    folder_name = os.path.join('static', 'files', str(login_pin))
+    os.makedirs(folder_name, exist_ok=True)
+
     try:
         print("Received URL:", url)
-        current_status = "Website URL Received"
-        socketio.emit('update_status', {'status': current_status})
+        session['current_status'] = "Website URL Received"
+        socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
 
         response = requests.get(url)
         pdf_info_list = extract_pdf_info_from_table(response.content)
 
         total_files = len(pdf_info_list)
-        files_downloaded = 0
-        progress_percentage = 0
-        current_status = "Crawling in progress..."
-        socketio.emit('update_status', {'status': current_status})
+        session['files_downloaded'] = 0
+        session['progress_percentage'] = 0
+
+        session['current_status'] = "Crawling in progress..."
+        socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
 
         for pdf_name, pdf_link in pdf_info_list:
             try:
@@ -1520,31 +1535,34 @@ def webcrawler_start(data):
                     name = os.path.basename(urlparse(pdf_url).path)
                 download_pdf(pdf_url, folder_name, name)
 
-                files_downloaded += 1
-                progress_percentage = int(files_downloaded / total_files * 100)
+                session['files_downloaded'] += 1
+                session['progress_percentage'] = int(session['files_downloaded'] / total_files * 100)
                 current_file = name
                 socketio.emit('update_progress', {
-                    'current_status': current_status,
+                    'current_status': session['current_status'],
                     'total_files': total_files,
-                    'files_downloaded': files_downloaded,
-                    'progress_percentage': progress_percentage,
-                    'current_file': current_file
+                    'files_downloaded': session['files_downloaded'],
+                    'progress_percentage': session['progress_percentage'],
+                    'current_file': current_file,
+                    'pin': login_pin
                 })
             except Exception as e:
                 print(f"Error occurred: {e}")
-        current_status = "File downloaded successfully"
+
+        session['current_status'] = "File downloaded successfully"
         socketio.emit('update_progress', {
-            'current_status': current_status,
+            'current_status': session['current_status'],
             'total_files': total_files,
-            'files_downloaded': files_downloaded,
-            'progress_percentage': progress_percentage,
-            'current_file': current_file
+            'files_downloaded': session['files_downloaded'],
+            'progress_percentage': session['progress_percentage'],
+            'current_file': current_file,
+            'pin': login_pin
         })
-        socketio.emit('update_status', {'status': current_status})
+        socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
         return jsonify({'message': 'All files downloaded successfully'})
     except Exception as e:
-        current_status = "Error occurred"
-        socketio.emit('update_status', {'status': current_status})
+        session['current_status'] = "Error occurred"
+        socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
         print("Exception of web crawling:", str(e))
         return jsonify({'message': 'URL Not found'})
 

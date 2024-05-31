@@ -1,5 +1,5 @@
 const socket = io();
-
+var pin = localStorage.getItem('pin');
 // Generate Sumaary Button
 document.addEventListener('DOMContentLoaded', function() {
     const fetchSummaryBtn = document.getElementById('fetchSummaryBtn');

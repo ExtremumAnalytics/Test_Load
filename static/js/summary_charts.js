@@ -42,7 +42,16 @@
         });
 
         socket.on('update_gauge_chart', function(data) {
-            updateReadinessChart(data);
+            // updateReadinessChart(data);
+            if(data.pin==pin){
+                updateReadinessChart(data);
+            }
+            // else{
+                // document.getElementById('message').innerHTML = '<p>Login Pin Not Verified!</p>';
+                // setTimeout(function () {
+                //     document.getElementById('message').innerHTML = '';
+                // }, 8000);
+            // }
         });
         
         // Function to update readiness chart
