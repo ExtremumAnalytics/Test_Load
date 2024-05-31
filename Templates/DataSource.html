@@ -280,12 +280,12 @@
                             </div>
                             <!-- Second Container (Progress) -->
                             <div class="col-lg-8 progress-container rounded border p-2 m-2">
-                                <div id="progress" class="d-flex flex-column p-2">
-                                    <label id="status" style="font-size: 14px;">Current Status:</label>
-                                    <label id="totalFiles" style="font-size: 14px;">Total Files:</label>
-                                    <label id="filesDownloaded" style="font-size: 14px;">Files Downloaded:</label>
-                                    <label id="progressPercentage" style="font-size: 14px;">Progress Percentage:</label>
-                                    <label id="currentFileName" style="font-size: 14px;">Current File Name:</label>
+                                <div id="progress" class="d-flex flex-column p-2" style="font-size: 10px;">
+                                    <label id="status" style="font-size: 10px;">Current Status:</label>
+                                    <label id="totalFiles" style="font-size: 10px;">Total Files:</label>
+                                    <label id="filesDownloaded" style="font-size: 10px;">Files Downloaded:</label>
+                                    <label id="progressPercentage" style="font-size: 10px;">Download Percentage:</label>
+                                    <label id="currentFileName" style="font-size: 10px;">Current File Name:</label>
                                 </div>
                             </div>
                         </div>
@@ -459,7 +459,6 @@
                             &copy; <a href="{{url_for('data_source')}}">CogniLink</a>, All Right Reserved. 
                         </div>
                         <div class="col-12 col-sm-6 text-center text-sm-end">
-                            <!--/*** This template is free as long as you keep the footer author’s credit link/attribution link/backlink. If you'd like to use the template without the footer author’s credit link/attribution link/backlink, you can purchase the Credit Removal License from "https://htmlcodex.com/credit-removal". Thank you for your support. ***/-->
                             Powered By <a href="www.extremumanalytics.com">Extremum Analytics</a>
                         </div>
                     </div>
@@ -494,7 +493,6 @@
     <script src="{{ url_for('static', filename='js/slider.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dateslide.js') }}"></script>
     <script src="{{ url_for('static', filename='js/warningpop.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/DigitalVault.js') }}"></script>
     <script src="{{ url_for('static', filename='js/path_dd.js') }}"></script>
     <!--script src="{{ url_for('static', filename='js/socket_io_lib.js') }}" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script-->
 </body>

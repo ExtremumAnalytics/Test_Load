@@ -1,6 +1,6 @@
 (function ($) {
 
-    // Readiness Chart
+    //Overall Readiness Chart
     $(document).ready(function() {
         const socket = io();
         const ctx2 = $("#readiness_chart").get(0).getContext("2d");
@@ -42,7 +42,16 @@
         });
 
         socket.on('update_gauge_chart', function(data) {
-            updateReadinessChart(data);
+            // updateReadinessChart(data);
+            if(data.pin==pin){
+                updateReadinessChart(data);
+            }
+            // else{
+                // document.getElementById('message').innerHTML = '<p>Login Pin Not Verified!</p>';
+                // setTimeout(function () {
+                //     document.getElementById('message').innerHTML = '';
+                // }, 8000);
+            // }
         });
         
         // Function to update readiness chart
@@ -55,7 +64,7 @@
         }
     });
     
-    // New Sentiment Chart
+    // Summary Page Sentiment Bar Chart
     $(document).ready(function() {
         const socket = io();
 
@@ -111,7 +120,16 @@
         });
 
         socket.on('analyze_sentiment_summ', function(data) {
-            updateSummaryBarChart(data);
+            // updateSummaryBarChart(data);
+            if(data.pin==pin){
+                updateSummaryBarChart(data);
+            }
+            // else{
+                // document.getElementById('message').innerHTML = '<p>Login Pin Not Verified!</p>';
+                // setTimeout(function () {
+                //     document.getElementById('message').innerHTML = '';
+                // }, 8000);
+            // }
         });
 
         // Function to update sentiment chart
@@ -123,4 +141,3 @@
     });
 
 })(jQuery);
-

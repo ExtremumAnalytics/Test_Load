@@ -1,9 +1,9 @@
+// Open the Source URL from Results 
 function openFileInNewTab(url) {
     var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(url);
     var win = window.open(googleDocsUrl, '_blank');
     win.focus();
 }
-
 
 // Define the sendQuestion function in the global scope
 function sendQuestion() {
@@ -25,7 +25,7 @@ function sendQuestion() {
             document.getElementById('message').innerText = response.message;
             setTimeout(function() {
                 document.getElementById('message').innerText = '';
-            }, 8000); // 8 seconds ke baad delete
+            }, 8000); // delete after 8 seconds
         }
 
         // Display chat history
@@ -44,7 +44,7 @@ function sendQuestion() {
     });
 }
 
-
+// Clear Chat
 function clearChat() {
     const socket=io();
     socket.emit('clear_chat');
@@ -65,26 +65,39 @@ function clearChat() {
     });
 }
 
-
-
 const socket=io();
-socket.on('lda_topics_QA', function(ldaData) {
-    console.log('Received LDA data:', ldaData); // Add this line to debug
+var pin = localStorage.getItem('pin');
 
-    let htmlString = '';
-    for (const topic in ldaData) {
-        if (ldaData.hasOwnProperty(topic)) {
-            htmlString += `<b>${topic}:</b>`;
-            const values = ldaData[topic];
-            values.forEach((value, index) => {
-                htmlString += (index % 2 === 0) ? `<span style="color: #0D076A">${value}</span>` : value;
-                htmlString += ', ';
-            });
-            htmlString = htmlString.slice(0, -2); // Remove the trailing comma and space
-            htmlString += '<br>';
+// Q/A Page Topics Defining using Latent Dirichlet Allocation
+socket.on('lda_topics_QA', function(data) {
+    // Only update the LDA topics if the data is for the current user
+    if (data.pin === pin) {
+        console.log('Received LDA data:', data); // Debug
+
+        let htmlString = '';
+        for (const topic in data) {
+            if (data.hasOwnProperty(topic)) {
+                htmlString += `<b>${topic}:</b>`;
+
+                const values = data[topic];
+                console.log(`Topic: ${topic}, Values:`, values); // Debug: Log the values
+
+                // Check if values is an array
+                if (Array.isArray(values)) {
+                    values.forEach((value, index) => {
+                        htmlString += (index % 2 === 0) ? `<span style="color: #0D076A">${value}</span>` : value;
+                        htmlString += ', ';
+                    });
+                } else {
+                    console.error(`Expected an array for topic ${topic}, but got:`, values);
+                }
+
+                htmlString = htmlString.slice(0, -2); // Remove the trailing comma and space
+                htmlString += '<br>';
+            }
         }
-    }
 
-    // Update the UI element based on the LDA type
-    document.getElementById('ldaQAText').innerHTML = htmlString;
+        // Update the UI element based on the LDA type
+        document.getElementById('ldaQAText').innerHTML = htmlString;
+    }
 });

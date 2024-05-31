@@ -1,3 +1,4 @@
+// Virtual Analyst Voice Record Button
 document.addEventListener('DOMContentLoaded', function() {
     let recognition;
     const outputDiv = document.getElementById('message');
@@ -60,28 +61,6 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleRecordButtonVisibility(true); // Show the record button
         recognition.start();
     }
-
-    // function sendTextToServer(text) {
-    //     fetch('/upload', {
-    //         method: 'POST',
-    //         headers: {
-    //             'Content-Type': 'application/json'
-    //         },
-    //         body: JSON.stringify({ text: text })
-    //     })
-    //     .then(response => {
-    //         if (!response.ok) {
-    //             throw new Error('Network response was not ok');
-    //         }
-    //         return response.json();
-    //     })
-    //     .then(data => {
-    //         console.log('Text sent to server:', text);
-    //     })
-    //     .catch(error => {
-    //         console.error('Error sending text to server:', error);
-    //     });
-    // }
 
     function toggleRecordButtonVisibility(show) {
         recordButton.style.display = show ? 'block' : 'none';
