@@ -78,27 +78,28 @@ from pymongo import MongoClient
 import traceback
 import io
 
-# for default Azure account use only
-vectorsecret = "vectorsecret"
-openapi_key = "OPENAI-API-KEY"
-KVUri = f"https://eavault.vault.azure.net/"
-credential = DefaultAzureCredential()
-client = SecretClient(vault_url=KVUri, credential=credential)
-retrieved_secret = client.get_secret(openapi_key)
-main_key = retrieved_secret.value
-retrieved = client.get_secret(vectorsecret)
-vector_store = retrieved.value
+# # for default Azure account use only
+# vectorsecret = "vectorsecret"
+# openapi_key = "OPENAI-API-KEY"
+# KVUri = f"https://eavault.vault.azure.net/"
+# credential = DefaultAzureCredential()
+# client = SecretClient(vault_url=KVUri, credential=credential)
+# retrieved_secret = client.get_secret(openapi_key)
+# main_key = retrieved_secret.value
+# retrieved = client.get_secret(vectorsecret)
+# vector_store = retrieved.value
 
-# # for local use only
-# load_dotenv()
-# main_key = os.environ["Main_key"]
-# vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
+# for local use only
+load_dotenv()
+main_key = os.environ["Main_key"]
+vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
 
 
 os.environ["OPENAI_API_TYPE"] = "azure"
 os.environ["OPENAI_API_KEY"] = main_key
 os.environ["OPENAI_API_VERSION"] = "2023-05-15"
 os.environ["AZURE_OPENAI_ENDPOINT"] = "https://ea-openai.openai.azure.com/"
+
 # for vector db
 vector_store_address = "https://cognilink-vectordb.search.windows.net"
 vector_store_password = vector_store
@@ -130,25 +131,25 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# # blob storage use locally.
-# account_name = os.environ['account_name']
-# account_key = os.environ['account_key']
-# container_name = os.environ['container_name']
-# # Create a BlobServiceClient object
-# connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-# blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-# container_client = blob_service_client.get_container_client(container_name)
-
-
-# for Azure server use only
-account_name = "testcongnilink"
-container_name = "congnilink-container"
-
-account_url = "https://testcongnilink.blob.core.windows.net"
-default_credential = DefaultAzureCredential()
-
-blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+# blob storage use locally.
+account_name = os.environ['account_name']
+account_key = os.environ['account_key']
+container_name = os.environ['container_name']
+# Create a BlobServiceClient object
+connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 container_client = blob_service_client.get_container_client(container_name)
+
+
+# # for Azure server use only
+# account_name = "testcongnilink"
+# container_name = "congnilink-container"
+
+# account_url = "https://testcongnilink.blob.core.windows.net"
+# default_credential = DefaultAzureCredential()
+#
+# blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+# container_client = blob_service_client.get_container_client(container_name)
 
 
 def set_model():
@@ -311,7 +312,8 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
         # Emit an event to notify clients about the updated bar chart
         socketio.emit('update_bar_chart', {
             'labels': list(bar_chart.keys()),
-            'values': list(bar_chart.values())
+            'values': list(bar_chart.values()),
+            'pin' : session['login_pin']
         })
         g.flag = 1  # Set flag to 1 on success1
         logger.info(f"Function update_bar_chart_from_blob successfully Return blob_list with flag {g.flag}")
