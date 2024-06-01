@@ -71,37 +71,55 @@ socket.on('clear_chat_response', function(data) {
     historyContainer.innerHTML = "";
 });
 
-// New JavaScript function to handle LDA data received from the server
+
 socket.on('lda_topics_summ', function(data) {
-
-    // Only update the LDA topics if the data is for the current user
+    // Only update the UI if the data is for the current user
     if (data.pin === pin) {
-        console.log('Received LDA data:', data); // Debug
+        console.log('Received LDA keywords:', data); // Debug
 
-        let htmlString = '';
-        for (const topic in data) {
-            if (data.hasOwnProperty(topic)) {
-                htmlString += `<b>${topic}:</b>`;
-
-                const values = data[topic];
-                console.log(`Topic: ${topic}, Values:`, values); // Debug: Log the values
-
-                // Check if values is an array
-                if (Array.isArray(values)) {
-                    values.forEach((value, index) => {
-                        htmlString += (index % 2 === 0) ? `<span style="color: #0D076A">${value}</span>` : value;
-                        htmlString += ', ';
-                    });
-                } else {
-                    console.error(`Expected an array for topic ${topic}, but got:`, values);
-                }
-
-                htmlString = htmlString.slice(0, -2); // Remove the trailing comma and space
-                htmlString += '<br>';
-            }
+        // let htmlString = '';
+        if (Array.isArray(data.keywords)) {
+            let htmlString = data.keywords.map(keyword => `<span style="color: #0D076A">${keyword}</span>`).join(', ');
+            document.getElementById('ldaSummText').innerHTML = htmlString;
+        } else {
+            console.error('Expected an array of keywords, but received:', data.keywords);
         }
 
         // Update the UI element based on the LDA type
-        document.getElementById('ldaSummText').innerHTML = htmlString;
+        // document.getElementById('ldaSummText').innerHTML = htmlString;
     }
 });
+// New JavaScript function to handle LDA data received from the server
+// socket.on('lda_topics_summ', function(data) {
+
+//     // Only update the LDA topics if the data is for the current user
+//     if (data.pin === pin) {
+//         console.log('Received LDA data:', data); // Debug
+
+//         let htmlString = '';
+//         for (const topic in data) {
+//             if (data.hasOwnProperty(topic)) {
+//                 htmlString += `<b>${topic}:</b>`;
+
+//                 const values = data[topic];
+//                 console.log(`Topic: ${topic}, Values:`, values); // Debug: Log the values
+
+//                 // Check if values is an array
+//                 if (Array.isArray(values)) {
+//                     values.forEach((value, index) => {
+//                         htmlString += (index % 2 === 0) ? `<span style="color: #0D076A">${value}</span>` : value;
+//                         htmlString += ', ';
+//                     });
+//                 } else {
+//                     console.error(`Expected an array for topic ${topic}, but got:`, values);
+//                 }
+
+//                 htmlString = htmlString.slice(0, -2); // Remove the trailing comma and space
+//                 htmlString += '<br>';
+//             }
+//         }
+
+//         // Update the UI element based on the LDA type
+//         document.getElementById('ldaSummText').innerHTML = htmlString;
+//     }
+// });
