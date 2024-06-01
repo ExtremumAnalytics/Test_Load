@@ -785,7 +785,7 @@ def perform_lda___Q_A(chat_history_list, num_topics=1, n_top_words=5):
     Returns:
         None
     """
-    lda_topics_Q_A = {'pin' : session['login_pin']}
+    lda_topics_Q_A = {'keywords': set()}
     # Declare the global variable
 
     # Tokenization and stop words removal
@@ -807,67 +807,57 @@ def perform_lda___Q_A(chat_history_list, num_topics=1, n_top_words=5):
     lda = LatentDirichletAllocation(n_components=num_topics, random_state=42)
     lda.fit(X)
 
-    # Add the user's pin to the dictionary
-    lda_topics_Q_A['pin'] = session['login_pin']
+    # Aggregate all keywords from each topic
+    for topic in lda.components_:
+        keywords = [vectorizer.get_feature_names_out()[i] for i in topic.argsort()[:-n_top_words - 1:-1]]
+        lda_topics_Q_A['keywords'].update(keywords)  # Add keywords to the set
 
-    # Store topics and their top words in lda_topics_Q_A dictionary
-    for topic_idx, topic in enumerate(lda.components_):
-        topic_key = f"Topic{topic_idx + 1}"
-        lda_topics_Q_A[topic_key] = [vectorizer.get_feature_names_out()[i] for i in
-                                     topic.argsort()[:-n_top_words - 1:-1]]
+    lda_topics_Q_A['keywords'] = list(lda_topics_Q_A['keywords'])  # Convert set to list before emitting
+    lda_topics_Q_A['pin'] = session['login_pin']
 
     # Return lda_topics_Q_A
     socketio.emit('lda_topics_QA', lda_topics_Q_A)
 
 
-def perform_lda____summ(senti_text_summ, num_topics=2, n_top_words=3):
+def perform_lda____summ(senti_text_summ, num_topics=1, n_top_words=3):
     """
-    Performs Latent Dirichlet Allocation (LDA) on the provided text for sentiment analysis to extract topics and their top words.
+    Performs Latent Dirichlet Allocation (LDA) on the provided text for sentiment analysis to extract unique keywords and sends them with the user pin.
 
     Args:
         senti_text_summ (str): The text for sentiment analysis.
-        num_topics (int): Number of topics to extract (default is 2).
-        n_top_words (int): Number of top words per topic (default is 3).
+        num_topics (int): Number of topics to extract.
+        n_top_words (int): Number of top words per topic.
 
     Side Effects:
-        Emits LDA topics and their top words via socketio.
+        Emits LDA topics and their top words via socketio, along with the user pin.
 
     Returns:
         None
     """
-    lda_topics_summ = {}
-    # Tokenization and stop words removal
+    lda_topics_summ = {'keywords': set()}  # Use a set to collect unique keywords
     stop_words = set(stopwords.words('english'))
 
     def preprocess_text(text):
         tokens = word_tokenize(text.lower())
-        tokens = [token for token in tokens if token not in stop_words]
-        return ' '.join(tokens)
+        return ' '.join(token for token in tokens if token not in stop_words)
 
-    # Preprocess conversation text
     processed_conversation = preprocess_text(senti_text_summ)
-
-    # Create a CountVectorizer to convert text to a matrix of token counts
     vectorizer = CountVectorizer(stop_words='english')
     X = vectorizer.fit_transform([processed_conversation])
 
-    # Fit the LDA model
     lda = LatentDirichletAllocation(n_components=num_topics, random_state=42)
     lda.fit(X)
 
-    # Add the user's pin to the dictionary
+    # Aggregate all keywords from each topic
+    for topic in lda.components_:
+        keywords = [vectorizer.get_feature_names_out()[i] for i in topic.argsort()[:-n_top_words - 1:-1]]
+        lda_topics_summ['keywords'].update(keywords)  # Add keywords to the set
+
+    lda_topics_summ['keywords'] = list(lda_topics_summ['keywords'])  # Convert set to list before emitting
     lda_topics_summ['pin'] = session['login_pin']
 
-    # Store topics and their top words in lda_topics_summ dictionary
-    for topic_idx, topic in enumerate(lda.components_):
-        topic_key = f"Topic{topic_idx + 1}"
-        lda_topics_summ[topic_key] = [vectorizer.get_feature_names_out()[i] for i in
-                                      topic.argsort()[:-n_top_words - 1:-1]]
-
-    # Emit the dictionary which now includes the pin
+    # Emit the dictionary which now includes the pin and keywords
     socketio.emit('lda_topics_summ', lda_topics_summ)
-
-
 
 
 def create_pie_chart():
@@ -1235,7 +1225,7 @@ def run_query(data):
             emit('query_success', {'message': 'Data fetched and uploaded successfully.', 'result': str(result)})
 
         elif db_type == 'SQLServer':
-            conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE=master;UID={username};PWD={password};TrustServerCertificate=no;Encrypt=yes;'
+            conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE=master;UID={username};PWD={password};TrustServerCertificate=yes;'
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
             cursor.execute(query)
@@ -1325,8 +1315,8 @@ def handle_summary_input(data):
         # print("summary_word_cpunt_input_function--->", summary_word_cpunt)
         print(f"summary_word_cpunt_input_function---> {session['login_pin']} --> {session['summary_word_cpunt']}")
 
-        if session.get('summary_word_cpunt', 0) == 0:
-        # if summary_word_cpunt == 0:
+        # if session.get('summary_word_cpunt', 0) == 0:
+        if int(session['summary_word_cpunt']) == 0:
             emit('summary_response', {'message': 'summary word count is zero'})
             return
         else:
@@ -1367,9 +1357,9 @@ def handle_clear_chat_summ(data):
             wordcloud_image = os.path.join(folder_name, 'wordcloud.png')
             if os.path.exists(wordcloud_image):
                 os.remove(wordcloud_image)
-        lda_topics_summ = {}
+        lda_topics_summ = {'pin':session['login_pin'],'keywords':[]}
         socketio.emit('lda_topics_summ', lda_topics_summ)
-        senti = {}
+        senti = {'pin':session['login_pin']}
         socketio.emit('analyze_sentiment_summ', senti)
 
         text_word_cloud = ''
@@ -1384,6 +1374,7 @@ def handle_clear_chat_summ(data):
     except Exception as e:
         print('error in Cleared Chat', str(e))
         emit('clear_chat_response', {'message': str(e)})
+
 
 
 # @socketio.on('Cogservice_Value_Updated')
@@ -1454,9 +1445,9 @@ def handle_clear_chat():
         session['senti_Negative_Q_A'] = 0
         session['senti_neutral_Q_A'] = 0
         session['chat_history_qa'] = []
-        senti_Q_A = {}
+        senti_Q_A = {'pin':session['login_pin']}
         socketio.emit('analyze_sentiment_Q_A', senti_Q_A)
-        lda_topics_Q_A = {}
+        lda_topics_Q_A = {'pin':session['login_pin'], 'keywords':[]}
         socketio.emit('lda_topics_QA', lda_topics_Q_A)
         g.flag = 1  # Set flag to 1 on success
         logger.info(f"clear_chat for ask_question route Chat history cleared successfully with flag {g.flag}")
