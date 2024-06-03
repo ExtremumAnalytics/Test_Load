@@ -1174,8 +1174,8 @@ def home():
 # Route for logout button
 @app.route('/logout')
 def logout():
-    g.flag = 1
-    logger.info(f"User {str(session['login_pin'])} Logged out successfully")
+    # g.flag = 1
+    # logger.info(f"User {str(session['login_pin'])} Logged out successfully")
     log_out_forall()
 
     flash('You have been successfully logged out!', 'success')
@@ -1579,29 +1579,41 @@ def handle_clear_chat():
         emit('chat_cleared', {'message': str(e)})
 
 
-@app.route("/delete/<file_name>", methods=["DELETE"])
-def delete(file_name):
+@app.route("/delete", methods=["DELETE"])
+def delete_files():
     try:
-        folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
-        blobs = container_client.list_blobs(name_starts_with=folder_name)
+        data = request.get_json()
+        file_names = data.get('file_names', [])
 
-        # Find the blob with the matching file name
-        target_blob = next((blob for blob in blobs if blob.name.split('/')[-1] == file_name), None)
-        if target_blob:
-            blob_client = container_client.get_blob_client(target_blob.name)
-            blob_client.delete_blob()
-            update_when_file_delete()
-            update_bar_chart_from_blob(session, blob_service_client, container_name)
-            g.flag = 1  # Set flag to 1 on success
-            logger.info(f"delete for delete/<file_name> route deleted successfully")
-            return jsonify({'message': f'File {file_name} deleted successfully'})
-        else:
-            g.flag = 0  # Set flag to 1 on success
-            logger.error(f"delete for delete/<file_name> route deleted {file_name} not found", exc_info=True)
-            return jsonify({'error': f'File {file_name} not found'}), 404
+        if not file_names:
+            return jsonify({'message': 'No files specified for deletion'}), 400
+
+        folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
+        deleted_files = []
+
+        for file_name in file_names:
+            blobs = container_client.list_blobs(name_starts_with=folder_name)
+
+            # Find the blob with the matching file name
+            target_blob = next((blob for blob in blobs if blob.name.split('/')[-1] == file_name), None)
+            if target_blob:
+                blob_client = container_client.get_blob_client(target_blob.name)
+                blob_client.delete_blob()
+                deleted_files.append(file_name)
+                socketio.emit('delete_selected_file_response', {'message': 'Successfully File Deleted'})
+
+            else:
+                g.flag = 0
+                logger.error(f"delete for delete route: {file_name} not found", exc_info=True)
+                return jsonify({'error': f'File {file_name} not found'}), 404
+        update_when_file_delete()
+        update_bar_chart_from_blob(session, blob_service_client, container_name)
+        g.flag = 1  # Set flag to 1 on success
+        logger.info(f"Selected vault files deleted successfully")
+        return jsonify({'message': f'Files {deleted_files} deleted successfully'})
     except Exception as e:
-        g.flag = 0  # Set flag to 1 on success
-        logger.error(f"delete for delete/<file_name> route error", exc_info=True)
+        g.flag = 0  # Set flag to 0 on error
+        logger.error(f"delete for delete route error", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 

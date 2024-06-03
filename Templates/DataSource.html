@@ -405,21 +405,22 @@
 
             <!-- Digital vault -->
             <div id="vault_container" class="container-fluid pt-4 px-4">
-                    <div class="bg-light text-center rounded p-4">
-                        <div class="d-flex align-items-center justify-content-between mb-4">
-                            <h6 class="mb-0">Explore Vault</h6>
-                            <div class="col-md-3"> <!-- Column for the search bar -->
-                                <div class="input-group">
-                                    <input type="text" class="rounded mx-2 form-control" id="searchInput" placeholder="Search Files">
-                                    <button class="btn rounded btn-outline-secondary" id="searchButton" type="button">Search</button>
-                                </div>
+                <div class="bg-light text-center rounded p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <h6 class="mb-0">Explore Vault</h6>
+                        <div class="col-md-3"> <!-- Column for the search bar -->
+                            <div class="input-group">
+                                <input type="text" class="rounded mx-2 form-control" id="searchInput" placeholder="Search Files">
+                                <button class="btn rounded btn-outline-secondary" id="searchButton" type="button">Search</button>
                             </div>
-                            <!-- <a href="">Show All</a> -->
                         </div>
-                    <div id="table-container" class="table-responsive d-flex">
-                        <table id="data-table" class="table text-start align-middle table-bordered table-hover mb-0">
+                        <!-- <a href="">Show All</a> -->
+                    </div>
+                    <div id="table-container" class="table-responsive d-flex flex-column">
+                        <table id="data-table" class="table text-start align-middle table-bordered table-hover mb-2">
                             <thead>
                                 <tr class="text-dark">
+                                    <th scope="col" ><input type="checkbox" id="select-checkbox" style="margin-right: 5px;" onclick="toggleSelectAll(this)">Select</th>
                                     <th scope="col" >Name</th>
                                     <th scope="col">URL</th>
                                     <th scope="col">Download</th>
@@ -447,6 +448,7 @@
                             </tbody>
                         </table>
                     </div>
+                    <button class="btn btn-primary" onclick="deleteSelectedFiles()">Delete Files</button>
                 </div>
             </div>
 
