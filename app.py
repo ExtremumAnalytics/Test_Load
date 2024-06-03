@@ -65,6 +65,8 @@ matplotlib.use('Agg')
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import traceback
+import csv
+from datetime import datetime
 
 # Socket IO
 from flask_socketio import SocketIO, emit, send
@@ -78,21 +80,21 @@ from pymongo import MongoClient
 import traceback
 import io
 
-# for default Azure account use only
-vectorsecret = "vectordatabsekey"
-openapi_key = "OPENAI-API-KEY"
-KVUri = f"https://eavault.vault.azure.net/"
-credential = DefaultAzureCredential()
-client = SecretClient(vault_url=KVUri, credential=credential)
-retrieved_secret = client.get_secret(openapi_key)
-main_key = retrieved_secret.value
-retrieved = client.get_secret(vectorsecret)
-vector_store = retrieved.value
+# # for default Azure account use only
+# vectorsecret = "vectorsecret"
+# openapi_key = "OPENAI-API-KEY"
+# KVUri = f"https://eavault.vault.azure.net/"
+# credential = DefaultAzureCredential()
+# client = SecretClient(vault_url=KVUri, credential=credential)
+# retrieved_secret = client.get_secret(openapi_key)
+# main_key = retrieved_secret.value
+# retrieved = client.get_secret(vectorsecret)
+# vector_store = retrieved.value
 
-# # for local use only
-# load_dotenv()
-# main_key = os.environ["Main_key"]
-# vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
+# for local use only
+load_dotenv()
+main_key = os.environ["Main_key"]
+vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
 
 
 os.environ["OPENAI_API_TYPE"] = "azure"
@@ -131,34 +133,27 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# # blob storage use locally.
-# account_name = os.environ['account_name']
-# account_key = os.environ['account_key']
-# container_name = os.environ['container_name']
-# # Create a BlobServiceClient object
-# connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-# blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-# container_client = blob_service_client.get_container_client(container_name)
-
-
-# for Azure server use only
-account_name = "testcongnilink"
-container_name = "congnilink-container"
-
-account_url = "https://testcongnilink.blob.core.windows.net"
-default_credential = DefaultAzureCredential()
-
-blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+# blob storage use locally.
+account_name = os.environ['account_name']
+account_key = os.environ['account_key']
+container_name = os.environ['container_name']
+# Create a BlobServiceClient object
+connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 container_client = blob_service_client.get_container_client(container_name)
 
 
-def set_model():
-    """
-    Determines the deployment name based on the selected model in the session.
+# # for Azure server use only
+# account_name = "testcongnilink"
+# container_name = "congnilink-container"
 
-    Returns:
-        str: The deployment name corresponding to the selected model.
-    """
+# account_url = "https://testcongnilink.blob.core.windows.net"
+# default_credential = DefaultAzureCredential()
+#
+# blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+# container_client = blob_service_client.get_container_client(container_name)
+
+def set_model():
     model = session.get('engine', 'gpt-4-0125-preview')  # Default to 'gpt-4-0125-preview'
     if model == "GPT-3.5 turbo":
         deployment_name = "gpt-35-turbo"
@@ -194,12 +189,11 @@ def create_or_pass_folder(container_client, session):
             container_client.get_blob_client(container_name, user_folder).upload_blob("")
             print('successfully created')
             g.flag = 1  # Set flag to 1 on success1
-            logger.info(f"Function create_or_pass_folder successfully created folder with flag {g.flag}")
+            logger.info(f"Function create_or_pass_folder successfully created folder")
             return f"Folder '{user_folder}' successfully created."
         except Exception as e:
             g.flag = 0  # Set flag to 1 on success1
-            logger.info(
-                f"Function create_or_pass_folder error with flag {g.flag} -- Function create_or_pass_folder error is::{e}")
+            logger.error(f"Function create_or_pass_folder error",exc_info=True)
             if "BlobNotFound" in str(e):
                 try:
                     container_client.get_blob_client(container_name, user_folder).create_container()
@@ -207,10 +201,12 @@ def create_or_pass_folder(container_client, session):
                 except Exception as e:
                     return f"Error creating folder '{user_folder}': {str(e)}"
             else:
-                logger.info(f"Function create_or_pass_folder Error creating folder'{user_folder}': {str(e)} ")
+                g.flag = 0
+                logger.error(f"Function create_or_pass_folder Error creating folder'{user_folder}': {str(e)} ",exc_info=True)
                 return f"Error creating folder '{user_folder}': {str(e)}"
     else:
-        logger.info(f"Function create_or_pass_folder login_pin' not found in session. ")
+        g.flag = 0
+        logger.error(f"Function create_or_pass_folder login_pin' not found in session. ", exc_info=True)
         return "Error: 'login_pin' not found in session."
 
 
@@ -249,7 +245,7 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
                                 overwrite=True)
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
-        logger.info(f"Function upload_to_blob error with flag {g.flag} --Function upload_to_blob error is::{e}")
+        logger.error(f"Function upload_to_blob error", exc_info=True)
         print('upload_to_blob----->', str(e))
 
     # Return the URL of the uploaded Blob
@@ -316,11 +312,10 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
             'pin' : session['login_pin']
         })
         g.flag = 1  # Set flag to 1 on success1
-        logger.info(f"Function update_bar_chart_from_blob successfully Return blob_list with flag {g.flag}")
+        logger.info(f"Function update_bar_chart_from_blob successfully Return blob_list")
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
-        logger.info(
-            f"Function update_bar_chart_from_blob error with flag {g.flag} -- Function update_bar_chart_from_blob error is::{e}")
+        logger.error(f"Function update_bar_chart_from_blob error", exc_info=True)
         print('blob_list error------>', str(e))
 
     # Return the updated bar_chart dictionary
@@ -509,12 +504,11 @@ def update_when_file_delete():
             socketio.emit('update_gauge_chart', gauge_source_chart_data)
         print("Complete")
         g.flag = 1  # Set flag to 1 on success1
-        logger.info(f"Function update_when_file_delete Data Loaded Successfully with flag {g.flag}")
+        logger.info(f"Function update_when_file_delete Data Loaded Successfully")
         return jsonify({"message": "Data Loaded Successfully"})
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
-        logger.info(
-            f"Function update_when_file_delete error with flag {g.flag} -- Function update_when_file_delete error is::{e}")
+        logger.error(f"Function update_when_file_delete error", exc_info=True)
         print("update_when_file_delete----->", str(e))
         return jsonify({'message': str(e)})
 
@@ -815,9 +809,64 @@ def perform_lda___Q_A(chat_history_list, num_topics=1, n_top_words=5):
     lda_topics_Q_A['keywords'] = list(lda_topics_Q_A['keywords'])  # Convert set to list before emitting
     lda_topics_Q_A['pin'] = session['login_pin']
 
+    # # Store topics and their top words in lda_topics_Q_A dictionary
+    # for topic_idx, topic in enumerate(lda.components_):
+    #     topic_key = f"Topic{topic_idx + 1}"
+    #     lda_topics_Q_A[topic_key] = [vectorizer.get_feature_names_out()[i] for i in
+    #                                  topic.argsort()[:-n_top_words - 1:-1]]
+
+    g.flag = 1
+    logger.info('QnA topics generated.')
     # Return lda_topics_Q_A
     socketio.emit('lda_topics_QA', lda_topics_Q_A)
 
+
+# def perform_lda____summ(senti_text_summ, num_topics=1, n_top_words=3):
+#     """
+#     Performs Latent Dirichlet Allocation (LDA) on the provided text for sentiment analysis to extract topics and their top words.
+#
+#     Args:
+#         senti_text_summ (str): The text for sentiment analysis.
+#         num_topics (int): Number of topics to extract (default is 2).
+#         n_top_words (int): Number of top words per topic (default is 3).
+#
+#     Side Effects:
+#         Emits LDA topics and their top words via socketio.
+#
+#     Returns:
+#         None
+#     """
+#     lda_topics_summ = {}
+#     # Tokenization and stop words removal
+#     stop_words = set(stopwords.words('english'))
+#
+#     def preprocess_text(text):
+#         tokens = word_tokenize(text.lower())
+#         tokens = [token for token in tokens if token not in stop_words]
+#         return ' '.join(tokens)
+#
+#     # Preprocess conversation text
+#     processed_conversation = preprocess_text(senti_text_summ)
+#
+#     # Create a CountVectorizer to convert text to a matrix of token counts
+#     vectorizer = CountVectorizer(stop_words='english')
+#     X = vectorizer.fit_transform([processed_conversation])
+#
+#     # Fit the LDA model
+#     lda = LatentDirichletAllocation(n_components=num_topics, random_state=42)
+#     lda.fit(X)
+#
+#     # Add the user's pin to the dictionary
+#     lda_topics_summ['pin'] = session['login_pin']
+#
+#     # Store topics and their top words in lda_topics_summ dictionary
+#     for topic_idx, topic in enumerate(lda.components_):
+#         topic_key = f"Topic{topic_idx + 1}"
+#         lda_topics_summ[topic_key] = [vectorizer.get_feature_names_out()[i] for i in
+#                                       topic.argsort()[:-n_top_words - 1:-1]]
+#
+#     # Emit the dictionary which now includes the pin
+#     socketio.emit('lda_topics_summ', lda_topics_summ)
 
 def perform_lda____summ(senti_text_summ, num_topics=1, n_top_words=3):
     """
@@ -856,9 +905,10 @@ def perform_lda____summ(senti_text_summ, num_topics=1, n_top_words=3):
     lda_topics_summ['keywords'] = list(lda_topics_summ['keywords'])  # Convert set to list before emitting
     lda_topics_summ['pin'] = session['login_pin']
 
+    g.flag = 1
+    logger.info('Summary topics generated.')
     # Emit the dictionary which now includes the pin and keywords
     socketio.emit('lda_topics_summ', lda_topics_summ)
-
 
 def create_pie_chart():
     """
@@ -896,7 +946,6 @@ def create_pie_chart():
     # pie_chart_data = json.loads(pie_chart)
     return pie_chart
 
-
 def gauge_chart_auth():
     """
     Generates data for a gauge chart representing authentication success rate.
@@ -921,7 +970,6 @@ def gauge_chart_auth():
 
     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness], 'pin': pin}
     return gauge_fig
-
 
 def log_out_forall():
     """
@@ -970,8 +1018,75 @@ def log_out_forall():
 
         if os.path.exists(wordcloud_image):
             os.remove(wordcloud_image)
-
     session.clear()
+
+class CSVLogHandler(logging.Handler):
+    def __init__(self, filename, mode='a', encoding='utf-8'):
+        super().__init__()
+        self.filename = filename
+        self.mode = mode
+        self.encoding = encoding
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        if not os.path.exists(filename):
+            with open(filename, mode='w', newline='', encoding=self.encoding) as csvfile:
+                writer = csv.DictWriter(csvfile,
+                                        fieldnames=['timestamp', 'level', 'user_id', 'function', 'line_number', 'flag',
+                                                    'message', 'exception'])
+                writer.writeheader()
+
+    def emit(self, record):
+        log_entry = {
+            'timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'level': record.levelname,
+            'user_id': getattr(record, 'user_id', 'unknown_user'),
+            'function': record.funcName,
+            'line_number': record.lineno,
+            'flag': getattr(record, 'flag', ''),
+            'message': record.getMessage(),
+            'exception': ''
+        }
+        if record.exc_info:
+            log_entry['exception'] = self.format(record)
+
+        with open(self.filename, self.mode, newline='', encoding=self.encoding) as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=log_entry.keys())
+            writer.writerow(log_entry)
+
+class CustomLoggerAdapter(logging.LoggerAdapter):
+    def process(self, msg, kwargs):
+        kwargs['extra'] = kwargs.get('extra', {})
+        kwargs['extra']['flag'] = g.get('flag', '')
+        return msg, kwargs
+
+
+class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
+    def __init__(self, filename, when='midnight', interval=1, backupCount=7, encoding=None, delay=False, utc=False, atTime=None):
+        super().__init__(filename, when, interval, backupCount, encoding, delay, utc, atTime)
+        self.csv_handler = CSVLogHandler(filename, mode='a', encoding=encoding)
+
+    def doRollover(self):
+        super().doRollover()
+        # Reinitialize the CSVLogHandler to write the header in the new file
+        self.csv_handler = CSVLogHandler(self.baseFilename, mode='a', encoding=self.encoding)
+        # Write header to the new file
+        with open(self.baseFilename, mode='w', newline='', encoding=self.encoding) as csvfile:
+            writer = csv.DictWriter(csvfile,
+                                    fieldnames=['timestamp', 'level', 'user_id', 'function', 'line_number', 'flag',
+                                                'message', 'exception'])
+            writer.writeheader()
+
+    def emit(self, record):
+        self.csv_handler.emit(record)
+
+def setup_csv_logger(user_id):
+    log_file_name = f'logs/{user_id}/logfile_{user_id}_' + time.strftime('%Y-%m-%d_%H-%M-%S') +'.csv'
+    logger = logging.getLogger(f'logger_{user_id}')
+    logger.setLevel(logging.INFO)
+
+    if not any(isinstance(handler, CustomTimedRotatingFileHandler) for handler in logger.handlers):
+        handler = CustomTimedRotatingFileHandler(log_file_name, when='midnight', interval=1, backupCount=7, encoding='utf-8')
+        logger.addHandler(handler)
+    return CustomLoggerAdapter(logger, {'user_id': user_id})
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -982,23 +1097,16 @@ def home():
     if request.method == "POST":
         pin = request.form.get('authpin')
         group_user = request.form.get('Grp_usr')
-        # Select Engine
         engine = request.form.get('engine')
         print(group_user, pin, engine)
 
-        # Map group_user to role_id (Admin=1, Guest=2, ML Engine=3)
-        role_id_mapping = {
-            'Admin': 1,
-            'Guest': 2,
-            'ML Engine': 3
-        }
-
+        role_id_mapping = {'Admin': 1, 'Guest': 2, 'ML Engine': 3}
         role_id = role_id_mapping.get(group_user)
         user_role = UserRole.query.filter_by(role_id=role_id).first()
         user = UserDetails.query.filter_by(role_id=role_id, login_pin=pin, status='Active').first()
 
         if role_id is not None and user_role and user:
-            log_out_forall()  # logout function call
+            log_out_forall()
             session.modified = True
             session['logged_in'] = True
             session['login_pin'] = user.login_pin
@@ -1022,38 +1130,37 @@ def home():
             session['chat_history_qa'] = []
             session['summary_add'] = []
             session['summary_word_cpunt'] = 0
+
             folder_name = os.path.join('static', 'login', str(session['login_pin']))
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
 
-            # Use a consistent log file name and set the handler to rotate at midnight
-            log_file_name = os.path.join(folder_name, 'logfile_' + time.strftime('%Y-%m-%d_%H-%M-%S') + '.log')
-            handler = TimedRotatingFileHandler(log_file_name, when='midnight', interval=1, backupCount=7)
-            handler.setLevel(logging.DEBUG)
-            formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
+            if 'login_pin' in session:
+                logger = setup_csv_logger(session['login_pin'])
+            else:
+                g.flag = 0
+                logger.error("User Session Not Found!", exc_info=True)
+            # log_file_name = os.path.join(folder_name, 'logfile.csv')
+            # handler = CSVLogHandler(log_file_name)
+            # logger = logging.getLogger(__name__)
+            # logger.setLevel(logging.INFO)
+            # if logger.hasHandlers():
+            #     logger.handlers.clear()
+            # logger.addHandler(handler)
+            logger = CustomLoggerAdapter(logger, {'user_id': session['login_pin']})
 
-            logger = logging.getLogger(__name__)
-            logger.setLevel(logging.DEBUG)
-
-            # Remove all old handlers associated with the logger
-            if logger.hasHandlers():
-                logger.handlers.clear()
-
-            logger.addHandler(handler)
-
-            # Pass container_client and session
             create_or_pass_folder(container_client, session)
-            # Create a folder named "All_PDF" if it doesn't exist
             folder_files = os.path.join('static', 'files', str(session['login_pin']))
             if not os.path.exists(folder_files):
                 os.makedirs(folder_files)
-            g.flag = 1  # Set flag to 1 on success
-            logger.info(f"User {str(session['login_pin'])} logged in successfully with flag {g.flag}")
+
+            g.flag = 1
+            logger.info(f"User {str(session['login_pin'])} logged in successfully")
             update_bar_chart_from_blob(session, blob_service_client, container_name)
             return jsonify({'redirect': url_for('data_source')})
 
-        # Handle invalid cases
+        g.flag = 0
+        logger.error(f"Invalid login attempt for Group User {group_user} with PIN {pin}",exc_info=True)
         flash('Invalid Group User or PIN Or Status Deactivate. Please try again.', 'error')
         return jsonify({'redirect': url_for('home')})
 
@@ -1063,7 +1170,10 @@ def home():
 # Route for logout button
 @app.route('/logout')
 def logout():
+    g.flag = 1
+    logger.info(f"User {str(session['login_pin'])} Logged out successfully")
     log_out_forall()
+
     flash('You have been successfully logged out!', 'success')
     return redirect(url_for('home'))
 
@@ -1071,9 +1181,7 @@ def logout():
 @app.route('/checksession')
 def check_session():
     if 'login_pin' in session:
-        # print("session is live!!!")
-        # print("Session value on check:", session)
-        # Session is val
+        # Session is Valid
         return jsonify({'sessionValid': True}), 200
     else:
         print("session is expired!!!")
@@ -1083,6 +1191,8 @@ def check_session():
 
 @app.route('/data_source', methods=['GET', 'POST'])
 def data_source():
+    g.flag = 1
+    logger.info('Accessed data_source')
     update_bar_chart_from_blob(session, blob_service_client, container_name)
     return render_template('DataSource.html')
 
@@ -1156,11 +1266,11 @@ def popup_form():
             for file in files:
                 upload_to_blob(file, session, blob_service_client, container_name)
 
-        elif request.form.get('dbURL', ''):
-            db_url = request.form.get('dbURL', '')
-            username = request.form.get('username', '')
-            password = request.form.get('password', '')
-            print('database url n all.......', db_url, username, password)
+        # elif request.form.get('dbURL', ''):
+        #     db_url = request.form.get('dbURL', '')
+        #     username = request.form.get('username', '')
+        #     password = request.form.get('password', '')
+        #     print('database url n all.......', db_url, username, password)
         else:
             if not request.form.get('Source_URL', ''):
                 print('No Source_URL Fond')
@@ -1168,9 +1278,12 @@ def popup_form():
             Source_URL = request.form.get('Source_URL', '')
             print("Source_URL Fond---->", Source_URL)
         update_bar_chart_from_blob(session, blob_service_client, container_name)
-
+        g.flag = 1
+        logger.info('Data Uploaded Successfully')
         return jsonify({'message': 'Data uploaded successfully'}), 200
     else:
+        g.flag = 0
+        logger.error('Invalid Request Method')
         return jsonify({'message': 'Invalid request method'}), 405
 
 
@@ -1183,7 +1296,7 @@ def run_query(data):
     password = data['password']
     query = data['query']
     database = 'master'
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     folder_name_azure = str(session['login_pin'])
     file_name = f"query_results_{timestamp}.csv"
 
@@ -1215,13 +1328,16 @@ def run_query(data):
                 content_settings=ContentSettings(content_type="text/csv"),
                 overwrite=True
             )
-
+            g.flag = 1
+            logger.info('Fetched MySQL Data')
             emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
 
         elif db_type == 'MongoDB':
             client = pymongo.MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
             db = client[database]
             result = db.command('eval', query)
+            g.flag = 1
+            logger.info('Fetched MongoDB Data')
             emit('query_success', {'message': 'Data fetched and uploaded successfully.', 'result': str(result)})
 
         elif db_type == 'SQLServer':
@@ -1247,55 +1363,48 @@ def run_query(data):
                 content_settings=ContentSettings(content_type="text/csv"),
                 overwrite=True
             )
-
+            g.flag = 1
+            logger.info('Fetched SQL Server Data')
             emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
 
         else:
-            emit('query_error', {'error': 'Unsupported database type'})
+            g.flag = 0
+            logger.error('Unsupported database type or Conection error.')
+            emit('query_error', {'error': 'Unsupported database type or Connection error'})
 
     except Exception as e:
         import traceback
+        g.flag = 0
+        logger.error('Unsupported database type', exc_info=True)
         emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
 
 
 @app.route('/Cogni_button', methods=['GET'])
 def Cogni_button():
-    global blob_list_length, Source_URL
+
     try:
         start_time = time.time()
-        print('Cogni_button Press')
-        response = update_when_file_delete()
-        if blob_list_length == 0 and Source_URL == "":
-            session['bar_chart_ss'] = {}
-            session['over_all_readiness'] = 0
-            session['total_success_rate'] = 0
-            session['total_files_list'] = 0
-            session['successful_list'] = 0
-            session['failed_list'] = 0
-            session['progress_list'] = 0
-            print("No data Load in storage cogni button code")
-            socketio.emit('button_response', {'message': 'No data Load in storage', 'pin':session['login_pin']})
-            return jsonify({'message': 'No data Load in storage'})
-
-        end_time = time.time()
-        elapsed_time = end_time - start_time
         g.flag = 1
-        logger.info(f"Cogni_button route succeeded with flag {g.flag}")
+        logger.info('CogniLink load button pressed')
+        response = update_when_file_delete()
 
-        print(f"Function took--------->  {elapsed_time} <--------- seconds to execute.")
-        socketio.emit('button_response', {'message': 'Data Loaded successfully', 'pin':session['login_pin']})
+        elapsed_time = time.time() - start_time
+        g.flag = 1
+        logger.info(f"Load Data Function executed in {elapsed_time} seconds")
+        socketio.emit('button_response', {'message': 'Data loaded successfully', 'pin': session['login_pin']})
         return response
     except Exception as e:
         g.flag = 0
-        logger.info(f"Cogni_button route succeeded with flag {g.flag}---> error is-->{e}")
-        print("Cogni_button_error_message----->", str(e))
-        socketio.emit('button_response', {'message': str(e)})
+        logger.error("Unhandled exception occurred", exc_info=True)
+        socketio.emit('button_response', {'message': str(e), 'pin': session['login_pin']})
         return jsonify({'message': str(e)}), 500
 
 
 @app.route("/Summary", methods=['GET', 'POST'])
 def summary():
     session['summary_word_cpunt'] = 0
+    g.flag = 1
+    logger.info("Summary page accessed.")
     return render_template('summary.html')
 
 
@@ -1303,6 +1412,8 @@ def summary():
 def handle_summary_input(data):
     global text_word_cloud
     session['summary_add'] = []
+    start_time = time.time()
+
     try:
         folder_name = os.path.join('static', 'login', str(session['login_pin']))
 
@@ -1342,8 +1453,13 @@ def handle_summary_input(data):
         perform_lda____summ(senti_text_summ)
         session['summary_add'].extend(summ)
 
+        elapsed_time = time.time() - start_time
+        g.flag = 1
+        logger.info(f'Summary Generated in {elapsed_time} seconds')
         emit('summary_response', session['summary_add'][::-1])
     except Exception as e:
+        g.flag = 0
+        logger.error('Summary generation error', exc_info=True)
         print('Exception of summary_input:', str(e))
         emit('summary_response', {'message': 'No data Load'})
 
@@ -1370,33 +1486,28 @@ def handle_clear_chat_summ(data):
         session['senti_neutral_summ'] = 0
         session['summary_add'] = []
 
+        g.flag = 1  # Set flag to 1 on success
+        logger.info(f"Summary chat cleared")
         emit('clear_chat_response', {'message': 'Summary cleared successfully'})
     except Exception as e:
+        g.flag = 0
+        logger.info(f"Summary chat not cleared. ERROR!", exc_info=True)
         print('error in Cleared Chat', str(e))
         emit('clear_chat_response', {'message': str(e)})
 
 
-
-# @socketio.on('Cogservice_Value_Updated')
-# def handle_cogservice_value_updated(data):
-#     global summary_word_cpunt
-#     if 'value' in data:
-#         summary_word_cpunt = data['value']
-#         session['summary_word_cpunt'] = summary_word_cpunt
-#         print(f"Cogservice_Value_Updated for user {session['login_pin']} --> {session['summary_word_cpunt']}")
-#         emit('cogservice_response', {"message": "CogniLink Value updated successfully"})
-#     else:
-#         emit('cogservice_response', {"error": "Unsupported Media Type"}, 415)
-
-
 @app.route('/CogniLink_Services_QA', methods=['GET', 'POST'])
 def ask():
+    g.flag = 1
+    logger.info("Ask CogniLink page accessed.")
     return render_template('ask.html')
 
 
 @socketio.on('ask_question')
 def handle_ask_question(data):
     global senti_text_Q_A
+    start_time = time.time()
+
     try:
         question = data['question']
 
@@ -1430,8 +1541,14 @@ def handle_ask_question(data):
         perform_lda___Q_A(senti_text_Q_A)
         session['chat_history_qa'].extend(chat_history_list)
 
+        elapsed_time = time.time() - start_time
+        g.flag = 1
+        logger.info(f'Answer Generated in {elapsed_time} seconds')
+
         emit('response', {'chat_history': session['chat_history_qa'][::-1]})
     except Exception as e:
+        g.flag = 0
+        logger.error('Ask CogniLink answer generation error', exc_info=True)
         print("Exception of ask_question:", str(e))
         emit('response', {'message': 'No data Load'})
 
@@ -1450,12 +1567,11 @@ def handle_clear_chat():
         lda_topics_Q_A = {'pin':session['login_pin'], 'keywords':[]}
         socketio.emit('lda_topics_QA', lda_topics_Q_A)
         g.flag = 1  # Set flag to 1 on success
-        logger.info(f"clear_chat for ask_question route Chat history cleared successfully with flag {g.flag}")
+        logger.info(f"clear_chat for ask_question route")
         emit('chat_cleared', {'message': 'Chat history cleared successfully'})
     except Exception as e:
         g.flag = 0  # Set flag to 0 on failure
-        logger.info(
-            f"clear_chat for ask_question route error with flag {g.flag} -- ask_question clear_chat error is::{e}")
+        logger.error(f"clear_chat for ask_question route error", exc_info=True)
         emit('chat_cleared', {'message': str(e)})
 
 
@@ -1473,16 +1589,15 @@ def delete(file_name):
             update_when_file_delete()
             update_bar_chart_from_blob(session, blob_service_client, container_name)
             g.flag = 1  # Set flag to 1 on success
-            logger.info(f"delete for delete/<file_name> route deleted successfully with flag {g.flag}")
+            logger.info(f"delete for delete/<file_name> route deleted successfully")
             return jsonify({'message': f'File {file_name} deleted successfully'})
         else:
             g.flag = 0  # Set flag to 1 on success
-            logger.info(f"delete for delete/<file_name> route deleted {file_name} not found with flag {g.flag}")
+            logger.error(f"delete for delete/<file_name> route deleted {file_name} not found", exc_info=True)
             return jsonify({'error': f'File {file_name} not found'}), 404
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success
-        logger.info(
-            f"delete for delete/<file_name> route error with flag {g.flag} -- delete for delete/<file_name> error is::{e}")
+        logger.error(f"delete for delete/<file_name> route error", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -1497,13 +1612,13 @@ def get_data_source():
                  'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"}
                 for blob in blobs]
         g.flag = 1  # Set flag to 1 on success
-        logger.info(f"table_update route successfully send data with flag {g.flag}")
+        logger.info(f"table_update route successfully send data")
         # Emit the data to the socket channel 'updateTable'
         socketio.emit('updateTable', data)
         return jsonify(data)
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success
-        logger.info(f"table_update route error with flag {g.flag} -- table_update route error is::{e}")
+        logger.error(f"table_update route error", exc_info=True)
         print(f"Exceptions is{e}")
         return jsonify({'error': str(e)}), 500
 
@@ -1564,11 +1679,15 @@ def webcrawler_start(data):
             'current_file': current_file,
             'pin': login_pin
         })
+        g.flag = 1
+        logger.info("Web Crawling done successfully")
         socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
         return jsonify({'message': 'All files downloaded successfully'})
     except Exception as e:
         session['current_status'] = "Error occurred"
         socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
+        g.flag = 0
+        logger.error("Web crawling error", exc_info=True)
         print("Exception of web crawling:", str(e))
         return jsonify({'message': 'URL Not found'})
 
@@ -1629,6 +1748,7 @@ def download_pdf(url, folder_name, filename):
 
     with open(file_path, 'wb') as f:
         f.write(response.content)
+    g.flag = 1
     logger.info(f"Route download_progress success")
     print(f"Downloaded: {filename}")
 
@@ -1641,8 +1761,6 @@ def handle_fetch_pdf_files():
 
 
 # This function should contain your file deletion logic
-
-
 def delete_file(directory_path, file_name):
     """
     Deletes a specified file from a given directory.
@@ -1663,15 +1781,16 @@ def delete_file(directory_path, file_name):
         if os.path.exists(file_path):
             os.remove(file_path)
             g.flag = 1  # Set flag to 1 on success1
-            logger.info(f"Function delete_file success with flag {g.flag}")
+            logger.info(f"Function delete_file success")
             return True
         else:
-            logger.info(f"Function delete_file error File does not exist")
+            g.flag = 0
+            logger.error(f"Function delete_file error File does not exist", exc_info=True)
             print("File does not exist:", file_path)
             return False
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
-        logger.info(f"Function delete_file error with flag {g.flag} -- Function delete_file error is::{e}")
+        logger.error(f"Function delete_file error", exc_info=True)
         print("Error occurred while deleting file:", str(e))
         return False
 
@@ -1716,15 +1835,15 @@ def delete_pdf_file(data):
         if res is True:
             print("file deleted")
             g.flag = 1  # Set flag to 1 on success1
-            logger.info(f"Successfully webcrawler File Loaded In Cognilink Application with flag {g.flag} ")
+            logger.info(f"Successfully webcrawler File Loaded In Cognilink Application ")
             socketio.emit('delete_response', {'message': 'Successfully File Loaded In Cognilink Application'})
         else:
-            logger.info(f"Failed To Loaded In Cognilink Application")
+            g.flag = 0
+            logger.error(f"Failed To Loaded In Cognilink Application", exc_info=True)
             socketio.emit('delete_response', {'message': 'Failed To Loaded In Cognilink Application'})
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
-        logger.info(
-            f"Error in webcrawler File Loaded In Cognilink Application with flag {g.flag} --select_pdf_file route error is::{e}")
+        logger.error(f"Error in webcrawler File Loaded In Cognilink Application --select_pdf_file route error is::{e}", exc_info=True)
         socketio.emit('delete_response', {'message': 'Error occurred while deleting file: {}'.format(str(e))}), 500
 
 
@@ -1736,6 +1855,7 @@ def handle_eda_process(data):
     try:
         file_url = data.get('fileUrl')
         if file_url:
+            g.flag = 1
             logger.info("SocketIO Eda_Process File name received")
             blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(
                 name_starts_with=folder_name)
@@ -1753,6 +1873,7 @@ def handle_eda_process(data):
                         emit('eda_response', {'message': 'Unsupported file format', 'success': False})
                         return
 
+                    g.flag = 1
                     logger.info("SocketIO Eda_Process Data Loaded Successfully.")
                     emit('eda_response', {'message': 'Data Loaded Successfully. Ask Virtual Analyst!', 'success': True})
                     return
@@ -1760,6 +1881,7 @@ def handle_eda_process(data):
         question = data.get('question')
         print("question----->", question)
         if question:
+            g.flag = 1
             logger.info("SocketIO Eda_Process Question received.")
             llm = AzureOpenAI(
                 deployment_name="gpt-4-0125-preview",
@@ -1779,6 +1901,7 @@ def handle_eda_process(data):
             })
 
             output = agent.chat(question)
+            g.flag = 1
             logger.info("SocketIO Eda_Process output received.")
 
             if isinstance(output, pd.DataFrame):
@@ -1818,11 +1941,16 @@ def handle_eda_process(data):
                 'output_type': output_type,
                 'image': img_base64
             }
+            g.flag = 1
+            logger.info("SocketIO Eda_Process response emitted.")
             emit('eda_response', response)
         else:
+            g.flag = 0
+            logger.info('No Question Provided!')
             emit('eda_response', {'success': False, 'message': 'No Question Provided!'})
     except Exception as e:
-        logger.error(f"Error in Eda_Process: {e}")
+        g.flag = 0
+        logger.error(f"Error in Eda_Process: {e}",exc_info=True)
         emit('eda_response', {'message': f'Error occurred while EDA process: {str(e)}', 'success': False})
 
 
@@ -1833,6 +1961,8 @@ def blank():
 
 @app.route('/EDA', methods=['GET', 'POST'])
 def eda_analysis():
+    g.flag = 1
+    logger.info("Virtual analyst page accessed.")
     return render_template('EDA.html')
 
 
@@ -1843,6 +1973,8 @@ def signup():
 
 @app.route('/file_manager')
 def file_manager():
+    g.flag = 1
+    logger.info("Webcrawl file manager accessed.")
     return render_template('webCrawl_file_manager.html')
 
 
