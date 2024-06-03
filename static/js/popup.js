@@ -459,7 +459,7 @@ function updateTable(searchTerm) {
                     '<td class="action-links">' +
                     //'<a href="' + blob.url + '" target="_blank" download>Download</a> </td>' +
                     '<a href="' + blob.url + '" download="' + name + '">Download</a> </td>' +
-                    '<td><a href="javascript:void(0);" onclick="deleteFile(\'' + blob.name + '\')" style="color: var(--primary);">Delete</a>' +
+                    // '<td><a href="javascript:void(0);" onclick="deleteFile('' + blob.name + '\')" style="color: var(--primary);">Delete</a>' +
                     '</td>' +
                     '</tr>';
                 $('#table-body').append(row);
@@ -568,6 +568,33 @@ function deleteFile(fileNames) {
         }
     });
 }
+
+// Data Base Connection Form
+document.getElementById('dbForm').onsubmit = async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+
+    // Initialize Socket.IO client
+    const socket = io();
+
+    socket.emit('run_query', Object.fromEntries(formData));
+
+    socket.on('query_success', (data) => {
+        document.getElementById('message').innerText = data.message || 'Query executed successfully.';
+        setTimeout(() => {
+            document.getElementById('message').innerText = '';
+        }, 8000); // Clear message after 8 seconds
+        updateTable();
+    });
+
+    socket.on('query_error', (data) => {
+        document.getElementById('message').innerText = JSON.stringify(data);
+        setTimeout(() => {
+            document.getElementById('message').innerText = '';
+        }, 8000); // Clear message after 8 seconds
+        updateTable();
+    });
+};
 
 // // Delete file from Vault
 // function deleteFile(fileName) {
