@@ -21,11 +21,9 @@ function submitForm() {
     if (webCrawlingForm.style.display === 'block') {
         // Execute Web Crawling program
         executeNewProgram();
-        // pdfclosePopup();
     } else {
         // Execute default program
         runDefaultProgram();
-        // pdfclosePopup();
     }
 }
 
@@ -39,13 +37,33 @@ function pdfclosePopup() {
     var close = document.getElementById('close');
     var load = document.getElementById('loadData');
 
-    close.style.display = 'block';
+    defaultMsg.style.display = 'block';
     doc_template.style.display= 'none';
     mp3_template.style.display= 'none';
     webCrawl_template.style.display= 'none';
     source_URL_template.style.display= 'none';
     database_template.style.display= 'none';
-    defaultMsg.style.display= 'none';
+    close.style.display= 'none';
+    load.style.display= 'none';
+}
+
+function linkDataPopup() {
+    var doc_template = document.getElementById('fileForm');
+    var mp3_template = document.getElementById('audio_file');
+    var webCrawl_template = document.getElementById('Web_Crawling');
+    var source_URL_template = document.getElementById('SourceURL');
+    var database_template = document.getElementById('databaseForm');
+    var defaultMsg = document.getElementById('defaultMsg');
+    var close = document.getElementById('close');
+    var load = document.getElementById('loadData');
+
+    defaultMsg.style.display = 'none';
+    doc_template.style.display= 'none';
+    mp3_template.style.display= 'none';
+    webCrawl_template.style.display= 'none';
+    source_URL_template.style.display= 'none';
+    database_template.style.display= 'none';
+    close.style.display= 'block';
     load.style.display= 'none';
 }
 
@@ -298,7 +316,7 @@ function runDefaultProgram() {
                 document.getElementById('message').innerHTML = '';
             }, 8000);
             $("#waitImg").hide(); // Hide the loading image on success
-            pdfclosePopup();
+            linkDataPopup();
             document.getElementById('popupForm').reset();
         } else {
             document.getElementById('message').innerHTML = '<p>Failed to upload files. Please try again later.</p>';
