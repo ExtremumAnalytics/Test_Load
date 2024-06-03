@@ -1079,7 +1079,11 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         self.csv_handler.emit(record)
 
 def setup_csv_logger(user_id):
-    log_file_name = f'logs/{user_id}/logfile_{user_id}_' + time.strftime('%Y-%m-%d_%H-%M-%S') +'.csv'
+    # log_file_name = f'logs/{user_id}/logfile_{user_id}_' + time.strftime('%Y-%m-%d_%H-%M-%S') +'.csv'
+    folder_name = os.path.join('static', 'login', str(session['login_pin']))
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+    log_file_name = os.path.join(folder_name, f'logfile_{user_id}_' + time.strftime('%Y-%m-%d_%H-%M-%S') + '.csv')
     logger = logging.getLogger(f'logger_{user_id}')
     logger.setLevel(logging.INFO)
 
