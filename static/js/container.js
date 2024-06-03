@@ -126,27 +126,27 @@ function toggleSelectAll(){
     });
 }
 
-// Data Base Connection Form
-document.getElementById('dbForm').onsubmit = async (event) => {
-    event.preventDefault();
-    const formData = new FormData(event.target);
+// // Data Base Connection Form
+// document.getElementById('dbForm').onsubmit = async (event) => {
+//     event.preventDefault();
+//     const formData = new FormData(event.target);
 
-    // Initialize Socket.IO client
-    const socket = io();
+//     // Initialize Socket.IO client
+//     const socket = io();
 
-    socket.emit('run_query', Object.fromEntries(formData));
+//     socket.emit('run_query', Object.fromEntries(formData));
 
-    socket.on('query_success', (data) => {
-        document.getElementById('message').innerText = data.message || 'Query executed successfully.';
-        setTimeout(() => {
-            document.getElementById('message').innerText = '';
-        }, 8000); // Clear message after 8 seconds
-    });
+//     socket.on('query_success', (data) => {
+//         document.getElementById('message').innerText = data.message || 'Query executed successfully.';
+//         setTimeout(() => {
+//             document.getElementById('message').innerText = '';
+//         }, 8000); // Clear message after 8 seconds
+//     });
 
-    socket.on('query_error', (data) => {
-        document.getElementById('message').innerText = JSON.stringify(data);
-        setTimeout(() => {
-            document.getElementById('message').innerText = '';
-        }, 8000); // Clear message after 8 seconds
-    });
-};
+//     socket.on('query_error', (data) => {
+//         document.getElementById('message').innerText = JSON.stringify(data);
+//         setTimeout(() => {
+//             document.getElementById('message').innerText = '';
+//         }, 8000); // Clear message after 8 seconds
+//     });
+// };

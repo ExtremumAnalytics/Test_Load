@@ -1055,6 +1055,7 @@ class CSVLogHandler(logging.Handler):
 class CustomLoggerAdapter(logging.LoggerAdapter):
     def process(self, msg, kwargs):
         kwargs['extra'] = kwargs.get('extra', {})
+        kwargs['extra']['user_id'] = self.extra['user_id']
         kwargs['extra']['flag'] = g.get('flag', '')
         return msg, kwargs
 
@@ -1300,7 +1301,7 @@ def run_query(data):
     password = data['password']
     query = data['query']
     database = 'master'
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     folder_name_azure = str(session['login_pin'])
     file_name = f"query_results_{timestamp}.csv"
 
