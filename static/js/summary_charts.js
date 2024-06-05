@@ -45,6 +45,7 @@
             // updateReadinessChart(data);
             if(data.pin==pin){
                 updateReadinessChart(data);
+                console.log(data);
             }
             // else{
                 // document.getElementById('message').innerHTML = '<p>Login Pin Not Verified!</p>';

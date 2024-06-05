@@ -5,6 +5,16 @@ function openFileInNewTab(url) {
     win.focus();
 }
 
+// Progress Bar update
+function updateProgressBar(percentage) {
+    const progressBar = document.getElementById('waitImg');
+    progressBar.style.width = percentage + '%';
+    percent=percentage + '%';
+    progressBar.setAttribute('width', percent);
+    progressBar.innerText = percentage + '% ';
+}
+
+
 // Define the sendQuestion function in the global scope
 function sendQuestion() {
     const socket=io();
@@ -17,10 +27,19 @@ function sendQuestion() {
     document.getElementById("waitImg").style.display = 'block'; // Show the loading image
 
     socket.emit('ask_question', { question: question });
-
+    
+    socket.on('progress', function(data) {
+        updateProgressBar(data.percentage);
+        console.log(data.percentage)
+    });
+    
     socket.on('response', function(response) {
-        document.getElementById("waitImg").style.display = 'none'; // Hide the loading image on success
-
+        updateProgressBar(100);
+        console.log('100')
+        setTimeout(() => {
+            document.getElementById("waitImg").style.display = 'none';
+        }, 1500);
+        
         if (response.message) {
             document.getElementById('message').innerText = response.message;
             setTimeout(function() {

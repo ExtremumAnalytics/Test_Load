@@ -343,11 +343,25 @@ def update_when_file_delete():
     tot_fail = 0
     final_chunks = []
     summary_chunk = []
+
+    # Lists to store progress of files loading
+    session['embedding_not_created'] = []
+    session['failed_files'] = []
+    session['progress_files'] = []
+
     folder_name_azure = str(session['login_pin'])
     folder_name = os.path.join('static', 'login', folder_name_azure)
     all_blobs = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name_azure)
     # print(all_blobs)
     all_blobs_list = list(all_blobs)  # Convert to list to enable filtering
+
+    for blob in all_blobs_list:
+        file_name = blob.name.split('/')[-1]  # Extract file name from blob path
+
+        if file_name.endswith('.csv') or file_name.endswith('.CSV'):
+            session['progress_files'].append(file_name)
+            socketio.emit('success', session['progress_files'])
+
     blob_list = [blob for blob in all_blobs_list if not (blob.name.endswith('.csv') or blob.name.endswith('.CSV'))]
     # print(blob_list)
 
@@ -386,16 +400,28 @@ def update_when_file_delete():
                     # loader = AzureBlobStorageFileLoader(
                     #     conn_str=connection_string,
                     #     container=container_name,
-                    #     blob_name=blob.name,
+                    #     blob_name=blob.name
                     # )
                 if '.pdf' in file_name or '.PDF' in file_name:
                     loader = PyPDFLoader(temp_path)
+                    session['embedding_not_created'].append(file_name)
+                    socketio.emit('pending', session['embedding_not_created'])
+
                 elif '.mp3' in file_name:
                     loader = AssemblyAIAudioTranscriptLoader(temp_path, api_key="5bbe5761b36b4ff885dbd18836c3c723")
+                    session['embedding_not_created'].append(file_name)
+                    socketio.emit('pending', session['embedding_not_created'])
+
                 elif '.docx' in file_name or '.doc' in file_name:
                     loader = Docx2txtLoader(temp_path)
+                    session['embedding_not_created'].append(file_name)
+                    socketio.emit('pending', session['embedding_not_created'])
+
                 elif '.xlsx' in file_name or '.xls' in file_name:
                     loader = UnstructuredExcelLoader(temp_path)
+                    session['embedding_not_created'].append(file_name)
+                    socketio.emit('pending', session['embedding_not_created'])
+
                 s_url = 'https://testcongnilink.blob.core.windows.net/congnilink-container/' + blob.name
                 chunks = loader.load_and_split()
                 for ele in chunks:
@@ -403,6 +429,8 @@ def update_when_file_delete():
                 print(f"Number of chunks :: {len(chunks)}")
                 if len(chunks) == 0:
                     tot_fail += 1
+                    # Failed files list
+                    session['failed_files'].append(file_name)
                     jsonify({"message": f"No Text Available in {file_name} In This File."})
                 final_chunks.extend(chunks)
                 summary_chunk.append({file_name: [chunks]})
@@ -425,6 +453,7 @@ def update_when_file_delete():
                         flowables.append(Paragraph("<br/><br/><br/>", style=styles["Normal"]))
 
                     doc.build(flowables)
+                    session['progress_files'].append(file_name)
                     # Get the filename from the path
                     file_name = os.path.basename(temp_pdf_path)
                     with open(temp_pdf_path, "rb") as file:
@@ -436,11 +465,17 @@ def update_when_file_delete():
                     blob_client.upload_blob(content, blob_type="BlockBlob",
                                             content_settings=ContentSettings(content_type="application/pdf"),
                                             overwrite=True)
+                    session['progress_files'].append(file_name)
 
-                    # Temporary PDF file ko delete karna
+                    # Delete Temporary PDF file
                     os.remove(temp_pdf_path)
 
                 tot_succ += 1
+                if file_name not in session['failed_files']:
+                    session['progress_files'].append(file_name)
+                for file_name in session['embedding_not_created']:
+                    session['embedding_not_created'].remove(file_name)
+
                 # Calculate progress_list
                 session['successful_list'] = min(tot_succ - tot_fail, session['total_files_list'])
                 session['failed_list'] = min(tot_fail, session['total_files_list'] - session['successful_list'])
@@ -461,6 +496,9 @@ def update_when_file_delete():
 
                 pie_chart_data = create_pie_chart()
                 socketio.emit('updatePieChart', pie_chart_data)
+                socketio.emit('pending', session['embedding_not_created'])
+                socketio.emit('failed', session['failed_files'])
+                socketio.emit('success', session['progress_files'])
 
                 update_bar_chart_from_blob(session, blob_service_client, container_name)
 
@@ -486,8 +524,7 @@ def update_when_file_delete():
             # Calculate progress_list
             session['successful_list'] = min(tot_succ - tot_fail, session['total_files_list'])
             session['failed_list'] = min(tot_fail, session['total_files_list'] - session['successful_list'])
-            session['progress_list'] = session['total_files_list'] - session['successful_list'] - session[
-                'failed_list']
+            session['progress_list'] = session['total_files_list'] - session['successful_list'] - session['failed_list']
             with open(os.path.join(folder_name, 'summary_chunk.pkl'), 'wb') as f:
                 pickle.dump(summary_chunk, f)
 
@@ -502,6 +539,10 @@ def update_when_file_delete():
             socketio.emit('updatePieChart', pie_chart_data)
             gauge_source_chart_data = gauge_chart_auth()
             socketio.emit('update_gauge_chart', gauge_source_chart_data)
+
+        socketio.emit('pending', session['embedding_not_created'])
+        socketio.emit('failed', session['failed_files'])
+        socketio.emit('success', session['progress_files'])
         print("Complete")
         g.flag = 1  # Set flag to 1 on success1
         logger.info(f"Function update_when_file_delete Data Loaded Successfully")
@@ -954,9 +995,9 @@ def gauge_chart_auth():
         dict: A dictionary containing x and y values for the gauge chart.
     """
     if 'total_success_rate' in session and 'over_all_readiness' in session:
-        over_all_readiness = session['over_all_readiness']
+        over_all_readiness = int(session['over_all_readiness'])
         if over_all_readiness != 0:
-            success_rate = (session['total_success_rate'] / over_all_readiness) * 100
+            success_rate = int((session['total_success_rate'] / over_all_readiness) * 100)
             pin = session['login_pin']
         else:
             success_rate = 0
@@ -1135,6 +1176,10 @@ def home():
             session['chat_history_qa'] = []
             session['summary_add'] = []
             session['summary_word_cpunt'] = 0
+            # Lists to store progress of files loading
+            session['embedding_not_created'] = []
+            session['failed_files'] = []
+            session['progress_files'] = []
 
             folder_name = os.path.join('static', 'login', str(session['login_pin']))
             if not os.path.exists(folder_name):
@@ -1218,7 +1263,7 @@ def handle_send_data(data):
     max_date = data.get('maxDate')
 
     # Process the received data as needed
-    print(f"Received data: Min Date: {min_date}, Max Date: {max_date}")
+    # print(f"Received data: Min Date: {min_date}, Max Date: {max_date}")
 
     # Emit an event to notify clients about the new data
     emit('data_received', {
@@ -1232,7 +1277,7 @@ def handle_send_data(data):
 def handle_update_value(data):
     global Limit_By_Size
     Limit_By_Size = data.get('value')
-    print('Limit By Size(K/Count)', Limit_By_Size)
+    # print('Limit By Size(K/Count)', Limit_By_Size)
 
     # Emit an event to notify clients about the updated value
     emit('size_value_updated', {'value': Limit_By_Size, 'message': 'Value updated successfully'})
@@ -1523,9 +1568,17 @@ def handle_ask_question(data):
             azure_search_key=vector_store_password,
             index_name=index_name,
             embedding_function=embeddings.embed_query)
+
+        # Update progress to 25%
+        emit('progress', {'percentage': 25})
+
         # new_db = FAISS.load_local(faiss_index_path, embeddings, allow_dangerous_deserialization=True)
         conversation = get_conversation_chain(vector_store)
         response = conversation({"question": question})
+        
+        # Update progress to 50%
+        emit('progress', {'percentage': 50})
+        time.sleep(0.5)
 
         doc_source = [response["source_documents"][0].metadata["source"]]
         doc_page_num = [response["source_documents"][0].metadata.get("page", 0) + 1]
@@ -1542,9 +1595,17 @@ def handle_ask_question(data):
                              for chat_pair in final_chat_hist]
 
         senti_text_Q_A = ' '.join(entry['answer'] for entry in chat_history_list)
+        
+        # Update progress to 75%
+        emit('progress', {'percentage': 75})
+        time.sleep(0.5)
+
         analyze_sentiment_Q_A(senti_text_Q_A)
         perform_lda___Q_A(senti_text_Q_A)
         session['chat_history_qa'].extend(chat_history_list)
+
+        # Update progress to 100%
+        emit('progress', {'percentage': 100})
 
         elapsed_time = time.time() - start_time
         g.flag = 1
@@ -1624,14 +1685,34 @@ def get_data_source():
         folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
         blobs = container_client.list_blobs(name_starts_with=folder_name)
 
-        # Construct the URLs for each blob based on your Azure Blob Storage configuration
-        data = [{'name': blob.name.split('/')[1],
-                 'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"}
-                for blob in blobs]
+        # Fetch lists from session
+        progress_files = session.get('progress_files', [])
+        failed_files = session.get('failed_files', [])
+        embedding_not_created = session.get('embedding_not_created', [])
+
+        # Construct the data with status based on lists
+        data = []
+        for blob in blobs:
+            file_name = blob.name.split('/')[1]
+            if file_name in progress_files:
+                status = 'U | EC'
+            elif file_name in failed_files:
+                status = 'U | F'
+            elif file_name in embedding_not_created:
+                status = 'U | ENC'
+            else:
+                status = 'U | ENC'
+            data.append({
+                'name': file_name,
+                'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
+                'status': status
+            })
+
         g.flag = 1  # Set flag to 1 on success
         logger.info(f"table_update route successfully send data")
         # Emit the data to the socket channel 'updateTable'
         socketio.emit('updateTable', data)
+
         return jsonify(data)
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success

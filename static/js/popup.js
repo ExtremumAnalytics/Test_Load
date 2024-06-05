@@ -27,6 +27,21 @@ function submitForm() {
     }
 }
 
+function stop_all() {
+    let stop_flag = true;
+    socket.emit('stop_process', { login_pin:pin, stop_flag: stop_flag });
+    var stopall = document.getElementById('stopButton');
+    console.log(' stop button is  pressed')
+
+    socket.on('stop_process_flag', function(data){
+        if(data.pin==pin){
+            console.log('Flag value received:',data.flag)
+        }
+    });
+    // socket.emit('stop_process', {  login_pin:pin });
+
+}
+
 function pdfclosePopup() {
     var doc_template = document.getElementById('fileForm');
     var mp3_template = document.getElementById('audio_file');
@@ -333,6 +348,20 @@ function runDefaultProgram() {
     // closePopup();
 }
 
+// Progress Updation Start
+socket.on('pending', function(data){
+    console.log('Pending',data);
+});
+
+socket.on('failed', function(data){
+    console.log('Failed',data);
+});
+
+socket.on('success', function(data){
+    console.log('Success',data);
+});
+// Progress Updation End
+
 //Load CogniLink Button Press
 $(document).ready(function () {
     var socket = io();
@@ -343,6 +372,7 @@ $(document).ready(function () {
             url: '/Cogni_button',
             type: 'GET',
             success: function (data) {
+                updateTable();
                 $("#waitImg").hide(); // Hide the loading image on success
                 $('#message').text(data.message);
                 setTimeout(function() {
@@ -459,8 +489,7 @@ function updateTable(searchTerm) {
                     '<td class="action-links">' +
                     //'<a href="' + blob.url + '" target="_blank" download>Download</a> </td>' +
                     '<a href="' + blob.url + '" download="' + name + '">Download</a> </td>' +
-                    // '<td><a href="javascript:void(0);" onclick="deleteFile('' + blob.name + '\')" style="color: var(--primary);">Delete</a>' +
-                    '</td>' +
+                    '<td>'+blob.status +'</td>' +
                     '</tr>';
                 $('#table-body').append(row);
             });
@@ -515,8 +544,8 @@ $(document).ready(function() {
     // Initial call
     updateTable();
 
-    // Set interval to update every 5 seconds
-    // setInterval(updateTable, 5000); // 5000 milliseconds = 5 seconds
+    // Set interval to update every 10 seconds
+    // setInterval(updateTable, 10000); // 5000 milliseconds = 5 seconds
 
     // Bind search button click event
     $('#searchButton').click(handleSearch);

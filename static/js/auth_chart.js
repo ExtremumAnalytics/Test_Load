@@ -1,66 +1,27 @@
-// (function ($) {
-//     "use strict";
+function updateCharts() {
+    fetch('/graph_update')
+    .then(response => response.json())
+    .then(data => {
+        // Update Bar Chart
+        var barChartJSON = JSON.parse(data.bars);
+        Plotly.react('bar-chart', barChartJSON.data, barChartJSON.layout);
 
-    
-//     // New Sentiment Chart using the json data
-//     var ctx1 = $("bar-chart").get(0).getContext("2d");
-//     var myChart1 = new Chart(ctx1, {
-//         type: 'bar',
-//         data: {
-//             labels: [],
-//             datasets: [{
-//                 backgroundColor: [
-//                     "rgba(0, 156, 255, 0.7)",
-//                     "rgba(0, 156, 255, 0.5)",
-//                     "rgba(0, 156, 255, 0.3)"
-//                 ],
-//                 data: [0, 0, 0]  // Start with empty data, which will be updated dynamically
-//             }]
-//         },
-//         options: {
-//             indexAxis: 'y',
-//             responsive: true,
-//             scales: {
-//                 x: {
-//                     ticks: {
-//                         beginAtZero: true,
-//                         callback: function(value) {
-//                             return value; // Appends a '%' sign after each value on the x-axis
-//                         }
-//                     }
-//                 }
-//             },
-//             plugins: {
-//                 legend: {
-//                     display: false
-//                 }
-//             }
-//         }
-//     });
+        // Update Pie Chart
+        var pieChartJSON = JSON.parse(data.pie_chart);
+        Plotly.react('pie-chart', pieChartJSON.data, pieChartJSON.layout);
 
-//     function updateFileCharts() {
-//         fetch('/graph_update')
-//         .then(response => response.json())
-//         .then(data => {
-//             // Update Chart.js Bar Chart for Sentiment Analysis
-//             if (data.bar_chart_json) {
-//                 console.log("Data not received")
-//                 var bar_file_data = JSON.parse(data.bar_chart_json);
-//                 console.log('Data Parsed!')
-//                 console.log(bar_file_data)
-//                 myChart1.data.datasets[0].data = bar_file_data.data[0].x;
-//                 // myChart3.data.datasets[0].data = sentimentData;
-//                 myChart1.update(bar_file_data);
-//             }
-//         })
-//         .catch(error => console.error('Error updating charts:', error));
-//     }
-    
-//     // Update charts every 2 seconds (adjust as needed)
-//     setInterval(updateFileCharts, 2000);
-    
-//     // Initial update
-//     updateFileCharts();
-    
-// })(jQuery);
+        // Update Gauge Auth Chart (if any)
+        var authChartJSON = JSON.parse(data.gauge_auth);
+        Plotly.react('gauge-auth', authChartJSON.data, authChartJSON.layout);
 
+        // Update Indicator Chart (if any)
+        var indicatorJSON = JSON.parse(data.indicator);
+        Plotly.react('indicator-chart', indicatorJSON.data, indicatorJSON.layout);
+    });
+}
+
+// Update charts every 10 seconds (adjust as needed)
+setInterval(updateCharts, 2000);
+
+// Initial update
+updateCharts();

@@ -405,7 +405,7 @@
 
             <!-- Digital vault -->
             <div id="vault_container" class="container-fluid pt-4 px-4">
-                <div class="bg-light text-center rounded p-4">
+                <div class="bg-light justify-content-center rounded p-4">
                     <div class="d-flex align-items-center justify-content-between mb-4">
                         <h6 class="mb-0">Explore Vault</h6>
                         <div class="col-md-3"> <!-- Column for the search bar -->
@@ -416,15 +416,15 @@
                         </div>
                         <!-- <a href="">Show All</a> -->
                     </div>
-                    <div id="table-container" class="table-responsive d-flex flex-column">
-                        <table id="data-table" class="table text-start align-middle table-bordered table-hover mb-2">
+                    <div id="table-container" class="table-responsive d-flex flex-column bg-white rounded-2" style="max-height: 200px; overflow-y: auto;">
+                        <table id="data-table" class="table text-start align-middle table-bordered table-hover m-0">
                             <thead>
                                 <tr class="text-dark">
-                                    <th scope="col" ><input type="checkbox" id="select-checkbox" style="margin-right: 5px;" onclick="toggleSelectAll(this)">Select</th>
+                                    <th scope="col" ><input type="checkbox" id="select-checkbox" onclick="toggleSelectAll(this)"></th>
                                     <th scope="col" >Name</th>
-                                    <th scope="col">URL</th>
+                                    <th scope="col">View File</th>
                                     <th scope="col">Download</th>
-                                    <!-- <th scope="col">Delete</th> -->
+                                    <th scope="col">Status</th>                                    
                                     <!-- <th scope="col" >
                                         <input class="form-check-input" id="selectAll" onclick="toggleSelectAll()" type="checkbox">
                                         <span class="mx-2">Select</span>
@@ -448,7 +448,13 @@
                             </tbody>
                         </table>
                     </div>
-                    <button class="btn btn-primary" onclick="deleteSelectedFiles()">Delete Files</button>
+                    <div class="text-center">
+                        <button class="btn btn-primary mt-2" onclick="deleteSelectedFiles()">Delete Files</button>
+                    </div>
+                    <div class="p-2">
+                        <label>Status Abbreviations:</label>
+                        <p>U : Uploaded, F : Fail, EC : Embeddings Created, ENC : Embeddings Not Created</p>
+                    </div>
                 </div>
             </div>
 
@@ -494,7 +500,7 @@
     <script src="{{ url_for('static', filename='js/slider.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dateslide.js') }}"></script>
     <script src="{{ url_for('static', filename='js/warningpop.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/path_dd.js') }}"></script>
+    <!-- <script src="{{ url_for('static', filename='js/path_dd.js') }}"></script> -->
     <!--script src="{{ url_for('static', filename='js/socket_io_lib.js') }}" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script-->
 </body>
 

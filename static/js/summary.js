@@ -40,7 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
             summaries.forEach(summary => {
                 const listItem = document.createElement('li'); // Create a list item element
                 // Set the HTML content of the list item with summary.key in bold style
-                listItem.innerHTML = `<b>${summary.key}</b>: ${summary.value}`;
+                // listItem.innerHTML = `<b>${summary.key}</b>: ${summary.value}`;
+                
+                listItem.innerHTML = `<b>${summary.key}</b>: ${summary.value.replace(/- /g, "<br>- ")}`;
                 list.appendChild(listItem); // Append the list item to the list
             });
 
