@@ -995,9 +995,9 @@ def gauge_chart_auth():
         dict: A dictionary containing x and y values for the gauge chart.
     """
     if 'total_success_rate' in session and 'over_all_readiness' in session:
-        over_all_readiness = int(session['over_all_readiness'])
+        over_all_readiness = round(session['over_all_readiness'], 2)
         if over_all_readiness != 0:
-            success_rate = int((session['total_success_rate'] / over_all_readiness) * 100)
+            success_rate = round((session['total_success_rate'] / over_all_readiness) * 100, 2)
             pin = session['login_pin']
         else:
             success_rate = 0
