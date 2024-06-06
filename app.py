@@ -381,6 +381,7 @@ def update_when_file_delete():
         return jsonify({'message': 'No data Load in storage'})
 
     session['total_files_list'] = blob_list_length + csv_files_count
+    socketio.emit('progress', {'percentage': 20})
 
     try:
         if blob_list_length != 0:
@@ -469,7 +470,6 @@ def update_when_file_delete():
 
                     # Delete Temporary PDF file
                     os.remove(temp_pdf_path)
-
                 tot_succ += 1
                 if file_name not in session['failed_files']:
                     session['progress_files'].append(file_name)
@@ -501,9 +501,11 @@ def update_when_file_delete():
                 socketio.emit('success', session['progress_files'])
 
                 update_bar_chart_from_blob(session, blob_service_client, container_name)
-
+                socketio.emit('progress', {'percentage': 50})
                 gauge_source_chart_data = gauge_chart_auth()
                 socketio.emit('update_gauge_chart', gauge_source_chart_data)
+            socketio.emit('progress', {'percentage': 75})
+            time.sleep(2)
         if Source_URL != "":
             session['total_files_list'] += 1
             f_name_url = Source_URL
@@ -540,6 +542,8 @@ def update_when_file_delete():
             gauge_source_chart_data = gauge_chart_auth()
             socketio.emit('update_gauge_chart', gauge_source_chart_data)
 
+        socketio.emit('progress', {'percentage':100})
+        time.sleep(2)
         socketio.emit('pending', session['embedding_not_created'])
         socketio.emit('failed', session['failed_files'])
         socketio.emit('success', session['progress_files'])
@@ -1235,8 +1239,8 @@ def home():
 # Route for logout button
 @app.route('/logout')
 def logout():
-    g.flag = 1
-    logger.info(f"User {str(session['login_pin'])} Logged out successfully")
+    # g.flag = 1
+    # logger.info(f"User {str(session['login_pin'])} Logged out successfully")
     log_out_forall()
 
     flash('You have been successfully logged out!', 'success')
@@ -1451,11 +1455,14 @@ def Cogni_button():
         start_time = time.time()
         g.flag = 1
         logger.info('CogniLink load button pressed')
+        socketio.emit('progress', {'percentage':10} )
         response = update_when_file_delete()
 
         elapsed_time = time.time() - start_time
         g.flag = 1
         logger.info(f"Load Data Function executed in {elapsed_time} seconds")
+        socketio.emit('progress', {'percentage':100})
+        time.sleep(0.5)
         socketio.emit('button_response', {'message': 'Data loaded successfully', 'pin': session['login_pin']})
         return response
     except Exception as e:
