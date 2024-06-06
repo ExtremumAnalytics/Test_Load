@@ -30,7 +30,6 @@ function submitForm() {
 function stop_all() {
     let stop_flag = true;
     socket.emit('stop_process', { login_pin:pin, stop_flag: stop_flag });
-    var stopall = document.getElementById('stopButton');
     console.log(' stop button is  pressed')
 
     socket.on('stop_process_flag', function(data){
@@ -38,8 +37,6 @@ function stop_all() {
             console.log('Flag value received:',data.flag)
         }
     });
-    // socket.emit('stop_process', {  login_pin:pin });
-
 }
 
 function pdfclosePopup() {
@@ -228,7 +225,7 @@ function displayStats(totalScrapedFiles) {
 
 
 
-function deleteSelectedFiles() {
+function uploadSelectedFiles() {
     const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
     selectedRows.forEach(row => {
         const fileName = row.dataset.fileName;
@@ -362,18 +359,32 @@ socket.on('success', function(data){
 });
 // Progress Updation End
 
+function updateProgressBar(percentage) {
+    $("#waitImg1").css("width", percentage + "%");
+    $("#waitImg1").attr("aria-valuenow", percentage);
+    $("#waitImg1").text(percentage + "%");
+}
+
 //Load CogniLink Button Press
 $(document).ready(function () {
     var socket = io();
 
     $("#loadCogniLink").click(function () {
-        $("#waitImg").show(); // Show the loading image
+        $(".progress").show(); //Show the progress bar
+        $("#waitImg1").show(); // Show the loading image
+        socket.on('progress', function(data){
+            if(data.pin==pin){
+                console.log('Percentage:',data.percentage);
+                updateProgressBar(data.percentage);
+            }
+        });
         $.ajax({
             url: '/Cogni_button',
             type: 'GET',
             success: function (data) {
                 updateTable();
-                $("#waitImg").hide(); // Hide the loading image on success
+                $("#waitImg1").hide(); // Hide the loading image on success
+                $(".progress").hide(); //Hide the progress bar
                 $('#message').text(data.message);
                 setTimeout(function() {
                     $('#message').text('');
@@ -383,7 +394,8 @@ $(document).ready(function () {
             },
             error: function (error) {
                 console.error('Error in Loading CogniLink data:', error);
-                $("#waitImg").hide(); // Hide the loading image on error
+                $("#waitImg1").hide(); // Hide the loading image on success
+                $(".progress").hide(); //Hide the progress bar
             }
         });
     });
