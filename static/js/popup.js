@@ -241,6 +241,7 @@ function uploadSelectedFiles() {
 
         socket.on('delete_response', function(data) {
             $('#messagedelopload').text(data.message);
+            updateTable();
             setTimeout(function() {
                 $('#messagedelopload').text('');
             }, 8000);
