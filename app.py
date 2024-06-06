@@ -526,6 +526,7 @@ def update_when_file_delete():
                 gauge_source_chart_data = gauge_chart_auth()
                 socketio.emit('update_gauge_chart', gauge_source_chart_data)
             socketio.emit('progress', {'percentage': 75,'pin':session['login_pin']})
+
             time.sleep(2)
         if Source_URL != "":
             session['total_files_list'] += 1
@@ -564,6 +565,7 @@ def update_when_file_delete():
             socketio.emit('update_gauge_chart', gauge_source_chart_data)
 
         socketio.emit('progress', {'percentage':100,'pin':session['login_pin']})
+
         time.sleep(2)
         socketio.emit('pending', session['embedding_not_created'])
         socketio.emit('failed', session['failed_files'])
@@ -1559,6 +1561,7 @@ def Cogni_button():
         start_time = time.time()
         g.flag = 1
         logger.info('CogniLink load button pressed')
+
         write_stop_flag_to_csv(session['login_pin'], 'False')
         socketio.emit('progress', {'percentage' : 10,'pin':session['login_pin']})
         print('Stop Flag Value-------------------------->', check_stop_flag())
@@ -1575,6 +1578,7 @@ def Cogni_button():
             time.sleep(0.5)
             write_stop_flag_to_csv(session['login_pin'], 'False')
             socketio.emit('button_response', {'message': 'Data loaded successfully', 'pin': session['login_pin']})
+
         return response
     except Exception as e:
         g.flag = 0
