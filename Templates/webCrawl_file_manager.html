@@ -62,31 +62,18 @@
                 <div class="form-l" style="text-align: center;">
                     <div id="messagedelopload"></div>
                 </div>
-                <div class="rounded p-2">
-                    <div id="table-container" class="table-responsive">
+                <div class="rounded p-2 ">
+                    <div id="file-manager-table-container" class="table-responsive bg-white rounded-2">
                         <table id="pdfTable" border="1" class="table table-bordered">
-                            <thead class="thead-light">
+                            <thead class="table-header thead-light">
                                 <tr>
-                                    <th><input type="checkbox" onclick="toggleAllCheckboxes()"> Select All</th>
+                                    <th><input type="checkbox" onclick="toggleAllCheckboxes()"></th>
                                     <th>File Name</th>
                                     <th>Size</th>
                                     <th>Last Modified</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- PDF file details will be displayed here
-                                <tr>
-                                    <td><input type="checkbox" onclick="toggleAllCheckboxes()"> Select All</td>
-                                    <td>File Name 1</td>
-                                    <td>100 KB</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td><input type="checkbox" onclick="toggleAllCheckboxes()"> Select All</td>
-                                    <td>File Name 2</td>
-                                    <td>150 KB</td>
-                                    <td></td>
-                                </tr> -->
+                            <tbody id="file-manager-body">
                                 <!-- Add more rows dynamically as needed -->
                             </tbody>
                         </table>
@@ -94,7 +81,7 @@
                 </div>
                 <div id="statsContainer" style="color: #000000;" class="mx-2"></div>
                 <div class="col-lg-12 d-flex justify-content-center">
-                    <div class="button-group mt-2">
+                    <div class="button-group mb-2">
                         <button type="button" onclick="deleteSelectedFiles()" class="btn btn-primary mr-2" style="font-size: 14px;">Upload File</button>
                         <button type="button" onclick="deletefilelocal()" name="deletepopupn3" class="btn btn-primary mr-2" style="font-size: 14px;">Delete File</button>
                         <button type="button" onclick="closeWindow()" class="btn btn-primary mr-2" style="font-size: 14px;">Close</button>

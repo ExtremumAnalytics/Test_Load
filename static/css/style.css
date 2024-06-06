@@ -599,3 +599,33 @@
     cursor: pointer;
     z-index: 99999;
 }
+
+#table-container {
+    height: 200px; /* Adjust the height as needed */
+    overflow-y: auto;
+    position: relative;
+}
+
+#file-manager-table-container {
+    height: 400px; /* Adjust the height as needed */
+    overflow-y: auto;
+    position: relative;
+}
+
+.table-responsive {
+    overflow: hidden;
+}
+
+.table-header {
+    position: sticky;
+    top: 0;
+    background-color: white;
+    z-index: 1;
+}
+
+.table-header th {
+    background-color: white;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}

@@ -7,6 +7,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const slider = document.getElementById("mySlider");
     const valueBox = document.querySelector(".value-box");
 
+    function updateProgressBar(percentage) {
+        $("#waitImg").css("width", percentage + "%");
+        $("#waitImg").attr("aria-valuenow", percentage);
+        $("#waitImg").text(percentage + "%");
+    }
+
     // Update the value box when the slider changes
     slider.addEventListener("input", () => {
         valueBox.textContent = slider.value;
@@ -14,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     fetchSummaryBtn.addEventListener('click', function() {
         $("#waitImg").show(); // Show the loading image
+        updateProgressBar(0);
         const summary_que = document.getElementById('summary_que').value; // Get the value of the input field
         
         socket.emit('summary_input', { summary_que: summary_que, value: slider.value });
@@ -29,6 +36,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 8000); // Clear message after 8 seconds
     });
 
+    socket.on('progress', function(data) {
+        var percentage = data.percentage;
+        updateProgressBar(percentage);
+    });
+    
     function displaySummaries(summaries) {
         var summary = document.getElementById('summaryContainer');
         summary.innerHTML = ''; // Assuming summaryContainer is the container element
@@ -40,8 +52,8 @@ document.addEventListener('DOMContentLoaded', function() {
             summaries.forEach(summary => {
                 const listItem = document.createElement('li'); // Create a list item element
                 // Set the HTML content of the list item with summary.key in bold style
-                //listItem.innerHTML = `<b>${summary.key}</b>: ${summary.value}`;
-                // list.appendChild(listItem); // Append the list item to the list
+                // listItem.innerHTML = `<b>${summary.key}</b>: ${summary.value}`;
+                
                 listItem.innerHTML = `<b>${summary.key}</b>: ${summary.value.replace(/- /g, "<br>- ")}`;
                 list.appendChild(listItem); // Append the list item to the list
             });

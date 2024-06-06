@@ -666,6 +666,8 @@ def custom_summary(docs, custom_prompt, chain_type):
     #     summary_output = chain({"input_documents": docs}, return_only_outputs=True)["output_text"]
     #     summaries.append(summary_output)
     # print(summaries)
+    emit('progress', {'percentage': 50})
+
     return summaries
 
 
@@ -1061,6 +1063,12 @@ def log_out_forall():
             os.remove(wordcloud_image)
     session.clear()
 
+# import logging
+# from logging.handlers import TimedRotatingFileHandler
+# import csv
+# import os
+# import datetime
+
 class CSVLogHandler(logging.Handler):
     def __init__(self, filename, mode='a', encoding='utf-8'):
         super().__init__()
@@ -1100,11 +1108,18 @@ class CustomLoggerAdapter(logging.LoggerAdapter):
         kwargs['extra']['flag'] = g.get('flag', '')
         return msg, kwargs
 
-
 class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
     def __init__(self, filename, when='midnight', interval=1, backupCount=7, encoding=None, delay=False, utc=False, atTime=None):
         super().__init__(filename, when, interval, backupCount, encoding, delay, utc, atTime)
-        self.csv_handler = CSVLogHandler(filename, mode='a', encoding=encoding)
+        self.baseFilename = filename
+        self.encoding = encoding
+        self.csv_handler = CSVLogHandler(self.baseFilename, mode='a', encoding=self.encoding)
+        # Write header to the new file when initializing
+        with open(self.baseFilename, mode='w', newline='', encoding=self.encoding) as csvfile:
+            writer = csv.DictWriter(csvfile,
+                                    fieldnames=['timestamp', 'level', 'user_id', 'function', 'line_number', 'flag',
+                                                'message', 'exception'])
+            writer.writeheader()
 
     def doRollover(self):
         super().doRollover()
@@ -1220,8 +1235,8 @@ def home():
 # Route for logout button
 @app.route('/logout')
 def logout():
-    # g.flag = 1
-    # logger.info(f"User {str(session['login_pin'])} Logged out successfully")
+    g.flag = 1
+    logger.info(f"User {str(session['login_pin'])} Logged out successfully")
     log_out_forall()
 
     flash('You have been successfully logged out!', 'success')
@@ -1263,7 +1278,7 @@ def handle_send_data(data):
     max_date = data.get('maxDate')
 
     # Process the received data as needed
-    # print(f"Received data: Min Date: {min_date}, Max Date: {max_date}")
+    print(f"Received data: Min Date: {min_date}, Max Date: {max_date}")
 
     # Emit an event to notify clients about the new data
     emit('data_received', {
@@ -1277,7 +1292,7 @@ def handle_send_data(data):
 def handle_update_value(data):
     global Limit_By_Size
     Limit_By_Size = data.get('value')
-    # print('Limit By Size(K/Count)', Limit_By_Size)
+    print('Limit By Size(K/Count)', Limit_By_Size)
 
     # Emit an event to notify clients about the updated value
     emit('size_value_updated', {'value': Limit_By_Size, 'message': 'Value updated successfully'})
@@ -1485,7 +1500,7 @@ def handle_summary_input(data):
 
         summ = []
         counter = 1
-
+        emit('progress', {'percentage': 15})
         flattened_entries = [(filename, document) for entry in all_summary for filename, documents_list in entry.items()
                              for document in documents_list]
 
@@ -1495,6 +1510,7 @@ def handle_summary_input(data):
             summary_dict = {'key': key, 'value': summary}
             summ.append(summary_dict)
             counter += 1
+        emit('progress', {'percentage': 75})
 
         senti_text_summ = ' '.join(entry['value'] for entry in summ)
         analyze_sentiment_summ(senti_text_summ)
@@ -1506,6 +1522,8 @@ def handle_summary_input(data):
         elapsed_time = time.time() - start_time
         g.flag = 1
         logger.info(f'Summary Generated in {elapsed_time} seconds')
+        emit('progress', {'percentage': 100})
+        time.sleep(0.5)
         emit('summary_response', session['summary_add'][::-1])
     except Exception as e:
         g.flag = 0
