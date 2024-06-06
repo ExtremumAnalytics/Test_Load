@@ -601,7 +601,7 @@
 }
 
 #table-container {
-    height: 200px; /* Adjust the height as needed */
+    height: 300px; /* Adjust the height as needed */
     overflow-y: auto;
     position: relative;
 }

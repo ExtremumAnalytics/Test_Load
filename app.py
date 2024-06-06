@@ -381,11 +381,16 @@ def update_when_file_delete():
         return jsonify({'message': 'No data Load in storage'})
 
     session['total_files_list'] = blob_list_length + csv_files_count
-    socketio.emit('progress', {'percentage': 20})
+    socketio.emit('progress', {'percentage': 20, 'pin':session['login_pin']})
 
     try:
         if blob_list_length != 0:
             for blob in blob_list:
+                if check_stop_flag():
+                    # write_stop_flag_to_csv(session['login_pin'], 'False')
+                    print("Data Load Cancelled")
+                    break
+
                 blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
                 file_name = blob.name.split('/')[-1]  # Extract file name from blob path
                 print("blob_name_file_name---------->", file_name)
@@ -423,6 +428,11 @@ def update_when_file_delete():
                     session['embedding_not_created'].append(file_name)
                     socketio.emit('pending', session['embedding_not_created'])
 
+                if check_stop_flag():
+                    # write_stop_flag_to_csv(session['login_pin'], 'False')
+                    print("Data Load Cancelled")
+                    break
+
                 s_url = 'https://testcongnilink.blob.core.windows.net/congnilink-container/' + blob.name
                 chunks = loader.load_and_split()
                 for ele in chunks:
@@ -448,6 +458,12 @@ def update_when_file_delete():
                     flowables = []
 
                     for name, text in txt_to_pdf.items():
+
+                        if check_stop_flag():
+                            # write_stop_flag_to_csv(session['login_pin'], 'False')
+                            print("Data Load Cancelled")
+                            break
+
                         ptext = "<font size=12><b>{}<br/><br/></b></font>{}".format(name, text)
                         paragraph = Paragraph(ptext, style=styles["Normal"])
                         flowables.append(paragraph)
@@ -500,11 +516,17 @@ def update_when_file_delete():
                 socketio.emit('failed', session['failed_files'])
                 socketio.emit('success', session['progress_files'])
 
+                if check_stop_flag():
+                    # write_stop_flag_to_csv(session['login_pin'], 'False')
+                    print("Data Load Cancelled")
+                    break
+
                 update_bar_chart_from_blob(session, blob_service_client, container_name)
-                socketio.emit('progress', {'percentage': 50})
+                socketio.emit('progress', {'percentage': 50,'pin':session['login_pin']})
                 gauge_source_chart_data = gauge_chart_auth()
                 socketio.emit('update_gauge_chart', gauge_source_chart_data)
-            socketio.emit('progress', {'percentage': 75})
+            socketio.emit('progress', {'percentage': 75,'pin':session['login_pin']})
+
             time.sleep(2)
         if Source_URL != "":
             session['total_files_list'] += 1
@@ -542,15 +564,22 @@ def update_when_file_delete():
             gauge_source_chart_data = gauge_chart_auth()
             socketio.emit('update_gauge_chart', gauge_source_chart_data)
 
-        socketio.emit('progress', {'percentage':100})
+        socketio.emit('progress', {'percentage':100,'pin':session['login_pin']})
+
         time.sleep(2)
         socketio.emit('pending', session['embedding_not_created'])
         socketio.emit('failed', session['failed_files'])
         socketio.emit('success', session['progress_files'])
-        print("Complete")
-        g.flag = 1  # Set flag to 1 on success1
-        logger.info(f"Function update_when_file_delete Data Loaded Successfully")
-        return jsonify({"message": "Data Loaded Successfully"})
+        if not check_stop_flag():
+            print("Complete")
+            g.flag = 1  # Set flag to 1 on success1
+            logger.info(f"Function update_when_file_delete Data Loaded Successfully")
+            return jsonify({"message": "Data Loaded Successfully"})
+        else:
+            print("Load Process Stopped")
+            g.flag = 0  # Set flag to 1 on success1
+            logger.info(f"Function update_when_file_delete Data Loaded Unsuccessfull")
+            return jsonify({"message": "Data Loading Cancelled!"})
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
         logger.error(f"Function update_when_file_delete error", exc_info=True)
@@ -670,7 +699,7 @@ def custom_summary(docs, custom_prompt, chain_type):
     #     summary_output = chain({"input_documents": docs}, return_only_outputs=True)["output_text"]
     #     summaries.append(summary_output)
     # print(summaries)
-    emit('progress', {'percentage': 50})
+    emit('progress', {'percentage': 50,'pin':session['login_pin']})
 
     return summaries
 
@@ -1200,6 +1229,8 @@ def home():
             session['failed_files'] = []
             session['progress_files'] = []
 
+            session['stop_flag'] = []
+
             folder_name = os.path.join('static', 'login', str(session['login_pin']))
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
@@ -1260,8 +1291,6 @@ def check_session():
 
 @app.route('/data_source', methods=['GET', 'POST'])
 def data_source():
-    g.flag = 1
-    logger.info('Accessed data_source')
     update_bar_chart_from_blob(session, blob_service_client, container_name)
     return render_template('DataSource.html')
 
@@ -1448,22 +1477,108 @@ def run_query(data):
         emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
 
 
+
+# Helper function to write stop flag status to CSV
+flag_csv_file = os.path.join('static', 'files', 'stop_flag_status.csv')
+
+def write_stop_flag_to_csv(login_pin, flag):
+    # Read the existing data from the CSV
+    existing_data = []
+    try:
+        with open(flag_csv_file, mode='r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            existing_data = [row for row in reader]
+    except FileNotFoundError:
+        pass
+
+    # Update the stop flag for the given login pin
+    updated = False
+    for row in existing_data:
+        if row['login_pin'] == login_pin:
+            row['stop_flag'] = flag
+            updated = True
+            break
+
+    # If the login pin was not found, add a new row
+    if not updated:
+        existing_data.append({'login_pin': login_pin, 'stop_flag': flag})
+
+    # Write the updated data back to the CSV
+    with open(flag_csv_file, mode='w', newline='') as csvfile:
+        fieldnames = ['login_pin', 'stop_flag']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(existing_data)
+
+
+# Helper function to read stop flag status from CSV
+def read_stop_flag_from_csv(login_pin):
+    try:
+        with open(flag_csv_file, mode='r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if row['login_pin'] == login_pin:
+                    return row['stop_flag']
+    except FileNotFoundError:
+        return 'False'
+    return 'False'
+
+
+@socketio.on('stop_process')
+def stop_process(data):
+    login_pin = data['login_pin']
+
+    if login_pin == session['login_pin']:
+        print('stop', login_pin, session['login_pin'])
+        write_stop_flag_to_csv(login_pin, 'True')
+
+        stop_flag = read_stop_flag_from_csv(login_pin)
+        print('Stop Flag:', stop_flag)
+
+        socketio.emit('stop_process_flag', {'flag': stop_flag, 'pin': login_pin})
+        # socketio.emit('button_response', {'message': 'Operation Cancelled', 'pin': session.get('login_pin')})
+        return jsonify({'message': 'Process will be stopped'})
+    else:
+        return jsonify({'message': 'ERROR! Process Not Stopped.'})
+
+
+def check_stop_flag():
+    login_pin = session.get('login_pin')
+    return read_stop_flag_from_csv(login_pin) == 'True'
+
+
+# # Example usage of check_stop_flag() in another function
+# def example_function():
+#     if check_stop_flag():
+#         print('Process stopped.')
+#         return
+#     # Continue with the function logic
+
+
 @app.route('/Cogni_button', methods=['GET'])
 def Cogni_button():
-
     try:
         start_time = time.time()
         g.flag = 1
         logger.info('CogniLink load button pressed')
-        socketio.emit('progress', {'percentage':10} )
-        response = update_when_file_delete()
 
-        elapsed_time = time.time() - start_time
-        g.flag = 1
-        logger.info(f"Load Data Function executed in {elapsed_time} seconds")
-        socketio.emit('progress', {'percentage':100})
-        time.sleep(0.5)
-        socketio.emit('button_response', {'message': 'Data loaded successfully', 'pin': session['login_pin']})
+        write_stop_flag_to_csv(session['login_pin'], 'False')
+        socketio.emit('progress', {'percentage' : 10,'pin':session['login_pin']})
+        print('Stop Flag Value-------------------------->', check_stop_flag())
+        response = update_when_file_delete()
+        if check_stop_flag():
+            write_stop_flag_to_csv(session['login_pin'], 'False')
+            print("Data Load Cancelled")
+            socketio.emit('button_response', {'message': 'Data loaded cancelled', 'pin': session['login_pin']})
+        else:
+            elapsed_time = time.time() - start_time
+            g.flag = 1
+            logger.info(f"Load Data Function executed in {elapsed_time} seconds")
+            socketio.emit('progress', {'percentage':100,'pin':session['login_pin']})
+            time.sleep(0.5)
+            write_stop_flag_to_csv(session['login_pin'], 'False')
+            socketio.emit('button_response', {'message': 'Data loaded successfully', 'pin': session['login_pin']})
+
         return response
     except Exception as e:
         g.flag = 0
@@ -1475,8 +1590,6 @@ def Cogni_button():
 @app.route("/Summary", methods=['GET', 'POST'])
 def summary():
     session['summary_word_cpunt'] = 0
-    g.flag = 1
-    logger.info("Summary page accessed.")
     return render_template('summary.html')
 
 
@@ -1507,7 +1620,7 @@ def handle_summary_input(data):
 
         summ = []
         counter = 1
-        emit('progress', {'percentage': 15})
+        emit('progress', {'percentage': 15,'pin':session['login_pin']})
         flattened_entries = [(filename, document) for entry in all_summary for filename, documents_list in entry.items()
                              for document in documents_list]
 
@@ -1517,7 +1630,7 @@ def handle_summary_input(data):
             summary_dict = {'key': key, 'value': summary}
             summ.append(summary_dict)
             counter += 1
-        emit('progress', {'percentage': 75})
+        emit('progress', {'percentage': 75,'pin':session['login_pin']})
 
         senti_text_summ = ' '.join(entry['value'] for entry in summ)
         analyze_sentiment_summ(senti_text_summ)
@@ -1529,7 +1642,7 @@ def handle_summary_input(data):
         elapsed_time = time.time() - start_time
         g.flag = 1
         logger.info(f'Summary Generated in {elapsed_time} seconds')
-        emit('progress', {'percentage': 100})
+        emit('progress', {'percentage': 100,'pin':session['login_pin']})
         time.sleep(0.5)
         emit('summary_response', session['summary_add'][::-1])
     except Exception as e:
@@ -1573,8 +1686,6 @@ def handle_clear_chat_summ(data):
 
 @app.route('/CogniLink_Services_QA', methods=['GET', 'POST'])
 def ask():
-    g.flag = 1
-    logger.info("Ask CogniLink page accessed.")
     return render_template('ask.html')
 
 
@@ -1595,14 +1706,14 @@ def handle_ask_question(data):
             embedding_function=embeddings.embed_query)
 
         # Update progress to 25%
-        emit('progress', {'percentage': 25})
+        emit('progress', {'percentage': 25,'pin':session['login_pin']})
 
         # new_db = FAISS.load_local(faiss_index_path, embeddings, allow_dangerous_deserialization=True)
         conversation = get_conversation_chain(vector_store)
         response = conversation({"question": question})
         
         # Update progress to 50%
-        emit('progress', {'percentage': 50})
+        emit('progress', {'percentage': 50,'pin':session['login_pin']})
         time.sleep(0.5)
 
         doc_source = [response["source_documents"][0].metadata["source"]]
@@ -1622,7 +1733,7 @@ def handle_ask_question(data):
         senti_text_Q_A = ' '.join(entry['answer'] for entry in chat_history_list)
         
         # Update progress to 75%
-        emit('progress', {'percentage': 75})
+        emit('progress', {'percentage': 75,'pin':session['login_pin']})
         time.sleep(0.5)
 
         analyze_sentiment_Q_A(senti_text_Q_A)
@@ -1630,7 +1741,7 @@ def handle_ask_question(data):
         session['chat_history_qa'].extend(chat_history_list)
 
         # Update progress to 100%
-        emit('progress', {'percentage': 100})
+        emit('progress', {'percentage': 100,'pin':session['login_pin']})
 
         elapsed_time = time.time() - start_time
         g.flag = 1
@@ -1751,34 +1862,32 @@ def webcrawler_start(data):
     url = data['url']
     login_pin = data['login_pin']
     session['login_pin'] = login_pin  # Store the login_pin in session
-
+    write_stop_flag_to_csv(login_pin, 'False')
     # Create a unique folder for each user's downloaded files
     folder_name = os.path.join('static', 'files', str(login_pin))
     os.makedirs(folder_name, exist_ok=True)
-
     try:
         print("Received URL:", url)
         session['current_status'] = "Website URL Received"
         socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
-
         response = requests.get(url)
         pdf_info_list = extract_pdf_info_from_table(response.content)
-
         total_files = len(pdf_info_list)
         session['files_downloaded'] = 0
         session['progress_percentage'] = 0
-
         session['current_status'] = "Crawling in progress..."
         socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
-
         for pdf_name, pdf_link in pdf_info_list:
+            if check_stop_flag():
+                # write_stop_flag_to_csv(session['login_pin'], 'False')
+                print("Crawling Cancelled")
+                break
             try:
                 pdf_url = pdf_link
                 name = pdf_name.replace('/', '-')
                 if not name:
                     name = os.path.basename(urlparse(pdf_url).path)
                 download_pdf(pdf_url, folder_name, name)
-
                 session['files_downloaded'] += 1
                 session['progress_percentage'] = int(session['files_downloaded'] / total_files * 100)
                 current_file = name
@@ -1792,20 +1901,36 @@ def webcrawler_start(data):
                 })
             except Exception as e:
                 print(f"Error occurred: {e}")
-
-        session['current_status'] = "File downloaded successfully"
-        socketio.emit('update_progress', {
-            'current_status': session['current_status'],
-            'total_files': total_files,
-            'files_downloaded': session['files_downloaded'],
-            'progress_percentage': session['progress_percentage'],
-            'current_file': current_file,
-            'pin': login_pin
-        })
-        g.flag = 1
-        logger.info("Web Crawling done successfully")
-        socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
-        return jsonify({'message': 'All files downloaded successfully'})
+        if not check_stop_flag():
+            session['current_status'] = "File downloaded successfully"
+            socketio.emit('update_progress', {
+                'current_status': session['current_status'],
+                'total_files': total_files,
+                'files_downloaded': session['files_downloaded'],
+                'progress_percentage': session['progress_percentage'],
+                'current_file': current_file,
+                'pin': login_pin
+            })
+            g.flag = 1
+            write_stop_flag_to_csv(login_pin, 'False')
+            logger.info("Web Crawling done successfully")
+            socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
+            return jsonify({'message': 'Files Downloaded Successfully'})
+        else:
+            session['current_status'] = "File Downloading Stopped"
+            socketio.emit('update_progress', {
+                'current_status': session['current_status'],
+                'total_files': total_files,
+                'files_downloaded': session['files_downloaded'],
+                'progress_percentage': session['progress_percentage'],
+                'current_file': current_file,
+                'pin': login_pin
+            })
+            write_stop_flag_to_csv(login_pin, 'False')
+            g.flag = 0
+            logger.error("Web Crawling Stopped!")
+            socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
+            return jsonify({'message': 'Process Stopped!'})
     except Exception as e:
         session['current_status'] = "Error occurred"
         socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
@@ -1814,34 +1939,31 @@ def webcrawler_start(data):
         print("Exception of web crawling:", str(e))
         return jsonify({'message': 'URL Not found'})
 
-
 def extract_pdf_info_from_table(html_content):
     """
     Extracts PDF information from an HTML table.
-
     Args:
         html_content (str): HTML content containing the table.
-
     Returns:
         list: A list of tuples containing PDF name and link.
     """
     # Parse the HTML content
     soup = BeautifulSoup(html_content, 'html.parser')
-
     # Find all table rows
     rows = soup.find_all('tr')
-
     pdf_info_list = []
-
     # Iterate over each row
     for row in rows:
+        if check_stop_flag():
+            # write_stop_flag_to_csv(session['login_pin'], 'False')
+            print("Web Crawling Cancelled")
+            break
         # Extract data from each row
         cells = row.find_all('td')
         if len(cells) >= 2:
             pdf_name = cells[0].text.strip()
             pdf_link = cells[1].find('a')['href']
             pdf_info_list.append((pdf_name, pdf_link))
-
     return pdf_info_list
 
 
@@ -1934,9 +2056,9 @@ def delete_pdf_file(data):
             # Delete the file
             if res is True:
                 print("file deleted")
-                socketio.emit('delete_response', {'message': 'Successfully File Deleted'})
+                return socketio.emit('delete_response', {'message': 'Successfully File Deleted'})
             else:
-                socketio.emit('delete_response', {'message': 'Failed To Delete'})
+                return socketio.emit('delete_response', {'message': 'Failed To Delete'})
         else:
             # Assuming you have the folder name for Azure stored in `folder_name_azure`
             blob_name = f"{folder_name_azure}/{file_name}"
@@ -1956,14 +2078,14 @@ def delete_pdf_file(data):
 
         # Delete the file
         if res is True:
-            print("file deleted")
+            print("file deleted from temp")
             g.flag = 1  # Set flag to 1 on success1
-            logger.info(f"Successfully webcrawler File Loaded In Cognilink Application ")
-            socketio.emit('delete_response', {'message': 'Successfully File Loaded In Cognilink Application'})
+            logger.info(f"Successfully webcrawler File Loaded In Cognilink Application")
+            socketio.emit('delete_response', {'message': 'Successfully File Loaded In CogniLink Application'})
         else:
             g.flag = 0
             logger.error(f"Failed To Loaded In Cognilink Application", exc_info=True)
-            socketio.emit('delete_response', {'message': 'Failed To Loaded In Cognilink Application'})
+            socketio.emit('delete_response', {'message': 'Failed To Load File In CogniLink Application'})
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
         logger.error(f"Error in webcrawler File Loaded In Cognilink Application --select_pdf_file route error is::{e}", exc_info=True)
@@ -2084,8 +2206,6 @@ def blank():
 
 @app.route('/EDA', methods=['GET', 'POST'])
 def eda_analysis():
-    g.flag = 1
-    logger.info("Virtual analyst page accessed.")
     return render_template('EDA.html')
 
 
@@ -2096,8 +2216,6 @@ def signup():
 
 @app.route('/file_manager')
 def file_manager():
-    g.flag = 1
-    logger.info("Webcrawl file manager accessed.")
     return render_template('webCrawl_file_manager.html')
 
 

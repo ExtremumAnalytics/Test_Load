@@ -29,8 +29,10 @@ function sendQuestion() {
     socket.emit('ask_question', { question: question });
     
     socket.on('progress', function(data) {
-        updateProgressBar(data.percentage);
-        console.log(data.percentage)
+        if(data.pin==pin){
+            updateProgressBar(data.percentage);
+            console.log(data.percentage)
+        }
     });
     
     socket.on('response', function(response) {

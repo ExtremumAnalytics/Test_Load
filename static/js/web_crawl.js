@@ -109,11 +109,12 @@ function deleteSelectedFiles() {
     });
 }
 
+
 // Function to toggle all checkboxes (select/deselect)
 function toggleAllCheckboxes() {
     const checkboxes = document.querySelectorAll('#pdfTable tbody input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
-        checkbox.checked = !checkbox.checked; // Toggle the checked state
+        checkbox.checked = selectAllCheckbox.checked;
         if (checkbox.checked) {
             checkbox.parentNode.parentNode.classList.add('selected');
         } else {
@@ -121,3 +122,23 @@ function toggleAllCheckboxes() {
         }
     });
 }
+
+// Function to update the header checkbox state based on individual checkbox states
+function updateHeaderCheckbox() {
+    const headerCheckbox = document.getElementById('select-checkbox');
+    const checkboxes = document.querySelectorAll('#pdfTable tbody input[type="checkbox"]');
+    headerCheckbox.checked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+}
+
+// Add event listener to individual checkboxes to update header checkbox state
+document.addEventListener('DOMContentLoaded', () => {
+    const checkboxes = document.querySelectorAll('#pdfTable tbody input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            if (!checkbox.checked) {
+                document.getElementById('select-checkbox').checked = false;
+            }
+            updateHeaderCheckbox();
+        });
+    });
+});

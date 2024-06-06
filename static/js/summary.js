@@ -37,8 +37,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     socket.on('progress', function(data) {
-        var percentage = data.percentage;
-        updateProgressBar(percentage);
+        if(data.pin==pin){
+            updateProgressBar(data.percentage);
+        } 
     });
     
     function displaySummaries(summaries) {

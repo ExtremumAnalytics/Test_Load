@@ -30,7 +30,6 @@ function submitForm() {
 function stop_all() {
     let stop_flag = true;
     socket.emit('stop_process', { login_pin:pin, stop_flag: stop_flag });
-    var stopall = document.getElementById('stopButton');
     console.log(' stop button is  pressed')
 
     socket.on('stop_process_flag', function(data){
@@ -38,8 +37,6 @@ function stop_all() {
             console.log('Flag value received:',data.flag)
         }
     });
-    // socket.emit('stop_process', {  login_pin:pin });
-
 }
 
 function pdfclosePopup() {
@@ -228,7 +225,7 @@ function displayStats(totalScrapedFiles) {
 
 
 
-function deleteSelectedFiles() {
+function uploadSelectedFiles() {
     const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
     selectedRows.forEach(row => {
         const fileName = row.dataset.fileName;
@@ -376,8 +373,10 @@ $(document).ready(function () {
         $(".progress").show(); //Show the progress bar
         $("#waitImg1").show(); // Show the loading image
         socket.on('progress', function(data){
-            console.log('Percentage:',data.percentage);
-            updateProgressBar(data.percentage);
+            if(data.pin==pin){
+                console.log('Percentage:',data.percentage);
+                updateProgressBar(data.percentage);
+            }
         });
 
         $.ajax({
@@ -396,7 +395,9 @@ $(document).ready(function () {
             },
             error: function (error) {
                 console.error('Error in Loading CogniLink data:', error);
-                $("#waitImg1").hide(); // Hide the loading image on error
+                $("#waitImg1").hide(); // Hide the loading image on success
+                $(".progress").hide(); //Hide the progress bar
+
             }
         });
     });
