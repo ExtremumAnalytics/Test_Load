@@ -241,7 +241,6 @@ function uploadSelectedFiles() {
 
         socket.on('delete_response', function(data) {
             $('#messagedelopload').text(data.message);
-            updateTable();
             setTimeout(function() {
                 $('#messagedelopload').text('');
             }, 8000);
@@ -379,7 +378,6 @@ $(document).ready(function () {
                 updateProgressBar(data.percentage);
             }
         });
-
         $.ajax({
             url: '/Cogni_button',
             type: 'GET',
@@ -398,7 +396,6 @@ $(document).ready(function () {
                 console.error('Error in Loading CogniLink data:', error);
                 $("#waitImg1").hide(); // Hide the loading image on success
                 $(".progress").hide(); //Hide the progress bar
-
             }
         });
     });
