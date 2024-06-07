@@ -526,7 +526,6 @@ def update_when_file_delete():
                 gauge_source_chart_data = gauge_chart_auth()
                 socketio.emit('update_gauge_chart', gauge_source_chart_data)
             socketio.emit('progress', {'percentage': 75,'pin':session['login_pin']})
-
             time.sleep(2)
         if Source_URL != "":
             session['total_files_list'] += 1
@@ -565,8 +564,7 @@ def update_when_file_delete():
             socketio.emit('update_gauge_chart', gauge_source_chart_data)
 
         socketio.emit('progress', {'percentage':100,'pin':session['login_pin']})
-
-        time.sleep(2)
+        time.sleep(0.5)
         socketio.emit('pending', session['embedding_not_created'])
         socketio.emit('failed', session['failed_files'])
         socketio.emit('success', session['progress_files'])
@@ -1112,14 +1110,14 @@ class CSVLogHandler(logging.Handler):
         if not os.path.exists(filename):
             with open(filename, mode='w', newline='', encoding=self.encoding) as csvfile:
                 writer = csv.DictWriter(csvfile,
-                                        fieldnames=['timestamp', 'level', 'user_id', 'function', 'line_number', 'flag',
+                                        fieldnames=['timestamp', 'category', 'user_id', 'function', 'line_number', 'flag',
                                                     'message', 'exception'])
                 writer.writeheader()
 
     def emit(self, record):
         log_entry = {
             'timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'level': record.levelname,
+            'category': record.levelname,
             'user_id': getattr(record, 'user_id', 'unknown_user'),
             'function': record.funcName,
             'line_number': record.lineno,
@@ -1150,7 +1148,7 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         # Write header to the new file when initializing
         with open(self.baseFilename, mode='w', newline='', encoding=self.encoding) as csvfile:
             writer = csv.DictWriter(csvfile,
-                                    fieldnames=['timestamp', 'level', 'user_id', 'function', 'line_number', 'flag',
+                                    fieldnames=['timestamp', 'category', 'user_id', 'function', 'line_number', 'flag',
                                                 'message', 'exception'])
             writer.writeheader()
 
@@ -1161,7 +1159,7 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         # Write header to the new file
         with open(self.baseFilename, mode='w', newline='', encoding=self.encoding) as csvfile:
             writer = csv.DictWriter(csvfile,
-                                    fieldnames=['timestamp', 'level', 'user_id', 'function', 'line_number', 'flag',
+                                    fieldnames=['timestamp', 'category', 'user_id', 'function', 'line_number', 'flag',
                                                 'message', 'exception'])
             writer.writeheader()
 
@@ -1204,6 +1202,7 @@ def home():
             session.modified = True
             session['logged_in'] = True
             session['login_pin'] = user.login_pin
+            session['user_name'] = f"{user.first_name.title()} {user.last_name.title()}"
             session['engine'] = engine
             session['bar_chart_ss'] = {}
             session['over_all_readiness'] = 0
@@ -1257,10 +1256,11 @@ def home():
             g.flag = 1
             logger.info(f"User {str(session['login_pin'])} logged in successfully")
             update_bar_chart_from_blob(session, blob_service_client, container_name)
+            print(session['user_name'])
             return jsonify({'redirect': url_for('data_source')})
 
         g.flag = 0
-        logger.error(f"Invalid login attempt for Group User {group_user} with PIN {pin}",exc_info=True)
+        logger.error(f"Invalid login attempt for Group User {group_user} with PIN {pin}", exc_info=True)
         flash('Invalid Group User or PIN Or Status Deactivate. Please try again.', 'error')
         return jsonify({'redirect': url_for('home')})
 
@@ -1303,6 +1303,7 @@ def handle_connect():
     # socketio.emit('update_pie_chart', pie_chart_data)
     socketio.emit('update_bar_chart', bar_chart_data)
     socketio.emit('update_gauge_chart', gauge_source_chart_data)
+    socketio.emit('userName', {'userName': session['user_name'], 'pin': session['login_pin']})
 
 
 @socketio.on('send_data')
@@ -1561,7 +1562,6 @@ def Cogni_button():
         start_time = time.time()
         g.flag = 1
         logger.info('CogniLink load button pressed')
-
         write_stop_flag_to_csv(session['login_pin'], 'False')
         socketio.emit('progress', {'percentage' : 10,'pin':session['login_pin']})
         print('Stop Flag Value-------------------------->', check_stop_flag())
@@ -1578,7 +1578,6 @@ def Cogni_button():
             time.sleep(0.5)
             write_stop_flag_to_csv(session['login_pin'], 'False')
             socketio.emit('button_response', {'message': 'Data loaded successfully', 'pin': session['login_pin']})
-
         return response
     except Exception as e:
         g.flag = 0

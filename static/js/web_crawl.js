@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         socket.emit('fetch_pdf_files');
     }
     // Pass the received data directly to displayPDFFiles
-    displayPDFFiles(data.pdf_files);
+    // displayPDFFiles(data.pdf_files);
 });
 
 // Display PDF files in the table
@@ -40,14 +40,16 @@ function displayPDFFiles(pdfFiles) {
         const dateCell = document.createElement('td');
 
         const checkbox = document.createElement('input');
+        checkbox.id = 'select-checkbox';
         checkbox.type = 'checkbox';
-        checkbox.addEventListener('change', function() {
-            if (this.checked) {
-                row.classList.add('selected');
-            } else {
-                row.classList.remove('selected');
-            }
-        });
+        checkbox.onclick = function() { updateHeaderCheckbox(); }
+        // checkbox.addEventListener('change', function() {
+        //     if (this.checked) {
+        //         row.classList.add('selected');
+        //     } else {
+        //         row.classList.remove('selected');
+        //     }
+        // });
 
         checkboxCell.appendChild(checkbox);
         row.appendChild(checkboxCell);
@@ -83,35 +85,35 @@ function displayStats(totalScrapedFiles) {
     statsContainer.appendChild(scrapedFilesElement);
 }
 
-// Delete seleted file from file manager
-function deleteSelectedFiles() {
-    const socket = io();
-    const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
-    selectedRows.forEach(row => {
-        const fileName = row.dataset.fileName; // Get the file name from the row's data attribute
+// // Delete seleted file from file manager
+// function deleteSelectedFiles() {
+//     const socket = io();
+//     const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
+//     selectedRows.forEach(row => {
+//         const fileName = row.dataset.fileName; // Get the file name from the row's data attribute
 
-        // Send a request to Flask route via Socket.IO
-        socket.emit('delete_pdf_file', {
-            fileName: fileName
-        });
-        row.remove();
-        // Print the file name before sending the request
-        console.log('File name:', fileName);
-    });
+//         // Send a request to Flask route via Socket.IO
+//         socket.emit('delete_pdf_file', {
+//             fileName: fileName
+//         });
+//         row.remove();
+//         // Print the file name before sending the request
+//         console.log('File name:', fileName);
+//     });
 
-    // Define the event listener for delete_response outside the deleteSelectedFiles function
-    socket.on('delete_response', function(data) {
-        $('#messagedelopload').text(data.message);
-        setTimeout(function() {
-            $('#messagedelopload').text('');
-        }, 8000); // Clear the message after 8 seconds
-        console.log(data.message);
-    });
-}
+//     // Define the event listener for delete_response outside the deleteSelectedFiles function
+//     socket.on('delete_response', function(data) {
+//         $('#messagedelopload').text(data.message);
+//         setTimeout(function() {
+//             $('#messagedelopload').text('');
+//         }, 8000); // Clear the message after 8 seconds
+//         console.log(data.message);
+//     });
+// }
 
 
-// Function to toggle all checkboxes (select/deselect)
-function toggleAllCheckboxes() {
+// Function to set all checkboxes to the same state as the "Select All" checkbox
+function toggleAllCheckboxes(selectAllCheckbox) {
     const checkboxes = document.querySelectorAll('#pdfTable tbody input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;

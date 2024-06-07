@@ -91,7 +91,9 @@
                     <div class="nav-item dropdown">
                         <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
                             <img class="rounded-2 me-lg-2" src="static/img/ea_symbol.png" alt="" style="width: 35px; height: 25px;">
-                            <span class="d-none d-lg-inline-flex">Admin</span>
+                            <span id="userName" class="d-none d-lg-inline-flex">
+                                <!-- User Name  -->
+                            </span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
                             <a href="#" class="dropdown-item">My Profile</a>
@@ -517,7 +519,7 @@
     <script src="{{ url_for('static', filename='js/slider.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dateslide.js') }}"></script>
     <script src="{{ url_for('static', filename='js/warningpop.js') }}"></script>
-    <!-- <script src="{{ url_for('static', filename='js/path_dd.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/user_details.js') }}"></script>
     <!--script src="{{ url_for('static', filename='js/socket_io_lib.js') }}" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script-->
 </body>
 

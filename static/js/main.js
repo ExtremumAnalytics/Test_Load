@@ -56,5 +56,4 @@
         loop: true,
         nav : false
     });
-    
 })(jQuery);
