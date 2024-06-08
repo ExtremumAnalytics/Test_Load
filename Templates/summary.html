@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Cogni Link</title>
+    <title>LegalLink</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="" name="keywords">
     <meta content="" name="description">
@@ -58,15 +58,15 @@
         <!-- Sidebar Start -->
         <div class="sidebar pe-4 pb-2">
             <nav class="navbar">
-                <a href="{{url_for('data_source')}}" class="navbar-brand mx-2 mb-2">
+                <a href="{{url_for('user')}}" class="navbar-brand mx-2 mb-2">
                     <img class="logo" src="static/img/ea_logo.png" alt="EA Logo">
                 </a>
                 <ul class="navbar-nav">
-                    <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-database"></i>Data Source</a></li>
+                    <li><a href="{{url_for('user')}}" class="nav-link"><i class="fa fa-database"></i>Add Information</a></li>
                     <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-question-circle"></i>Ask Question</a></li>
                     <li><a href="{{url_for('summary')}}" class="nav-link"><i class="fa fa-list-alt"></i>Summary</a></li>
-                    <li><a href="{{url_for('eda_analysis')}}" class="nav-link"><i class="fa fa-chart-bar"></i>Virtual Analyst</a></li>
-                    <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-chart-pie"></i>Virtual Data Scientist</a></li>
+                    <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-file"></i>Drafts</a></li>
+                    <li><a href="{{url_for('blank')}}" class="nav-link"><i class="fa fa-database"></i>My Files</a></li>
                 </ul>
             </nav>
         </div>
@@ -77,7 +77,7 @@
         <div class="content">
             <!-- Navbar Start -->
             <nav class="navbar navbar-expand bg-light navbar-light sticky-top px-4 py-0">
-                <a href="{{url_for('data_source')}}" class="navbar-brand d-flex d-lg-none me-4">
+                <a href="{{url_for('user')}}" class="navbar-brand d-flex d-lg-none me-4">
                     <h2 class="text-primary mb-0"><img src="static/img/ea_symbol.png" style="width: 35px; height: 30px;"></h2>
                 </a>
                 <a href="#" class="sidebar-toggler flex-shrink-0">
@@ -206,7 +206,7 @@
                 <div class="bg-light rounded-top p-2">
                     <div class="row">
                         <div class="col-12 col-sm-6 text-center text-sm-start">
-                            &copy; <a href="{{url_for('data_source')}}">CogniLink</a>, All Right Reserved.
+                            &copy; <a href="{{url_for('user')}}">LegalLink</a>, All Right Reserved.
                         </div>
                         <div class="col-12 col-sm-6 text-center text-sm-end">
                             Powered By <a href="https://www.extremumanalytics.com/">Extremum Analytics</a>

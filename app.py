@@ -1202,6 +1202,7 @@ def home():
             session.modified = True
             session['logged_in'] = True
             session['login_pin'] = user.login_pin
+            session['user_group'] = user_role.name
             session['user_name'] = f"{user.first_name.title()} {user.last_name.title()}"
             session['engine'] = engine
             session['bar_chart_ss'] = {}
@@ -1239,13 +1240,6 @@ def home():
             else:
                 g.flag = 0
                 logger.error("User Session Not Found!", exc_info=True)
-            # log_file_name = os.path.join(folder_name, 'logfile.csv')
-            # handler = CSVLogHandler(log_file_name)
-            # logger = logging.getLogger(__name__)
-            # logger.setLevel(logging.INFO)
-            # if logger.hasHandlers():
-            #     logger.handlers.clear()
-            # logger.addHandler(handler)
             logger = CustomLoggerAdapter(logger, {'user_id': session['login_pin']})
 
             create_or_pass_folder(container_client, session)
@@ -1257,7 +1251,10 @@ def home():
             logger.info(f"User {str(session['login_pin'])} logged in successfully")
             update_bar_chart_from_blob(session, blob_service_client, container_name)
             print(session['user_name'])
-            return jsonify({'redirect': url_for('data_source')})
+            if session['user_group']=='Admin':
+                return jsonify({'redirect': url_for('data_source')})
+            else:
+                return jsonify({'redirect': url_for('user')})
 
         g.flag = 0
         logger.error(f"Invalid login attempt for Group User {group_user} with PIN {pin}", exc_info=True)
@@ -1294,6 +1291,10 @@ def data_source():
     update_bar_chart_from_blob(session, blob_service_client, container_name)
     return render_template('DataSource.html')
 
+@app.route('/user', methods=['GET', 'POST'])
+def user():
+    update_bar_chart_from_blob(session, blob_service_client, container_name)
+    return render_template('user.html')
 
 @socketio.on('connect')
 def handle_connect():
