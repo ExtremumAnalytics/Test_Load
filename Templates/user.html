@@ -59,11 +59,11 @@
         <!-- Sidebar Start -->
         <div class="sidebar pe-4 pb-2">
             <nav class="navbar">
-                <a href="{{url_for('data_source')}}" class="navbar-brand mx-2 mb-2">
+                <a href="{{url_for('user')}}" class="navbar-brand mx-2 mb-2">
                     <img class="logo" src="static/img/ea_logo.png" alt="EA Logo">
                 </a>
                 <ul class="navbar-nav">
-                    <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-database"></i>Add Information</a></li>
+                    <li><a href="{{url_for('user')}}" class="nav-link"><i class="fa fa-database"></i>Add Information</a></li>
                     <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-question-circle"></i>Ask Question</a></li>
                     <li><a href="{{url_for('summary')}}" class="nav-link"><i class="fa fa-list-alt"></i>Summary</a></li>
                     <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-file"></i>Drafts</a></li>
@@ -78,7 +78,7 @@
         <div class="content">
             <!-- Navbar Start -->
             <nav class="navbar navbar-expand bg-light navbar-light sticky-top px-4 py-0">
-                <a href="{{url_for('data_source')}}" class="navbar-brand d-flex d-lg-none me-4">
+                <a href="{{url_for('user')}}" class="navbar-brand d-flex d-lg-none me-4">
                     <h2 class="text-primary mb-0"><img src="static/img/ea_symbol.png" style="width: 35px; height: 30px;"></h2>
                 </a>
                 <a href="#" class="sidebar-toggler flex-shrink-0">
@@ -105,14 +105,11 @@
             </nav>
             <!-- Navbar End -->
 
-            <!-- <div class="container-welcome mt-2">
-                <h4 class="welcome">Welcome to LegalLink!</h4>
-                <hr class="dropdown-divider">
-            </div>    -->
             <!-- Welcome container with halt button -->
             <div class="container-welcome mt-2">
                 <div class="d-flex justify-content-between align-items-center">
                     <h4 class="welcome">Welcome to LegalLink!</h4>
+                    <button type="button" id="fileManagerBtn" class="btn btn-primary m-2" onclick="displayWebCrawFileManager()" style="font-size: 14px;">Admin Vault</button>
                     <button id="stopButton" onclick="stop_all()" class="btn btn-danger">&#10006;</button>
                 </div>
                 <hr class="dropdown-divider">
@@ -133,7 +130,7 @@
 
             <!-- Data Source buttons Start -->
             <div class="container-fluid pt-2 px-4">
-                <label class="mb-2" style="color: #000000;">Select Data Source:</label>
+                <label class="mb-2" style="color: #000000;">Select Source:</label>
                 <div class="row g-2">
                     <div class="col-auto">
                         <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Documents')">
@@ -151,14 +148,14 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-auto">
+                    <!-- <div class="col-auto">
                         <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Web Crawling')">
                             <i class="fa fa-solid fa-file "></i>
                             <div class="ms-2">
                                 <p class="mb-0" style="color: #000000;"><a href="#">Web Crawling</a></p>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                     <div class="col-auto">
                         <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Source URL')">
                             <i class="fa fa-solid fa-file "></i>
@@ -167,7 +164,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-auto">
+                    <!-- <div class="col-auto">
                         <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Database')">
                             <i class="fa fa-solid fa-database "></i>
                             <div class="ms-2">
@@ -198,7 +195,8 @@
                                 <p class="mb-0" style="color: #000000;"><a href="#">Share Point</a></p>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
+                    <!-- <button type="button" id="fileManagerBtn" class="btn btn-primary m-2" onclick="displayWebCrawFileManager()" style="font-size: 14px;">Admin Vault</button> -->
                 </div>
             </div>
             <!-- Data Source End -->
@@ -230,7 +228,7 @@
                         <p style="color:#000000;">Linking Successful. Please Load the LegalLink!</p>
                     </div>
 
-                    <!-- After Load LegalLink -->
+                    <!-- After Load LegalLinks -->
                     <div id="loadData" class="p-2" style="display: none;">
                         <p style="color:#000000;">Load LegalLink Successful!</p>
                     </div>
@@ -426,7 +424,7 @@
             <div id="vault_container" class="container-fluid pt-4 px-4">
                 <div class="bg-light justify-content-center rounded p-4">
                     <div class="d-flex align-items-center justify-content-between mb-4">
-                        <h6 class="mb-0">Explore Vault</h6>
+                        <h6 class="mb-0">Explore Document Library</h6>
                         <div class="col-md-3"> <!-- Column for the search bar -->
                             <div class="input-group">
                                 <input type="text" class="rounded mx-2 form-control" id="searchInput" placeholder="Search Files">
@@ -482,7 +480,7 @@
                 <div class="bg-light rounded-top p-4">
                     <div class="row">
                         <div class="col-12 col-sm-6 text-center text-sm-start">
-                            &copy; <a href="{{url_for('data_source')}}">LegalLink</a>, All Right Reserved. 
+                            &copy; <a href="{{url_for('user')}}">LegalLink</a>, All Right Reserved. 
                         </div>
                         <div class="col-12 col-sm-6 text-center text-sm-end">
                             Powered By <a href="www.extremumanalytics.com">Extremum Analytics</a>

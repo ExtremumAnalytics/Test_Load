@@ -238,12 +238,12 @@ function uploadSelectedFiles() {
             fileName: fileName,
             login_pin: pin
         });
-
         socket.on('delete_response', function(data) {
             $('#messagedelopload').text(data.message);
             setTimeout(function() {
                 $('#messagedelopload').text('');
             }, 8000);
+            // setTimeout(updateTable, 10000);
             console.log(data.message);
         });
     });
@@ -453,6 +453,7 @@ function isPowerPoint(filename) {
 }
 // Checking and returning the different file types END
 
+
 // Updating Digital Vault
 function updateTable(searchTerm) {
     $.ajax({
@@ -551,7 +552,7 @@ function handleSearch() {
     updateTable(searchTerm);
 }
 
-// Call updateTable function every 5 seconds
+// Call updateTable function 
 $(document).ready(function() {
     // Initial call
     updateTable();
@@ -561,6 +562,10 @@ $(document).ready(function() {
 
     // Bind search button click event
     $('#searchButton').click(handleSearch);
+    // socket.on('updateTable', function(data){
+    //     console.log(data);
+    //     updateTable();
+    // });
 });
 
 // Function to delete selected files

@@ -55,6 +55,18 @@
 
         <!-- Sign In Start -->
         <div class="container-fluid">
+            <!-- Flash Message -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-container">
+                <ul class="flashes">
+                  {% for category, message in messages %}
+                  <label class="{{ category }}">{{ message }}</label>
+                  {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+                {% endwith %}
             <form action="/" method="POST">
                 <div class="row rounded align-items-center justify-content-center" style="min-height: 100vh;">
 
@@ -64,7 +76,7 @@
                     <div class="col-12 col-sm-8 col-md-6 col-lg-5 col-xl-4 mx-auto">
                         <div class="bg-light rounded p-4 p-sm-5 my-4 mx-3">
                             <div class="d-flex justify-content-center mb-3">
-                                <a href="{{url_for('signin')}}" class="">
+                                <a href="{{url_for('home')}}" class="">
                                     <h3 class="text-primary"><img src="static/img/ea_symbol.png" class="mx-2" style="width: 45px; height: 30px;">LegalLink</h3>
                                 </a>
                                 <!-- <h3>Sign In</h3> -->
@@ -81,10 +93,19 @@
                                 <input type="password" class="form-control" id="main_UserPin" placeholder="User Pin">
                                 <label for="floatingPassword">Pin Validation</label>
                             </div>
+                            <div class="form-floating mb-3">
+                                <select class="dropdown form-control" name="engine_menu">
+                                    <option value="GPT-3.5 turbo" name="engine_menu">GPT-3.5 turbo</option>
+                                    <option value="GPT-4" name="engine_menu">GPT-4</option>
+                                    <option value="GPT-4o" name="engine_menu">GPT-4o</option>
+                                </select>
+                                <label for="floatingInput">Choose your Engine</label>
+                            </div>
+
                             <div class="col-lg-12 d-flex justify-content-center mb-2">
                                 <div class="button-group mt-2">
-                                    <button type="submit" id="submitButton" class="btn btn-primary mr-2">Authenticate Pin</button>
-                                    <button type="reset" class="btn btn-primary mr-2">Forgot Pin</button>
+                                    <button type="submit" id="submitButton" class="btn btn-primary m-2">Authenticate Pin</button>
+                                    <button type="reset" class="btn btn-primary m-2">Forgot Pin</button>
                                 </div>
                             </div>
                             <p class="text-center mb-0">Don't have an Account? <a href="">Sign Up</a></p>
@@ -110,9 +131,6 @@
     <!-- Template Javascript -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/Authpin.js') }}"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </body>
 
