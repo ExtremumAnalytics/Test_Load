@@ -235,10 +235,6 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
         # Read the content of file_content
         content = file_content.read()
 
-        # # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
-        # blob_client.upload_blob(content, blob_type="BlockBlob",
-        #                         content_settings=ContentSettings(content_type="application/octet-stream"),
-        #                         overwrite=True)
         # Upload with overwrite and proper content type handling
         blob_client.upload_blob(content, blob_type="BlockBlob",
                                 content_settings=ContentSettings(content_type=file_content.content_type),
@@ -1251,10 +1247,7 @@ def home():
             logger.info(f"User {str(session['login_pin'])} logged in successfully")
             update_bar_chart_from_blob(session, blob_service_client, container_name)
             print(session['user_name'])
-            if session['user_group']=='Admin':
-                return jsonify({'redirect': url_for('data_source')})
-            else:
-                return jsonify({'redirect': url_for('user')})
+            return jsonify({'redirect': url_for('data_source')})
 
         g.flag = 0
         logger.error(f"Invalid login attempt for Group User {group_user} with PIN {pin}", exc_info=True)
@@ -1288,13 +1281,19 @@ def check_session():
 
 @app.route('/data_source', methods=['GET', 'POST'])
 def data_source():
-    update_bar_chart_from_blob(session, blob_service_client, container_name)
-    return render_template('DataSource.html')
+    if session['user_group']=='Admin':
+        update_bar_chart_from_blob(session, blob_service_client, container_name)
+        return render_template('admin/DataSource.html')
+
+    else:
+        update_bar_chart_from_blob(session, blob_service_client, container_name)
+        return render_template('user/user.html')
+
 
 @app.route('/user', methods=['GET', 'POST'])
 def user():
     update_bar_chart_from_blob(session, blob_service_client, container_name)
-    return render_template('user.html')
+    return render_template('user/user.html')
 
 @socketio.on('connect')
 def handle_connect():
@@ -1339,9 +1338,6 @@ def popup_form():
     global Limit_By_Size, Source_URL
     if request.method == 'POST':
         if 'myFile' in request.files:
-            # if 'myFile' in request.files or 'audio_file' in request.files:
-            #     print('Not Any File Fond')
-            #     return jsonify({'message': 'File not Fond'}), 400
             mb_pop = 0  # Initialize mb_pop before the loop
             files = request.files.getlist('myFile')
             if not len(files):
@@ -1366,11 +1362,6 @@ def popup_form():
             for file in files:
                 upload_to_blob(file, session, blob_service_client, container_name)
 
-        # elif request.form.get('dbURL', ''):
-        #     db_url = request.form.get('dbURL', '')
-        #     username = request.form.get('username', '')
-        #     password = request.form.get('password', '')
-        #     print('database url n all.......', db_url, username, password)
         else:
             if not request.form.get('Source_URL', ''):
                 print('No Source_URL Fond')
@@ -1589,8 +1580,12 @@ def Cogni_button():
 
 @app.route("/Summary", methods=['GET', 'POST'])
 def summary():
-    session['summary_word_cpunt'] = 0
-    return render_template('summary.html')
+    if session['user_group']=='Admin':
+        session['summary_word_cpunt'] = 0
+        return render_template('admin/summary.html')
+    else:
+        session['summary_word_cpunt'] = 0
+        return render_template('user/summary.html')
 
 
 @socketio.on('summary_input')
@@ -1686,7 +1681,10 @@ def handle_clear_chat_summ(data):
 
 @app.route('/CogniLink_Services_QA', methods=['GET', 'POST'])
 def ask():
-    return render_template('ask.html')
+    if session['user_group']=='Admin':
+        return render_template('admin/ask.html')
+    else:
+        return render_template('user/ask.html')
 
 
 @socketio.on('ask_question')
@@ -1829,20 +1827,21 @@ def get_data_source():
         # Construct the data with status based on lists
         data = []
         for blob in blobs:
-            file_name = blob.name.split('/')[1]
-            if file_name in progress_files:
-                status = 'U | EC'
-            elif file_name in failed_files:
-                status = 'U | F'
-            elif file_name in embedding_not_created:
-                status = 'U | ENC'
-            else:
-                status = 'U | ENC'
-            data.append({
-                'name': file_name,
-                'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
-                'status': status
-            })
+            if blob.name.split('/')[1]!='draft':
+                file_name = blob.name.split('/')[1]
+                if file_name in progress_files:
+                    status = 'U | EC'
+                elif file_name in failed_files:
+                    status = 'U | F'
+                elif file_name in embedding_not_created:
+                    status = 'U | ENC'
+                else:
+                    status = 'U | ENC'
+                data.append({
+                    'name': file_name,
+                    'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
+                    'status': status
+                })
 
         g.flag = 1  # Set flag to 1 on success
         logger.info(f"table_update route successfully send data")
@@ -1855,6 +1854,59 @@ def get_data_source():
         logger.error(f"table_update route error", exc_info=True)
         print(f"Exceptions is{e}")
         return jsonify({'error': str(e)}), 500
+
+@socketio.on('requestAdminVaultData')
+def handle_request_admin_vault_data():
+    admin_vault_data = []
+    blobs = container_client.list_blobs()
+    for blob in blobs:
+        # Extract the ID from the blob name (up to the first slash)
+        id_from_name = blob.name.split('/')[0]
+
+        # Use the role_id_mapping to find the corresponding role_id for 'Admin'
+        role_id_mapping = {'Admin': 1, 'Guest': 2, 'ML Engine': 3}
+        role_id = role_id_mapping.get('Admin')
+
+        # Query the database to check if this ID has a user role of 'Admin'
+        user_role = UserRole.query.filter_by(role_id=role_id).first()
+        user = UserDetails.query.filter_by(role_id=role_id, login_pin=id_from_name, status='Active').first()
+
+        if user and user_role:
+            admin_vault_data.append({
+                'name': blob.name,
+                'url': f'https://{account_name}.blob.core.windows.net/{container_name}/{blob.name}'
+            })
+
+    emit('adminVaultData', admin_vault_data)
+    # for blob in blobs:
+    #     admin_vault_data.append({
+    #         'name': blob.name,
+    #         'url': f'https://{account_name}.blob.core.windows.net/{container_name}/{blob.name}'
+    #     })
+    # emit('adminVaultData', admin_vault_data)
+
+@socketio.on('upload_to_user_vault')
+def handle_upload_to_user_vault(data):
+    try:
+        file_urls = data.get('files', [])
+
+        if not file_urls:
+            emit('upload_to_user_vault_response', {'message': 'No files selected for upload', 'success': False})
+            return
+
+        user_folder = str(session.get('login_pin'))
+        for file in file_urls:
+            file_url = file['url']
+            blob_name = f"{user_folder}/{file_url.split('/')[-1]}"
+            source_blob = BlobClient.from_blob_url(file_url)
+            destination_blob = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+
+            source_blob_data = source_blob.download_blob().readall()
+            destination_blob.upload_blob(source_blob_data, blob_type="BlockBlob", overwrite=True)
+
+        emit('upload_to_user_vault_response', {'message': 'Files uploaded to user vault successfully', 'success': True})
+    except Exception as e:
+        emit('upload_to_user_vault_response', {'message': str(e), 'success': False})
 
 
 @socketio.on('webcrawler_start')
@@ -2201,12 +2253,18 @@ def handle_eda_process(data):
 
 @app.route('/blank')
 def blank():
-    return render_template('blank.html')
+    if session['user_group']=='Admin':
+        return render_template('admin/blank.html')
+    else:
+        return render_template('user/blank.html')
 
 
 @app.route('/EDA', methods=['GET', 'POST'])
 def eda_analysis():
-    return render_template('EDA.html')
+    if session['user_group']=='Admin':
+        return render_template('admin/EDA.html')
+    else:
+        return render_template('user/EDA.html')
 
 
 @app.route('/signup')
@@ -2216,8 +2274,114 @@ def signup():
 
 @app.route('/file_manager')
 def file_manager():
-    return render_template('webCrawl_file_manager.html')
+    if session['user_group']=='Admin':
+        return render_template('admin/webCrawl_file_manager.html')
+    else:
+        return render_template('user/webCrawl_file_manager.html')
 
+def upload_draft_to_blob(file_content, session, blob_service_client, container_name):
+    """Uploads a file to Azure Blob Storage with enhanced security and error handling.
+
+    Args:
+        file_content (http.MultipartFile): The file object to upload.
+        session (dict): User session dictionary.
+        blob_service_client (BlobServiceClient): Azure Blob Service client instance.
+        container_name (str): Name of the Azure Blob Storage container.
+
+    Returns:
+        str: URL of the uploaded blob or an error message.
+    """
+    global blob_client
+
+    if 'login_pin' not in session:
+        return "Error: 'login_pin' not found in session."
+    try:
+        folder_name = str(session['login_pin'])
+
+        blob_name = f"{folder_name}/draft/{file_content.filename}"
+        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+
+        # Read the content of file_content
+        content = file_content.read()
+
+        # Upload with overwrite and proper content type handling
+        blob_client.upload_blob(content, blob_type="BlockBlob",
+                                content_settings=ContentSettings(content_type=file_content.content_type),
+                                overwrite=True)
+        # Set metadata including draftType
+        blob_client.set_blob_metadata({'draftType': request.form.get('draftType')})
+
+    except Exception as e:
+        g.flag = 0  # Set flag to 1 on success1
+        logger.error(f"Function upload_draft_to_blob error", exc_info=True)
+        print('upload_to_blob----->', str(e))
+
+    # Return the URL of the uploaded Blob
+    g.flag = 1  # Set flag to 1 on success1
+    logger.info(f"Function upload_draft_to_blob successfully created blob_client.url")
+    return blob_client.url
+
+
+@app.route('/upload_draft', methods=['POST'])
+def upload_draft():
+    try:
+        if 'files' not in request.files:
+            return jsonify({'success': False, 'message': 'No files part in the request'}), 400
+
+        files = request.files.getlist('files')
+        draft_type = request.form.get('draftType')
+        uploaded_files = []
+
+        for file in files:
+            if file:
+                url = upload_draft_to_blob(file, session, blob_service_client, container_name)
+                uploaded_files.append({'name': f"draft/{file.filename}", 'url': url, 'draftType': draft_type})
+        g.flag = 1
+        logger.info('Draft Uploaded Successfully')
+        return jsonify({'success': True, 'files': uploaded_files})
+
+    except Exception as e:
+        g.flag = 0
+        logger.error('Invalid Request Method', exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/draft_table_update', methods=['GET'])
+def draft_table_update():
+    try:
+        # Your code to fetch draft data from storage
+        container_client = blob_service_client.get_container_client(container_name)
+        blob_list = container_client.list_blobs(name_starts_with=str(session.get('login_pin')))
+
+        blobs = []
+        # for blob in blob_list:
+        #     blobs.append({
+        #         'name': blob.name,
+        #         'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
+        #         'status': 'Uploaded'  # or other status based on your logic
+        #     })
+        for blob in blob_list:
+            if blob.name.split('/')[1]=='draft':
+                # Fetch draftType from metadata
+                blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
+                draft_type = blob_client.get_blob_properties().metadata.get('draftType', 'Unknown')
+                blobs.append({
+                    'name': blob.name.split('/')[-1],
+                    'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
+                    'draftType': draft_type,
+                    'status': 'Uploaded'  # or other status based on your logic
+                })
+        return jsonify(blobs)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/Create_draft', methods=['GET', 'POST'])
+def draft():
+    if session['user_group']=='Admin':
+        return render_template('admin/drafts.html')
+    else:
+        return render_template('user/drafts.html')
 
 @app.route('/_404')
 def _404():

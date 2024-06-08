@@ -4,7 +4,6 @@ function closeWindow(){
 
 // File Manager data fetch code
 document.addEventListener('DOMContentLoaded', (event) => {
-    // const socket = io("wss://ea-resource.azurewebsites.net");
     const socket = io();
 
     socket.on('connect', () => {

@@ -390,7 +390,7 @@ $(document).ready(function () {
                     $('#message').text('');
                 }, 8000);
                 console.log('Data is Loaded:', data);
-                dataLoadUpdate();
+                LoadUpdate();
             },
             error: function (error) {
                 console.error('Error in Loading CogniLink data:', error);
@@ -410,7 +410,7 @@ $(document).ready(function () {
     });
 });
 
-function dataLoadUpdate() {
+function LoadUpdate() {
     // Add your logic here to handle data load update
     console.log('Data load update function called');
 }

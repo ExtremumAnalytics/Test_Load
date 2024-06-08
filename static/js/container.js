@@ -116,15 +116,15 @@ function scrollToVault(){
     vault.scrollIntoView({behavior: 'smooth'});
 }
 
-// Select All Button Function
-function toggleSelectAll(){
-    var checkboxes = document.querySelectorAll('#table-body input[type="checkbox"]');
-    var selectAllCheckbox = document.getElementById('selectAll');
+// // Select All Button Function
+// function toggleSelectAll(){
+//     var checkboxes = document.querySelectorAll('#table-body input[type="checkbox"]');
+//     var selectAllCheckbox = document.getElementById('selectAll');
 
-    checkboxes.forEach(function(checkbox){
-        checkbox.checked = selectAllCheckbox.checked;
-    });
-}
+//     checkboxes.forEach(function(checkbox){
+//         checkbox.checked = selectAllCheckbox.checked;
+//     });
+// }
 
 // // Data Base Connection Form
 // document.getElementById('dbForm').onsubmit = async (event) => {
