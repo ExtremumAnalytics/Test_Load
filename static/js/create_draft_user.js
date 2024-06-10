@@ -19,7 +19,22 @@ function updateProgressBar(percentage) {
 function sendQuestion() {
     const socket=io();
     var question = document.getElementById("question").value.trim(); // Trim the question
+    const draftType = document.getElementById('draftTypeDropdown').value;
+    if (!draftType) {
+        alert('Please select a draft type.');
+        return;
+    }
 
+    socket.emit('get_draft_by_type', { draftType });
+
+    socket.on('draft_response', (data) => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            const googleDocsViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(data.url)}&embedded=true`;
+            document.getElementById('draftIframe').src = googleDocsViewerUrl;
+        }
+    });
     if (question === "") {
         alert("Ask Question!");
         return;
@@ -91,23 +106,23 @@ function clearChat() {
 const socket=io();
 var pin = localStorage.getItem('pin');
 
-socket.on('lda_topics_QA', function(data) {
-    // Only update the UI if the data is for the current user
-    if (data.pin === pin) {
-        console.log('Received LDA keywords:', data); // Debug
+// socket.on('lda_topics_QA', function(data) {
+//     // Only update the UI if the data is for the current user
+//     if (data.pin === pin) {
+//         console.log('Received LDA keywords:', data); // Debug
 
-        // let htmlString = '';
-        if (Array.isArray(data.keywords)) {
-            let htmlString = data.keywords.map(keyword => `<span style="color: #0D076A">${keyword}</span>`).join(', ');
-            document.getElementById('ldaQAText').innerHTML = htmlString;
-        } else {
-            console.error('Expected an array of keywords, but received:', data.keywords);
-        }
+//         // let htmlString = '';
+//         if (Array.isArray(data.keywords)) {
+//             let htmlString = data.keywords.map(keyword => `<span style="color: #0D076A">${keyword}</span>`).join(', ');
+//             document.getElementById('ldaQAText').innerHTML = htmlString;
+//         } else {
+//             console.error('Expected an array of keywords, but received:', data.keywords);
+//         }
 
-        // Update the UI element based on the LDA type
-        // document.getElementById('ldaQAText').innerHTML = htmlString;
-    }
-});
+//         // Update the UI element based on the LDA type
+//         // document.getElementById('ldaQAText').innerHTML = htmlString;
+//     }
+// });
 
 // // Q/A Page Topics Defining using Latent Dirichlet Allocation
 // socket.on('lda_topics_QA', function(data) {

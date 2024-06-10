@@ -154,7 +154,7 @@ blob_service_client = BlobServiceClient(account_url, credential=default_credenti
 container_client = blob_service_client.get_container_client(container_name)
 
 def set_model():
-    model = session.get('engine', 'gpt-4-0125-preview')  # Default to 'gpt-4-0125-preview'
+    model = session.get('engine', 'gpt-4-0125-preview')  # Default to "gpt-4-0125-preview"
     if model == "GPT-3.5 turbo":
         deployment_name = "gpt-35-turbo"
     elif model == "GPT-4":
@@ -2456,17 +2456,18 @@ def handle_get_draft_by_type(data):
                 blob_draft_type = blob_properties.metadata.get('draftType')
 
                 if blob_draft_type == draft_type and 'draft' in blob.name:
-                    sas_token = generate_blob_sas(
-                        account_name=blob_service_client.account_name,
-                        container_name=container_name,
-                        blob_name=blob.name,
-                        # account_key=blob_service_client.credential.account_key, #for local use only
-                        account_key=default_credential,  #for azure use only
-                        permission=BlobSasPermissions(read=True),
-                        expiry=datetime.utcnow() + timedelta(hours=1),
-                        content_disposition="inline"
-                    )
-                    draft_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}?{sas_token}"
+                    # sas_token = generate_blob_sas(
+                    #     account_name=blob_service_client.account_name,
+                    #     container_name=container_name,
+                    #     blob_name=blob.name,
+                    #     account_key=blob_service_client.credential.account_key, #for local use only
+                    #     # account_key=default_credential,  #for azure use only
+                    #     permission=BlobSasPermissions(read=True),
+                    #     expiry=datetime.utcnow() + timedelta(hours=1),
+                    #     content_disposition="inline"
+                    # )
+                    # draft_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}?{sas_token}"
+                    draft_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
                     logger.info(f'Draft URL: {draft_url}')  # Log the draft URL
                     emit('draft_response', {'url': draft_url})
                     return
