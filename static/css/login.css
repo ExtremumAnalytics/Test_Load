@@ -63,3 +63,26 @@
     top: 10px;
     font-size: 12px;
 }
+
+.flash-container {
+    position: fixed;
+    top: 70px;
+    right: 60px;
+    z-index: 1000;
+    padding: 10px;
+    border-radius: 5px;
+    color: #ffffff;
+}
+
+.flash-container ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.flash-container .flashes label {
+    display: block;
+    margin-bottom: 5px;
+    padding: 5px 10px;
+    border-radius: 3px;
+}

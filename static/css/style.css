@@ -30,6 +30,8 @@
 /*** Button ***/
 .btn{
     transition: .5s;
+    background-color: #4e585f;
+    border-color:#0d0e0e;
 }
 
 .btn.btn-primary {
@@ -89,7 +91,8 @@
 .content {
     margin-left: 250px;
     min-height: 100vh;
-    background: #ffffff;
+
+    background:#ffffff;
     transition: 0.5s;
 }
 
@@ -415,12 +418,14 @@
 }
 
 .btn:hover{
-    background-color: #af06ff;
+    background-color: #EEEEEE;
+    color: #000000;
+    border-color:#0d0e0e;
 }
 
 .btn1:active{
-    background-color: var(--primary);
-    color: #FFFFFF;
+    background-color: #EEEEEE;
+    color: #000000;
     
 }
 
@@ -602,6 +607,12 @@
 
 #table-container {
     height: 300px; /* Adjust the height as needed */
+    overflow-y: auto;
+    position: relative;
+}
+
+#file-manager-table-container {
+    height: 400px; /* Adjust the height as needed */
     overflow-y: auto;
     position: relative;
 }

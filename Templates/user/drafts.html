@@ -43,6 +43,11 @@
     <link href="{{ url_for('static', filename='lib/owlcarousel/assets/owl.carousel.min.css')}}" rel="stylesheet">
     <link href="{{ url_for('static', filename='lib/tempusdominus/css/tempusdominus-bootstrap-4.min.css')}}" rel="stylesheet" />
 
+    <!-- Include TinyMCE from the official CDN -->
+    <script src="https://cdn.tiny.cloud/1/rf1n2dhl3dxlwc8uh3cevsc5i9outr4xfu54jnfaczhcs4yz/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+
+
+
     <!-- Customized Bootstrap Stylesheet -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
 
@@ -68,11 +73,11 @@
                     <img class="logo" src="static/img/ea_logo.png" alt="EA Logo">
                 </a>
                 <ul class="navbar-nav">
-                    <li><a href="{{url_for('user')}}" class="nav-link"><i class="fa fa-database"></i>Add Information</a></li>
+                    <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-database"></i>Add Information</a></li>
                     <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-question-circle"></i>Ask Question</a></li>
                     <li><a href="{{url_for('summary')}}" class="nav-link"><i class="fa fa-list-alt"></i>Summary</a></li>
                     <li><a href="{{url_for('draft')}}" class="nav-link"><i class="fa fa-file"></i> Create Drafts</a></li>
-                    <li><a href="{{url_for('blank')}}" class="nav-link"><i class="fa fa-database"></i>My Files</a></li>
+                    <li><a href="{{url_for('document_library')}}" class="nav-link"><i class="fa fa-database"></i>Document Library</a></li>
                 </ul>
             </nav>
         </div>
@@ -122,16 +127,16 @@
             <!-- Ask Form Start -->
             <div class="container-fluid d-flex flex-row mx-n2">
                 <div class="container-fluid d-flex flex-column px-2">
-                    <div class="col-lg-12 bg-light rounded p-4 mb-2 px-2">
-                        <div class="d-flex flex-row">
-                            <h6 class=" col-lg-8">Enter Prompt</h6>
-                            <h6>Type of Draft: </h6>
-                            <select class="dropdown form-control mb-1" name="source" style="width: auto;">
+                    <div class="bg-light rounded p-4 mb-2 mx-n2">
+                        <div class="d-flex flex-row p-2">
+                            <h6 class="mt-2 col-lg-8">Enter Prompt</h6>
+                            <h6 class="m-2">Type of Draft: </h6>
+                            <select class="dropdown form-control mb-1" id="draftTypeDropdown" name="source" style="width: auto;">
                                 <option value="selectSource" name="select">Select Type:</option>
-                                <option value="notice" onclick="get_notice_template()" name="notice">Notice</option>
-                                <option value="Application" onclick="get_application_template()" name="Application">Application</option>
-                                <option value="ws" onclick="get_ws_template()" name="ws">Written Statement</option>
-                                <option value="Letter" onclick="get_Letter_template()" name="Letter">Letter</option>
+                                <option value="notice"  name="notice">Notice</option>
+                                <option value="Application"  name="Application">Application</option>
+                                <option value="ws"  name="ws">Written Statement</option>
+                                <option value="Letter"  name="Letter">Letter</option>
                             </select>
                         </div>
                         <div class="d-flex flex-row mb-2">
@@ -159,16 +164,16 @@
 <!--                            &lt;!&ndash; Response will be produced here using JS &ndash;&gt;-->
 <!--                        </div>-->
 <!--                    </div>-->
-                    <div class="row">
+                    <div class="d-flex flex-row rounded mx-n2">
 <!--                        <div class="column">-->
-                        <div class="column mr-5 response col-lg-6 bg-light rounded p-4">
+                        <div class="column response bg-light rounded p-4 m-2">
                             <h6 class="mb-2">Response</h6>
-                            <div id="waitImg1" class="progress progress-bar progress-bar-info progress-bar-striped" style=" display:none; width:0%;"  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" >0% </div>
-                            <div class="Answere" id="questionAnswer1">
+                            <div id="waitImg" class="progress progress-bar progress-bar-info progress-bar-striped" style=" display:none; width:0%;"  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" >0% </div>
+                            <div class="Answere" id="questionAnswer">
                                 <!-- Response will be produced here using JS -->
                             </div>
                         </div>
-                       <div class="column document col-lg-6 bg-light rounded p-4">
+                       <div class="column document col-lg-5 bg-light rounded p-4 m-2">
                            <div class="d-flex justify-content-between align-items-center mb-2">
                                <h6 class="mb-0">Document</h6>
                                <button id="downloadBtn" class="btn btn-primary btn-sm">Download</button>
@@ -176,6 +181,7 @@
                            <div id="waitImg2" class="progress progress-bar progress-bar-info progress-bar-striped" style=" display:none; width:0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                            <div class="Answere" id="questionAnswer2">
                                <!-- Response will be produced here using JS -->
+                                <iframe id="draftIframe" style="width: 100%; height: 600px;" frameborder="0"></iframe>
                            </div>
                        </div>
                     </div>
@@ -183,7 +189,7 @@
             </div>
 
             <!-- Footer Start -->
-            <div class="container-fluid pt-4 px-4">
+            <div class="container-fluid pt-4 px-4 mx-n2">
                 <div class="bg-light rounded-top p-4">
                     <div class="row">
                         <div class="col-12 col-sm-6 text-center text-sm-start">
