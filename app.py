@@ -2460,7 +2460,8 @@ def handle_get_draft_by_type(data):
                         account_name=blob_service_client.account_name,
                         container_name=container_name,
                         blob_name=blob.name,
-                        account_key=blob_service_client.credential.account_key,
+                        # account_key=blob_service_client.credential.account_key, #for local use only
+                        account_key=default_credential,  #for azure use only
                         permission=BlobSasPermissions(read=True),
                         expiry=datetime.utcnow() + timedelta(hours=1),
                         content_disposition="inline"
