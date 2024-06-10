@@ -1112,7 +1112,7 @@ class CSVLogHandler(logging.Handler):
 
     def emit(self, record):
         log_entry = {
-            'timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'category': record.levelname,
             'user_id': getattr(record, 'user_id', 'unknown_user'),
             'function': record.funcName,
@@ -2251,12 +2251,12 @@ def handle_eda_process(data):
         emit('eda_response', {'message': f'Error occurred while EDA process: {str(e)}', 'success': False})
 
 
-@app.route('/blank')
-def blank():
+@app.route('/document_library')
+def document_library():
     if session['user_group']=='Admin':
-        return render_template('admin/blank.html')
+        return render_template('admin/document_lib.html')
     else:
-        return render_template('user/blank.html')
+        return render_template('user/document_lib.html')
 
 
 @app.route('/EDA', methods=['GET', 'POST'])
@@ -2374,6 +2374,108 @@ def draft_table_update():
         return jsonify(blobs)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+from azure.storage.blob import BlobSasPermissions, generate_blob_sas
+from datetime import  timedelta
+from datetime import datetime
+
+# @app.route('/get_draft_by_type', methods=['GET'])
+# def get_draft_by_type():
+#     try:
+#         draft_type = request.args.get('draftType')
+#         if not draft_type:
+#             return jsonify({'error': 'draftType is required'}), 400
+#
+#         container_client = blob_service_client.get_container_client(container_name)
+#         blob_list = container_client.list_blobs()
+#
+#         for blob in blob_list:
+#             # Extract the ID from the blob name (up to the first slash)
+#             id_from_name = blob.name.split('/')[0]
+#
+#             # Use the role_id_mapping to find the corresponding role_id for 'Admin'
+#             role_id_mapping = {'Admin': 1, 'Guest': 2, 'ML Engine': 3}
+#             role_id = role_id_mapping.get('Admin')
+#
+#             # Query the database to check if this ID has a user role of 'Admin'
+#             user_role = UserRole.query.filter_by(role_id=role_id).first()
+#             user = UserDetails.query.filter_by(role_id=role_id, login_pin=id_from_name, status='Active').first()
+#
+#             if user and user_role:
+#                 blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
+#                 blob_properties = blob_client.get_blob_properties()
+#                 blob_draft_type = blob_properties.metadata.get('draftType')
+#
+#                 # if blob_draft_type == draft_type and 'draft' in blob.name:
+#
+#                 if blob_draft_type == draft_type and 'draft' in blob.name:
+#                     sas_token = generate_blob_sas(
+#                         account_name=blob_service_client.account_name,
+#                         container_name=container_name,
+#                         blob_name=blob.name,
+#                         account_key=blob_service_client.credential.account_key,
+#                         permission=BlobSasPermissions(read=True),
+#                         expiry=datetime.utcnow() + timedelta(hours=1),
+#                         content_disposition="inline"
+#                     )
+#                     draft_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}?{sas_token}"
+#                     return jsonify({'url': draft_url})
+#                     # draft_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
+#                     # return jsonify({'url': draft_url})
+#
+#         return jsonify({'error': 'Draft not found'}), 404
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
+
+@socketio.on('get_draft_by_type')
+def handle_get_draft_by_type(data):
+    try:
+        draft_type = data.get('draftType')
+        if not draft_type:
+            emit('draft_response', {'error': 'draftType is required'})
+            return
+
+        container_client = blob_service_client.get_container_client(container_name)
+        blob_list = container_client.list_blobs()
+
+        for blob in blob_list:
+            # Extract the ID from the blob name (up to the first slash)
+            id_from_name = blob.name.split('/')[0]
+
+            # Use the role_id_mapping to find the corresponding role_id for 'Admin'
+            role_id_mapping = {'Admin': 1, 'Guest': 2, 'ML Engine': 3}
+            role_id = role_id_mapping.get('Admin')
+
+            # Query the database to check if this ID has a user role of 'Admin'
+            user_role = UserRole.query.filter_by(role_id=role_id).first()
+            user = UserDetails.query.filter_by(role_id=role_id, login_pin=id_from_name, status='Active').first()
+
+            if user and user_role:
+                blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
+                blob_properties = blob_client.get_blob_properties()
+                blob_draft_type = blob_properties.metadata.get('draftType')
+
+                if blob_draft_type == draft_type and 'draft' in blob.name:
+                    sas_token = generate_blob_sas(
+                        account_name=blob_service_client.account_name,
+                        container_name=container_name,
+                        blob_name=blob.name,
+                        account_key=blob_service_client.credential.account_key,
+                        permission=BlobSasPermissions(read=True),
+                        expiry=datetime.utcnow() + timedelta(hours=1),
+                        content_disposition="inline"
+                    )
+                    draft_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}?{sas_token}"
+                    logger.info(f'Draft URL: {draft_url}')  # Log the draft URL
+                    emit('draft_response', {'url': draft_url})
+                    return
+
+        emit('draft_response', {'error': 'Draft not found'})
+    except Exception as e:
+        logger.error(f'Error fetching draft: {str(e)}')  # Log the error
+        emit('draft_response', {'error': str(e)})
+
+
 
 
 @app.route('/Create_draft', methods=['GET', 'POST'])

@@ -19,7 +19,22 @@ function updateProgressBar(percentage) {
 function sendQuestion() {
     const socket=io();
     var question = document.getElementById("question").value.trim(); // Trim the question
+    const draftType = document.getElementById('draftTypeDropdown').value;
+    if (!draftType) {
+        alert('Please select a draft type.');
+        return;
+    }
 
+    socket.emit('get_draft_by_type', { draftType });
+
+    socket.on('draft_response', (data) => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            const googleDocsViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(data.url)}&embedded=true`;
+            document.getElementById('draftIframe').src = googleDocsViewerUrl;
+        }
+    });
     if (question === "") {
         alert("Ask Question!");
         return;
@@ -79,7 +94,9 @@ function clearChat() {
 
         if (data.message === 'Chat history cleared successfully') {
             var historyContainer = document.getElementById("questionAnswer");
+            var doc = document.getElementById('draftIframe');
             historyContainer.innerHTML = "";
+            doc.src = "";
         } else {
             alert("An error occurred while clearing chat history.");
         }

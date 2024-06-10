@@ -46,7 +46,7 @@
 </head>
 
 <body>
-    <div class="container-xxl position-relative bg-white d-flex p-0">
+    <div class="container-xxl position-relative bg-dark d-flex p-0">
         <!-- Spinner Start
         <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
             <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
@@ -75,9 +75,9 @@
 
 
         <!-- Content Start -->
-        <div class="content bg-white">
+        <div class="content bg-dark">
             <!-- Navbar Start -->
-            <nav class="navbar navbar-expand sticky-top px-4 py-0" style="background-color: #000000;">
+            <nav class="navbar navbar-expand navbar-light sticky-top px-4 py-0" style="background-color: #000000;">
                 <a href="{{url_for('data_source')}}" class="navbar-brand d-flex d-lg-none me-4">
                     <h2 class="text-primary mb-0"><img src="static/img/ea_symbol.png" style="width: 35px; height: 30px;"></h2>
                 </a>
@@ -110,7 +110,8 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h4 class="welcome">Welcome to LegalLink!</h4>
                     <button type="button" id="adminVaultButton" class="btn btn-primary m-2" onclick="displayWebCrawFileManager()" style="font-size: 14px;">Admin Vault</button>
-                    <button id="stopButton" onclick="stop_all()" class="btn btn-danger m-2" style="background-color: #b41616;">&#10006;</button>
+                    <!-- <button type="button" id="adminVaultButton" class="btn btn-primary m-2" style="font-size: 14px;">Admin Vault</button> -->
+                    <button id="stopButton" onclick="stop_all()" class="btn btn-danger">&#10006;</button>
                 </div>
                 <hr class="dropdown-divider bg-white">
             </div>
@@ -130,7 +131,7 @@
 
             <!-- Data Source buttons Start -->
             <div class="container-fluid pt-2 px-4">
-                <label class="mb-2" >Add Information:</label>
+                <label class="mb-2" style="color: #ffffff;">Add Information:</label>
                 <div class="row g-2">
                     <div class="col-auto">
                         <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Documents')">
@@ -318,7 +319,7 @@
                         <div class="d-flex flex-column align-items-center justify-content-center mb-2">
                             <h6 class="mb-2">Data Ingestion Status</h6>
                         </div>
-                        <canvas id="ingestion_chart" style="width: 250px; height: 100px; color: #000000;"></canvas>
+                        <canvas id="ingestion_chart" style="width: 250px; height: 100px;"></canvas>
                     </div>
                 </div>
             </div>
@@ -387,7 +388,7 @@
                         <div class="col-md-3"> <!-- Column for the search bar -->
                             <div class="input-group">
                                 <input type="text" class="rounded mx-2 form-control" id="searchInput" placeholder="Search Files">
-                                <button class="btn rounded btn-primary btn-outline-secondary" id="searchButton" type="button">Search</button>
+                                <button class="btn rounded btn-outline-secondary" id="searchButton" type="button">Search</button>
                             </div>
                         </div>
                         <!-- <a href="">Show All</a> -->
@@ -462,44 +463,6 @@
     <script src="{{ url_for('static', filename='js/warningpop.js') }}"></script>
     <script src="{{ url_for('static', filename='js/user_details.js') }}"></script>
     <!-- <script src="{{ url_for('static', filename='js/admin_vault.js') }}"></script> -->
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.querySelector('.sidebar');
-            const content = document.querySelector('.content');
-            const toggler = document.querySelector('.sidebar-toggler');
-    
-            function adjustContentWidth() {
-                if (window.innerWidth >= 992) {
-                    if (sidebar.classList.contains('hide')) {
-                        content.style.marginLeft = '0';
-                        content.style.width = '100%';
-                    } else {
-                        content.style.marginLeft = '250px';
-                        content.style.width = 'calc(100% - 250px)';
-                    }
-                } else {
-                    if (sidebar.classList.contains('hide')) {
-                        content.style.marginLeft = '0';
-                        content.style.width = '100%';
-                    } else {
-                        content.style.marginLeft = '0';
-                        content.style.width = '100%';
-                    }
-                }
-            }
-    
-            toggler.addEventListener('click', function() {
-                sidebar.classList.toggle('hide');
-                adjustContentWidth();
-            });
-    
-            window.addEventListener('resize', adjustContentWidth);
-    
-            adjustContentWidth(); // Initial call to set up the correct width
-        });
-    </script>
-    
 </body>
 
 </html>
