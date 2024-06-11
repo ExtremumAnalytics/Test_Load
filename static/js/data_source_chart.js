@@ -1,4 +1,5 @@
 (function ($) {
+    var pin = localStorage.getItem('pin');
 
     // Ingestion Status Chart
     $(document).ready(function() {
@@ -43,7 +44,15 @@
         });
 
         socket.on('updatePieChart', function(data) {
-            updatePieChart(data);
+            if(data.pin==pin){
+                updatePieChart(data);
+            }
+            // else{
+            //     // document.getElementById('message').innerHTML = '<p>Login Pin Not Verified!</p>';
+            //     // setTimeout(function () {
+            //     //     document.getElementById('message').innerHTML = '';
+            //     // }, 8000);
+            // }
         });
 
         function updatePieChart(data) {
@@ -53,7 +62,7 @@
         }
     });
 
-    // Files Bar Chart
+    // Files Count Bar Chart
     $(document).ready(function() {
         const socket = io();
 
@@ -100,18 +109,26 @@
         });
 
         socket.on('update_bar_chart', function(data) {
-            updateBarChart(data);
+            if(data.pin==pin){
+                updateBarChart(data);
+            }
+            // else{
+            //     // document.getElementById('message').innerHTML = '<p>Login Pin Not Verified!</p>';
+            //     // setTimeout(function () {
+            //     //     document.getElementById('message').innerHTML = '';
+            //     // }, 8000);
+            // }
         });
     
         function updateBarChart(data) {
-            console.log(data)
+            // console.log(data)
             myChart1.data.labels = data.labels; // Update labels
             myChart1.data.datasets[0].data = data.values; // Update data
             myChart1.update(); // Refresh the chart
         }
     });
     
-    // Readiness Chart
+    //Overall Readiness Chart
     $(document).ready(function() {
         const socket = io();
 
@@ -157,18 +174,22 @@
                         align: 'center',
                         anchor: 'center'
                     }
-                },
-                // title: {
-                //     position : 'below',
-                //     text: 'Total Files: ',
-                //     color: "rgba(0, 156, 255, 0.7)"
-                // }
+                }
             },
             plugins: [ChartDataLabels]
         });
 
         socket.on('update_gauge_chart', function(data) {
-            updateReadinessChart(data);
+            // updateReadinessChart(data);
+            if(data.pin==pin){
+                updateReadinessChart(data);
+            }
+            // else{
+                // document.getElementById('message').innerHTML = '<p>Login Pin Not Verified!</p>';
+                // setTimeout(function () {
+                //     document.getElementById('message').innerHTML = '';
+                // }, 8000);
+            // }
         });
     
         function updateReadinessChart(data) {
@@ -179,58 +200,6 @@
             myChart3.update(); // Refresh the chart
         }
 
-    });
-
-    // function updateCharts() {
-    //     fetch('/graph_update')
-    //     .then(response => response.json())
-    //     .then(data => {
-
-    //         console.log(data)
-            // if (data.pie_chart) {
-            //     // var ingestion_data = JSON.parse(data.pie_chart);
-            //     var ingestion_data = data.pie_chart;
-            //     console.log("Ingestion",ingestion_data)
-            //     myChart2.data.datasets[0].data = ingestion_data.percentages;
-            //     myChart2.data.labels = ingestion_data.labels;
-            //     myChart2.data.title = ingestion_data.text;
-            //     // myChart3.data.datasets[0].data = sentimentData;
-            //     myChart2.update(ingestion_data);
-            // }
-
-            // if (data.bars) {
-            //     // var bar_file_data = JSON.parse(data.bars);
-            //     var bar_file_data = data.bars;
-            //     // console.log('Data Parsed!')
-            //     console.log("Files Bar",bar_file_data)
-            //     myChart1.data.datasets[0].data = bar_file_data.x;
-            //     // myChart1.data.datasets[0].data = bar_file_data.data[0].x;
-            //     myChart1.data.labels = bar_file_data.y;
-            //     // myChart3.data.datasets[0].data = sentimentData;
-            //     myChart1.update(bar_file_data);
-            // }
-
-            // if (data.gauge_auth) {
-            //     // console.log("Data not received")
-            //     // var gauge_data = JSON.parse(data.gauge_auth);
-            //     var gauge_data = data.gauge_auth;
-            //     console.log("Readiness Data Source",gauge_data)
-            //     myChart3.data.datasets[0].data = [
-            //         gauge_data.x,
-            //         100 - gauge_data.x
-            //     ]
-            //     myChart3.update(gauge_data);
-            // }
-
-        // })
-        // .catch(error => console.error('Error updating charts:', error));
-    // }
-    
-    // Update charts every 2 seconds (adjust as needed)
-    // setInterval(updateCharts, 2000);
-    // console.log('Hello')
-    // Initial update
-    // updateCharts();
-    
+    }); 
 })(jQuery);
 

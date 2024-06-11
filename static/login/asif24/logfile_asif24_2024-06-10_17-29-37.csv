@@ -1,0 +1,84 @@
+timestamp,category,user_id,function,line_number,flag,message,exception
+2024-06-10 17:29:38,ERROR,asif24,create_or_pass_folder,199,0,Function create_or_pass_folder error,"Function create_or_pass_folder error
+Traceback (most recent call last):
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\app.py"", line 192, in create_or_pass_folder
+    container_client.get_blob_client(container_name, user_folder).upload_blob("""")
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\venv\lib\site-packages\azure\core\tracing\decorator.py"", line 78, in wrapper_use_tracer
+    return func(*args, **kwargs)
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\venv\lib\site-packages\azure\storage\blob\_blob_client.py"", line 765, in upload_blob
+    return upload_block_blob(**options)
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\venv\lib\site-packages\azure\storage\blob\_upload_helpers.py"", line 195, in upload_block_blob
+    process_storage_error(error)
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\venv\lib\site-packages\azure\storage\blob\_shared\response_handlers.py"", line 184, in process_storage_error
+    exec(""raise error from None"")   # pylint: disable=exec-used # nosec
+  File ""<string>"", line 1, in <module>
+azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
+RequestId:13e16501-201e-0025-452d-bbedb5000000
+Time:2024-06-10T11:59:38.1949862Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:13e16501-201e-0025-452d-bbedb5000000
+Time:2024-06-10T11:59:38.1949862Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
+2024-06-10 17:29:38,ERROR,asif24,create_or_pass_folder,208,0,"Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:13e16501-201e-0025-452d-bbedb5000000
+Time:2024-06-10T11:59:38.1949862Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:13e16501-201e-0025-452d-bbedb5000000
+Time:2024-06-10T11:59:38.1949862Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> ","Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:13e16501-201e-0025-452d-bbedb5000000
+Time:2024-06-10T11:59:38.1949862Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:13e16501-201e-0025-452d-bbedb5000000
+Time:2024-06-10T11:59:38.1949862Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> 
+Traceback (most recent call last):
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\app.py"", line 192, in create_or_pass_folder
+    container_client.get_blob_client(container_name, user_folder).upload_blob("""")
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\venv\lib\site-packages\azure\core\tracing\decorator.py"", line 78, in wrapper_use_tracer
+    return func(*args, **kwargs)
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\venv\lib\site-packages\azure\storage\blob\_blob_client.py"", line 765, in upload_blob
+    return upload_block_blob(**options)
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\venv\lib\site-packages\azure\storage\blob\_upload_helpers.py"", line 195, in upload_block_blob
+    process_storage_error(error)
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\venv\lib\site-packages\azure\storage\blob\_shared\response_handlers.py"", line 184, in process_storage_error
+    exec(""raise error from None"")   # pylint: disable=exec-used # nosec
+  File ""<string>"", line 1, in <module>
+azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
+RequestId:13e16501-201e-0025-452d-bbedb5000000
+Time:2024-06-10T11:59:38.1949862Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:13e16501-201e-0025-452d-bbedb5000000
+Time:2024-06-10T11:59:38.1949862Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
+2024-06-10 17:29:38,INFO,asif24,home,1422,1,User asif24 logged in successfully,
+2024-06-10 17:29:39,INFO,asif24,update_bar_chart_from_blob,319,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-06-10 17:29:42,INFO,asif24,update_bar_chart_from_blob,319,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-06-10 17:29:43,INFO,asif24,get_data_source,2106,1,table_update route successfully send data,
+2024-06-10 17:29:49,ERROR,asif24,handle_ask_question,2011,0,Ask CogniLink answer generation error,"Ask CogniLink answer generation error
+Traceback (most recent call last):
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\app.py"", line 1964, in handle_ask_question
+    response = conversation({""question"": question})
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\app.py"", line 778, in ask_question_with_context_handling
+    results = conversation_chain.retriever.retrieve(question)
+AttributeError: 'AzureSearchVectorStoreRetriever' object has no attribute 'retrieve'"
+2024-06-10 17:29:59,INFO,asif24,handle_clear_chat,2030,1,clear_chat for ask_question route,
+2024-06-10 17:30:02,ERROR,asif24,handle_ask_question,2011,0,Ask CogniLink answer generation error,"Ask CogniLink answer generation error
+Traceback (most recent call last):
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\app.py"", line 1964, in handle_ask_question
+    response = conversation({""question"": question})
+  File ""C:\Users\Asif\Desktop\New_version_CogniLink\app.py"", line 778, in ask_question_with_context_handling
+    results = conversation_chain.retriever.retrieve(question)
+AttributeError: 'AzureSearchVectorStoreRetriever' object has no attribute 'retrieve'"

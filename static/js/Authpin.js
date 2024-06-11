@@ -1,3 +1,4 @@
+// Login Button Verification Start
 document.getElementById("submitButton").addEventListener("click", function (event) {
     // Prevent the default form submission
     event.preventDefault();
@@ -33,4 +34,3 @@ document.getElementById("submitButton").addEventListener("click", function (even
         console.error('Error:', error);
     });
 });
-

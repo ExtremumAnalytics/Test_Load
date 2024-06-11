@@ -96,7 +96,9 @@
                     <div class="nav-item dropdown">
                         <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
                             <img class="rounded-2 me-lg-2" src="static/img/ea_symbol.png" alt="" style="width: 35px; height: 25px;">
-                            <span class="d-none d-lg-inline-flex">Admin</span>
+                            <span id="userName" class="d-none d-lg-inline-flex">
+                                <!-- User Name  -->
+                            </span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
                             <a href="#" class="dropdown-item">My Profile</a>
@@ -130,17 +132,18 @@
                         </div>
                         <div class="col-lg-12 d-flex justify-content-center">
                             <div class="button-group mt-2">
-                                <button type="button" id="sendQuestion" onclick="sendQuestion()" class="btn btn-primary mr-2" style="font-size: 14px;">Generate</button>
-                                <button type="button" id="clarChat" onclick="clearChat()" class="btn btn-primary mr-2" style="font-size: 14px;">Clear Chat</button>
+                                <button type="button" id="sendQuestion" onclick="sendQuestion()" class="btn btn-primary m-2" style="font-size: 14px;">Generate</button>
+                                <button type="button" id="clarChat" onclick="clearChat()" class="btn btn-primary m-2" style="font-size: 14px;">Clear Chat</button>
                             </div>
                         </div>
                     </div>
                     <div class="response col-lg-12 bg-light rounded p-4">
                         <h6 class="mb-2">Response</h6>
-                        <!-- <img id="waitImg" src="static/img/wait.gif" alt="Wait" style="display: none;"> -->
+                        <!-- <img id="waitImg" src="static/img/wait.gif" alt="Wait" style="display: none;">
                         <div class="d-flex align-content-center justify-content-center">
                             <i id="waitImg" class="fa fa-spinner fa-spin" style="display: none; color: var(--primary); font-size: 90px;"></i>
-                        </div>
+                        </div> -->
+                        <div id="waitImg" class="progress progress-bar progress-bar-info progress-bar-striped" style=" display:none; width:0%;"  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" >0% </div>
                         <div class="Answere" id="questionAnswer">
                             <!-- Response will be produced here using JS -->
                         </div>
@@ -176,14 +179,13 @@
 
 
             <!-- Footer Start -->
-            <div class="container-fluid pt-2 px-2">
-                <div class="bg-light rounded-top p-2">
+            <div class="container-fluid pt-4 px-4">
+                <div class="bg-light rounded-top p-4">
                     <div class="row">
                         <div class="col-12 col-sm-6 text-center text-sm-start">
                             &copy; <a href="{{url_for('data_source')}}">CogniLink</a>, All Right Reserved. 
                         </div>
                         <div class="col-12 col-sm-6 text-center text-sm-end">
-                            <!--/*** This template is free as long as you keep the footer author’s credit link/attribution link/backlink. If you'd like to use the template without the footer author’s credit link/attribution link/backlink, you can purchase the Credit Removal License from "https://htmlcodex.com/credit-removal". Thank you for your support. ***/-->
                             Powered By <a href="www.extremumanalytics.com">Extremum Analytics</a>
                         </div>
                     </div>
@@ -218,7 +220,8 @@
     <script src="{{ url_for('static', filename='js/cogni_QueAns.js') }}"></script>
     <script src="{{ url_for('static', filename='js/audio_q_a.js') }}"></script>
     <script src="{{ url_for('static', filename='js/warningpop.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/socket_io_lib.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/user_details.js') }}"></script>
+    <!-- <script src="{{ url_for('static', filename='js/socket_io_lib.js') }}"></script> -->
 </body>
 
 </html>

@@ -47,7 +47,6 @@
         format: 'L'
     });
 
-
     // Testimonials carousel
     $(".testimonial-carousel").owlCarousel({
         autoplay: true,
@@ -57,5 +56,4 @@
         loop: true,
         nav : false
     });
-    
 })(jQuery);
