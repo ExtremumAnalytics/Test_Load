@@ -79,7 +79,9 @@ function clearChat() {
 
         if (data.message === 'Chat history cleared successfully') {
             var historyContainer = document.getElementById("questionAnswer");
+            var doc = document.getElementById('draftIframe');
             historyContainer.innerHTML = "";
+            doc.src = "";
         } else {
             alert("An error occurred while clearing chat history.");
         }

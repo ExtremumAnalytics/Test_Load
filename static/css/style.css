@@ -1,7 +1,7 @@
 /********** Template CSS **********/
 :root {
-    --primary: #009CFF;
-    --light: #F3F6F9;
+    --primary: #000000;
+    --light: #ffffff;
     --dark: #191C24;
 }
 
@@ -30,6 +30,8 @@
 /*** Button ***/
 .btn{
     transition: .5s;
+    background-color: #4e585f;
+    border-color:#0d0e0e;
 }
 
 .btn.btn-primary {
@@ -71,7 +73,7 @@
     width: 250px;
     height: 100vh;
     overflow-y: auto;
-    background: #404e67;  /* Updated background color*/
+    background: #000000;  /* Updated background color*/
     color: #ffffff;  /* Setting default text color to white for all child text */
     transition: 0.5s;
     z-index: 999;
@@ -83,13 +85,14 @@
     padding-right: 10px;
     margin-left: 10PX;
     margin-bottom: 20px;
-    background-color: #404e67;
+    background-color: #000000;
 }
 
 .content {
     margin-left: 250px;
     min-height: 100vh;
-    background: #ffffff;
+
+    background:#ffffff;
     transition: 0.5s;
 }
 
@@ -180,7 +183,7 @@
 .dropdown-menu {
     list-style: none;
     padding: 0;
-    background: #404e67;
+    background: #ffffff;
     border: none;
 }
 
@@ -214,13 +217,13 @@
     border-left: 3px solid var(--light);
     border-radius: 0 30px 30px 0;
     outline: none;
-    background-color: #404e67;
+    background-color: #000000;
 }
 
 .sidebar .navbar .navbar-nav .nav-link:hover,
 .sidebar .navbar .navbar-nav .nav-link.active {
     color: var(--primary);  /* Keeping highlight color on hover/active */
-    background: #404e67;  /* Light background for contrast on active/hover */
+    background: #ffffff;  /* Light background for contrast on active/hover */
 }
 
 .sidebar .navbar .navbar-nav .nav-link i {
@@ -415,12 +418,14 @@
 }
 
 .btn:hover{
-    background-color: #af06ff;
+    background-color: #EEEEEE;
+    color: #000000;
+    border-color:#0d0e0e;
 }
 
 .btn1:active{
-    background-color: var(--primary);
-    color: #FFFFFF;
+    background-color: #EEEEEE;
+    color: #000000;
     
 }
 
@@ -554,7 +559,7 @@
     padding: 10px 20px;
     border: none;
     border-radius: 5px;
-    background-color: #007bff;
+    background-color: #000000;
     color: #fff;
     font-size: 16px;
     cursor: pointer;
@@ -562,7 +567,7 @@
 }
 
 .modal-content button:hover {
-    background-color: #0056b3;
+    background-color: #000000;
 }
 
 /* Animations */
@@ -611,7 +616,6 @@
     overflow-y: auto;
     position: relative;
 }
-
 .table-responsive {
     overflow: hidden;
 }
