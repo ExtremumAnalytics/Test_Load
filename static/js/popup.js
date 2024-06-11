@@ -238,12 +238,12 @@ function uploadSelectedFiles() {
             fileName: fileName,
             login_pin: pin
         });
+
         socket.on('delete_response', function(data) {
             $('#messagedelopload').text(data.message);
             setTimeout(function() {
                 $('#messagedelopload').text('');
             }, 8000);
-            // setTimeout(updateTable, 10000);
             console.log(data.message);
         });
     });
@@ -390,7 +390,7 @@ $(document).ready(function () {
                     $('#message').text('');
                 }, 8000);
                 console.log('Data is Loaded:', data);
-                LoadUpdate();
+                dataLoadUpdate();
             },
             error: function (error) {
                 console.error('Error in Loading CogniLink data:', error);
@@ -410,7 +410,7 @@ $(document).ready(function () {
     });
 });
 
-function LoadUpdate() {
+function dataLoadUpdate() {
     // Add your logic here to handle data load update
     console.log('Data load update function called');
 }
@@ -452,7 +452,6 @@ function isPowerPoint(filename) {
     );
 }
 // Checking and returning the different file types END
-
 
 // Updating Digital Vault
 function updateTable(searchTerm) {
@@ -552,7 +551,7 @@ function handleSearch() {
     updateTable(searchTerm);
 }
 
-// Call updateTable function 
+// Call updateTable function every 5 seconds
 $(document).ready(function() {
     // Initial call
     updateTable();
@@ -562,10 +561,6 @@ $(document).ready(function() {
 
     // Bind search button click event
     $('#searchButton').click(handleSearch);
-    // socket.on('updateTable', function(data){
-    //     console.log(data);
-    //     updateTable();
-    // });
 });
 
 // Function to delete selected files

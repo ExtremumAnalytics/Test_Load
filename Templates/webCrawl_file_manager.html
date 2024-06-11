@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>LegalLink</title>
+    <title>Cogni Link</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="" name="keywords">
     <meta content="" name="description">
@@ -54,10 +54,11 @@
                         <img src="static/images/logo.png" alt="Company Logo" style="width: 150px;">
                     </a>
                 <!-- Welcome Text -->
-                    <span class="signin mx-auto ">| Admin Vault |</span>
+                    <span class="signin mx-auto ">| Web Crawl File Manager |</span>
                 </div>
             </nav>
             <div class="mx-2 p-2">
+                <!-- <h5 class="mx-2" style="text-align: center;">| Web Crawl File Manager|</h5> -->
                 <div class="form-l" style="text-align: center;">
                     <div id="messagedelopload"></div>
                 </div>
@@ -67,11 +68,9 @@
                             <thead class="table-header thead-light">
                                 <tr>
                                     <th><input type="checkbox" id="select-checkbox" onclick="toggleAllCheckboxes(this)"></th>
-                                    <th>Name</th>
-                                    <th>View File</th>
-                                    <th>Download</th>
-                                    <th>Category</th>
-                                    <th>Status</th>
+                                    <th>File Name</th>
+                                    <th>Size</th>
+                                    <th>Last Modified</th>
                                 </tr>
                             </thead>
                             <tbody id="file-manager-body">
@@ -83,8 +82,8 @@
                 <div id="statsContainer" style="color: #000000;" class="mx-2"></div>
                 <div class="col-lg-12 d-flex justify-content-center">
                     <div class="button-group mb-2">
-                        <button type="button" id="uploadButton" onclick="uploadSelectedFiles()" class="btn btn-primary m-2" style="font-size: 14px;">Upload File</button>
-                        <!-- <button type="button" onclick="deletefilelocal()" name="deletepopupn3" class="btn btn-primary m-2" style="font-size: 14px;">Delete File</button> -->
+                        <button type="button" onclick="uploadSelectedFiles()" class="btn btn-primary m-2" style="font-size: 14px;">Upload File</button>
+                        <button type="button" onclick="deletefilelocal()" name="deletepopupn3" class="btn btn-primary m-2" style="font-size: 14px;">Delete File</button>
                         <button type="button" onclick="closeWindow()" class="btn btn-primary m-2" style="font-size: 14px;">Close</button>
                     </div>
                 </div>

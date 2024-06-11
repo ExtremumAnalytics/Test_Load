@@ -616,13 +616,6 @@
     overflow-y: auto;
     position: relative;
 }
-
-#admin-table-container {
-    height: 400px; /* Adjust the height as needed */
-    overflow-y: auto;
-    position: relative;
-}
-
 .table-responsive {
     overflow: hidden;
 }
