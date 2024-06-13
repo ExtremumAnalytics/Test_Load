@@ -290,27 +290,28 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
 
         # Iterate through each blob in the folder
         for blob in blob_list:
-            file_name = blob.name.split('/')[-1]  # Extract file name from blob path
+            if blob.name.split('/')[1] != 'draft':
+                file_name = blob.name.split('/')[-1]  # Extract file name from blob path
 
-            # Update the bar_chart dictionary based on file type
-            if file_name.endswith('.pdf') or file_name.endswith('.PDF'):
-                file_type = 'PDF'
-            elif file_name.endswith('.docx') or file_name.endswith('.doc'):
-                file_type = 'DOCX'
-            elif file_name.endswith('.csv') or file_name.endswith('.CSV'):
-                file_type = 'CSV'
-            elif file_name.endswith('.mp3'):
-                file_type = 'MP3'
-            elif file_name.endswith('.xlsx') or file_name.endswith('.xlscd .'):
-                file_type = 'XLSX'
-            else:
-                file_type = 'Other'
+                # Update the bar_chart dictionary based on file type
+                if file_name.endswith('.pdf') or file_name.endswith('.PDF'):
+                    file_type = 'PDF'
+                elif file_name.endswith('.docx') or file_name.endswith('.doc'):
+                    file_type = 'DOCX'
+                elif file_name.endswith('.csv') or file_name.endswith('.CSV'):
+                    file_type = 'CSV'
+                elif file_name.endswith('.mp3'):
+                    file_type = 'MP3'
+                elif file_name.endswith('.xlsx') or file_name.endswith('.xlscd .'):
+                    file_type = 'XLSX'
+                else:
+                    file_type = 'Other'
 
-            # Update bar_chart dictionary
-            if file_type in bar_chart:
-                bar_chart[file_type] += 1
-            else:
-                bar_chart[file_type] = 1
+                # Update bar_chart dictionary
+                if file_type in bar_chart:
+                    bar_chart[file_type] += 1
+                else:
+                    bar_chart[file_type] = 1
         session['bar_chart_ss'].update(bar_chart)
         # Emit an event to notify clients about the updated bar chart
         socketio.emit('update_bar_chart', {
@@ -2107,10 +2108,26 @@ def delete_files():
 @app.route("/table_update", methods=['GET'])
 def get_data_source():
     try:
-        folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
-        blobs = container_client.list_blobs(name_starts_with=folder_name)
-        # Fetch lists from session
-        progress_files = session.get('progress_files', [])
+        # Initialize SearchClient
+        index_name: str = str(session['login_pin'])
+        search_client = SearchClient(
+            endpoint=vector_store_address,
+            index_name=index_name,
+            credential=AzureKeyCredential(vector_store_password)
+        )
+        results = search_client.search(search_text="*", select="*", include_total_count=True)
+        VecTor_liSt = []
+
+        unique_documents = set()
+
+        for result in results:
+            embeddings_dict = json.loads(result['metadata'])
+            # print(embeddings_dict)  # This prints the embeddings_dict for each result
+            document = embeddings_dict.get('documents')
+            if document and document not in unique_documents:
+                VecTor_liSt.append(document)
+                unique_documents.add(document)
+        blobs = container_client.list_blobs(name_starts_with=index_name)
         failed_files = session.get('failed_files', [])
         embedding_not_created = session.get('embedding_not_created', [])
         # Construct the data with status based on lists
@@ -2118,7 +2135,7 @@ def get_data_source():
         for blob in blobs:
             if blob.name.split('/')[1] != 'draft':
                 file_name = blob.name.split('/')[1]
-                if file_name in progress_files:
+                if file_name in VecTor_liSt:
                     status = 'U | EC'
                 elif file_name in failed_files:
                     status = 'U | F'
