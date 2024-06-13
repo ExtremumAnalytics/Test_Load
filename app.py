@@ -1981,13 +1981,22 @@ def handle_ask_question(data):
                          "long as my server is running properly.", "I don't have enough information to answer that "
                                                                    "question based on the provided context"]
 
-        # Check if any of the sorry phrases are in the response or if source_documents is empty
+        # Check if the response contains any sorry phrases or has no source documents
         if any(phrase in response["answer"] for phrase in sorry_phrases) or not response.get("source_documents"):
             doc_source = ["N/A"]
             doc_page_num = ["N/A"]
         else:
-            doc_source = [doc.metadata.get("source", "N/A") for doc in response["source_documents"]]
-            doc_page_num = [str(doc.metadata.get("page", "N/A")) for doc in response["source_documents"]]
+            # Get sources and page numbers from the response, ensuring no duplicates
+            seen_sources = set()
+            doc_source = []
+            doc_page_num = []
+            for doc in response["source_documents"]:
+                source = doc.metadata.get("source", "N/A")
+                page = str(doc.metadata.get("page", "N/A"))
+                if source not in seen_sources:
+                    seen_sources.add(source)
+                    doc_source.append(source)
+                    doc_page_num.append(page)
 
         # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
         final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
@@ -1995,6 +2004,7 @@ def handle_ask_question(data):
                             ", ".join(doc_source), ", ".join(doc_page_num))
                            for i in range(0, len(response['chat_history']), 2)]
 
+        # Create a list of dictionaries for the chat history
         chat_history_list = [{"question": chat_pair[0],
                               "answer": chat_pair[1],
                               "source": chat_pair[2],
