@@ -77,9 +77,20 @@ function sendQuestion() {
 }
 
 function openFileInNewTab(url) {
-    var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(url);
-    var win = window.open(googleDocsUrl, '_blank');
-    win.focus();
+    try {
+        // Ensure URL is fully encoded
+        var encodedUrl = encodeURIComponent(url.trim());
+        var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodedUrl;
+        console.log('Opening URL:', googleDocsUrl);
+        var win = window.open(googleDocsUrl, '_blank');
+        if (win) {
+            win.focus();
+        } else {
+            console.error("Failed to open new tab. Popup blocker might be enabled.");
+        }
+    } catch (e) {
+        console.error("Error opening file in new tab:", e);
+    }
 }
 
 function openPopup(sources, pageNumbers) {
@@ -122,11 +133,13 @@ function openPopup(sources, pageNumbers) {
         var sourceLink = document.createElement('a');
         sourceLink.href = 'javascript:void(0)';
         sourceLink.textContent = sources[i];
+
         sourceLink.addEventListener('click', (function(source) {
             return function() {
                 openFileInNewTab(source);
             };
         })(sources[i]));
+
         sourceData.appendChild(sourceLink);
         var pageNumberData = document.createElement('td');
         pageNumberData.textContent = pageNumbers[i];
