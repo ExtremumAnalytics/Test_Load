@@ -794,13 +794,11 @@ def get_conversation_chain(vectorstore):
     """
     deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name)
-    template = """Use the following pieces of context to answer the question at the end.
-    If you don't know the answer, just say that you don't know, don't try to make up an answer.
-    Use three sentences maximum. Keep the answer as concise as possible.
-    {context}
-    Question: {question}
-    Helpful Answer:"""
-
+    template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, 
+        just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible. 
+        {context}
+        Question: {question}
+        Helpful Answer:"""
     CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
 
     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
@@ -810,7 +808,8 @@ def get_conversation_chain(vectorstore):
         llm=llm,
         retriever=vectorstore.as_retriever(),
         memory=memory,
-        return_source_documents=True
+        return_source_documents=True,
+        combine_docs_chain_kwargs={"prompt": CUSTOM_QUESTION_PROMPT}
     )
 
     return conversation_chain
@@ -1978,7 +1977,8 @@ def handle_ask_question(data):
         sorry_phrases = ["I'm sorry", "I don't have any information", "I apologize", "Sorry",
                          "I don't have enough context to answer this question.", "Hello! How can I assist you today?",
                          "I'm an AI language model and I am always connected to the internet as "
-                         "long as my server is running properly."]
+                         "long as my server is running properly.", "I don't have enough information to answer that "
+                                                                   "question based on the provided context"]
 
         # Check if any of the sorry phrases are in the response or if source_documents is empty
         if any(phrase in response["answer"] for phrase in sorry_phrases) or not response.get("source_documents"):
