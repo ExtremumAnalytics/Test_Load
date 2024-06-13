@@ -1,9 +1,9 @@
-// Open the Source URL from Results 
-function openFileInNewTab(url) {
-    var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(url);
-    var win = window.open(googleDocsUrl, '_blank');
-    win.focus();
-}
+// // Open the Source URL from Results 
+// function openFileInNewTab(url) {
+//     var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(url);
+//     var win = window.open(googleDocsUrl, '_blank');
+//     win.focus();
+// }
 
 // Progress Bar update
 function updateProgressBar(percentage) {
@@ -13,11 +13,14 @@ function updateProgressBar(percentage) {
     progressBar.setAttribute('width', percent);
     progressBar.innerText = percentage + '% ';
 }
+    
 
 
-// Define the sendQuestion function in the global scope
+
+
+
 function sendQuestion() {
-    const socket=io();
+    const socket = io();
     var question = document.getElementById("question").value.trim(); // Trim the question
 
     if (question === "") {
@@ -27,21 +30,21 @@ function sendQuestion() {
     document.getElementById("waitImg").style.display = 'block'; // Show the loading image
 
     socket.emit('ask_question', { question: question });
-    
+
     socket.on('progress', function(data) {
-        if(data.pin==pin){
+        if (data.pin === pin) {
             updateProgressBar(data.percentage);
-            console.log(data.percentage)
+            console.log(data.percentage);
         }
     });
-    
+
     socket.on('response', function(response) {
         updateProgressBar(100);
-        console.log('100')
+        console.log('100');
         setTimeout(() => {
             document.getElementById("waitImg").style.display = 'none';
         }, 1500);
-        
+
         if (response.message) {
             document.getElementById('message').innerText = response.message;
             setTimeout(function() {
@@ -55,15 +58,390 @@ function sendQuestion() {
 
         var historyList = document.getElementById("chatHistoryList");
         response.chat_history.forEach(function(item) {
-            historyList.innerHTML += "<li><strong>Question:</strong> " + item.question + "<br>" +
+            var listItem = document.createElement('li');
+            listItem.innerHTML = "<strong>Question:</strong> " + item.question + "<br>" +
                 "<strong>Answer:</strong> " + item.answer + "<br>" +
-                "<strong>Source:</strong> <a href='#' onclick=\"openFileInNewTab('" + item.source + "')\" target='_blank'>" + item.source + "</a><br>" +
-                "<strong>Page Number:</strong> " + item.page_number + "</li><br>";
+                "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong>Source:</strong> </a>";
+            historyList.appendChild(listItem);
+        });
+
+        // Attach event listeners to source links
+        document.querySelectorAll('.source-link').forEach(function(link) {
+            link.addEventListener('click', function() {
+                openPopup(this.getAttribute('data-source').split(','), this.getAttribute('data-page').split(','));
+            });
         });
 
         document.getElementById("question").value = ""; // Clear the question input
     });
 }
+
+function openFileInNewTab(url) {
+    var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(url);
+    var win = window.open(googleDocsUrl, '_blank');
+    win.focus();
+}
+
+function openPopup(sources, pageNumbers) {
+    console.log("Opening popup with sources:", sources, "and page numbers:", pageNumbers);
+
+    // Create the popup div
+    var popupDiv = document.createElement('div');
+    popupDiv.classList.add('popup');
+
+    // Create the content div
+    var popupContent = document.createElement('div');
+    popupContent.classList.add('popup-content');
+
+    // Create the close button
+    var closeButton = document.createElement('span');
+    closeButton.classList.add('close-button');
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = function() {
+        popupDiv.style.display = 'none';
+        document.body.removeChild(popupDiv);
+    };
+
+    // Create the table
+    var table = document.createElement('table');
+
+    // Create and append the table header row
+    var headerRow = document.createElement('tr');
+    var sourceHeader = document.createElement('th');
+    sourceHeader.textContent = 'Source URL';
+    var pageNumberHeader = document.createElement('th');
+    pageNumberHeader.textContent = 'Page Number';
+    headerRow.appendChild(sourceHeader);
+    headerRow.appendChild(pageNumberHeader);
+    table.appendChild(headerRow);
+
+    // Create and append the source rows
+    for (var i = 0; i < sources.length; i++) {
+        var sourceRow = document.createElement('tr');
+        var sourceData = document.createElement('td');
+        var sourceLink = document.createElement('a');
+        sourceLink.href = 'javascript:void(0)';
+        sourceLink.textContent = sources[i];
+        sourceLink.addEventListener('click', (function(source) {
+            return function() {
+                openFileInNewTab(source);
+            };
+        })(sources[i]));
+        sourceData.appendChild(sourceLink);
+        var pageNumberData = document.createElement('td');
+        pageNumberData.textContent = pageNumbers[i];
+        sourceRow.appendChild(sourceData);
+        sourceRow.appendChild(pageNumberData);
+        table.appendChild(sourceRow);
+    }
+
+    // Append the close button and table to the popup content
+    popupContent.appendChild(closeButton);
+    popupContent.appendChild(table);
+
+    // Append the content to the popup div
+    popupDiv.appendChild(popupContent);
+
+    // Append the popup to the body
+    document.body.appendChild(popupDiv);
+
+    // Display the popup
+    popupDiv.style.display = 'flex';
+}
+
+
+// function sendQuestion() {
+//     const socket = io();
+//     var question = document.getElementById("question").value.trim(); // Trim the question
+
+//     if (question === "") {
+//         alert("Ask Question!");
+//         return;
+//     }
+//     document.getElementById("waitImg").style.display = 'block'; // Show the loading image
+
+//     socket.emit('ask_question', { question: question });
+
+//     socket.on('progress', function(data) {
+//         if (data.pin === pin) {
+//             updateProgressBar(data.percentage);
+//             console.log(data.percentage);
+//         }
+//     });
+
+//     socket.on('response', function(response) {
+//         updateProgressBar(100);
+//         console.log('100');
+//         setTimeout(() => {
+//             document.getElementById("waitImg").style.display = 'none';
+//         }, 1500);
+
+//         if (response.message) {
+//             document.getElementById('message').innerText = response.message;
+//             setTimeout(function() {
+//                 document.getElementById('message').innerText = '';
+//             }, 8000); // delete after 8 seconds
+//         }
+
+//         // Display chat history
+//         var historyContainer = document.getElementById("questionAnswer");
+//         historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
+
+//         var historyList = document.getElementById("chatHistoryList");
+//         response.chat_history.forEach(function(item) {
+//             var listItem = document.createElement('li');
+//             listItem.innerHTML = "<strong>Question:</strong> " + item.question + "<br>" +
+//                 "<strong>Answer:</strong> " + item.answer + "<br>" +
+//                 "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong>Source:</strong> </a>";
+//             historyList.appendChild(listItem);
+//         });
+
+//         // Attach event listeners to source links
+//         document.querySelectorAll('.source-link').forEach(function(link) {
+//             link.addEventListener('click', function() {
+//                 openPopup(this.getAttribute('data-source'), this.getAttribute('data-page'));
+//             });
+//         });
+
+//         document.getElementById("question").value = ""; // Clear the question input
+//     });
+// }
+
+// function openFileInNewTab(url) {
+//     var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(url);
+//     var win = window.open(googleDocsUrl, '_blank');
+//     win.focus();
+// }
+
+// function openPopup(source, pageNumber) {
+//     console.log("Opening popup with source:", source, "and page number:", pageNumber);
+
+//     // Create the popup div
+//     var popupDiv = document.createElement('div');
+//     popupDiv.classList.add('popup');
+
+//     // Create the content div
+//     var popupContent = document.createElement('div');
+//     popupContent.classList.add('popup-content');
+
+//     // Create the close button
+//     var closeButton = document.createElement('span');
+//     closeButton.classList.add('close-button');
+//     closeButton.innerHTML = '&times;';
+//     closeButton.onclick = function() {
+//         popupDiv.style.display = 'none';
+//         document.body.removeChild(popupDiv);
+//     };
+
+//     // Create the table
+//     var table = document.createElement('table');
+
+//     // Create and append the table header row
+//     var headerRow = document.createElement('tr');
+//     var sourceHeader = document.createElement('th');
+//     sourceHeader.textContent = 'Source URL';
+//     var pageNumberHeader = document.createElement('th');
+//     pageNumberHeader.textContent = 'Page Number';
+//     headerRow.appendChild(sourceHeader);
+//     headerRow.appendChild(pageNumberHeader);
+//     table.appendChild(headerRow);
+
+//     // Create and append the source row
+//     var sourceRow = document.createElement('tr');
+//     var sourceData = document.createElement('td');
+//     var sourceLink = document.createElement('a');
+//     sourceLink.href = 'javascript:void(0)';
+//     sourceLink.textContent = source;
+//     sourceLink.addEventListener('click', function() {
+//         openFileInNewTab(source);
+//     });
+//     sourceData.appendChild(sourceLink);
+//     var pageNumberData = document.createElement('td');
+//     pageNumberData.textContent = pageNumber;
+//     sourceRow.appendChild(sourceData);
+//     sourceRow.appendChild(pageNumberData);
+//     table.appendChild(sourceRow);
+
+//     // Append the close button and table to the popup content
+//     popupContent.appendChild(closeButton);
+//     popupContent.appendChild(table);
+
+//     // Append the content to the popup div
+//     popupDiv.appendChild(popupContent);
+
+//     // Append the popup to the body
+//     document.body.appendChild(popupDiv);
+
+//     // Display the popup
+//     popupDiv.style.display = 'flex';
+// }
+
+
+
+
+// function sendQuestion() {
+//     const socket = io();
+//     var question = document.getElementById("question").value.trim(); // Trim the question
+
+//     if (question === "") {
+//         alert("Ask Question!");
+//         return;
+//     }
+//     document.getElementById("waitImg").style.display = 'block'; // Show the loading image
+
+//     socket.emit('ask_question', { question: question });
+
+//     socket.on('progress', function(data) {
+//         if (data.pin === pin) {
+//             updateProgressBar(data.percentage);
+//             console.log(data.percentage);
+//         }
+//     });
+
+//     socket.on('response', function(response) {
+//         updateProgressBar(100);
+//         console.log('100');
+//         setTimeout(() => {
+//             document.getElementById("waitImg").style.display = 'none';
+//         }, 1500);
+
+//         if (response.message) {
+//             document.getElementById('message').innerText = response.message;
+//             setTimeout(function() {
+//                 document.getElementById('message').innerText = '';
+//             }, 8000); // delete after 8 seconds
+//         }
+
+//         // Display chat history
+//         var historyContainer = document.getElementById("questionAnswer");
+//         historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
+
+//         var historyList = document.getElementById("chatHistoryList");
+//         response.chat_history.forEach(function(item) {
+//             var listItem = document.createElement('li');
+//             listItem.innerHTML = "<strong>Question:</strong> " + item.question + "<br>" +
+//                 "<strong>Answer:</strong> " + item.answer + "<br>" +
+//                 "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong>Source:</strong> </a>";
+//             historyList.appendChild(listItem);
+//         });
+
+//         // Attach event listeners to source links
+//         document.querySelectorAll('.source-link').forEach(function(link) {
+//             link.addEventListener('click', function() {
+//                 openPopup(this.getAttribute('data-source'), this.getAttribute('data-page'));
+//             });
+//         });
+
+//         document.getElementById("question").value = ""; // Clear the question input
+//     });
+// }
+
+// function openPopup(source, pageNumber) {
+//     console.log("Opening popup with source:", source, "and page number:", pageNumber);
+
+//     // Create the popup div
+//     var popupDiv = document.createElement('div');
+//     popupDiv.classList.add('popup');
+
+//     // Create the content div
+//     var popupContent = document.createElement('div');
+//     popupContent.classList.add('popup-content');
+
+//     // Create the close button
+//     var closeButton = document.createElement('span');
+//     closeButton.classList.add('close-button');
+//     closeButton.innerHTML = '&times;';
+//     closeButton.onclick = function() {
+//         popupDiv.style.display = 'none';
+//         document.body.removeChild(popupDiv);
+//     };
+
+//     // Create the table
+//     var table = document.createElement('table');
+
+//     // Create and append the table header row
+//     var headerRow = document.createElement('tr');
+//     var sourceHeader = document.createElement('th');
+//     sourceHeader.textContent = 'Source URL';
+//     var pageNumberHeader = document.createElement('th');
+//     pageNumberHeader.textContent = 'Page Number';
+//     headerRow.appendChild(sourceHeader);
+//     headerRow.appendChild(pageNumberHeader);
+//     table.appendChild(headerRow);
+
+//     // Create and append the source row
+//     var sourceRow = document.createElement('tr');
+//     var sourceData = document.createElement('td');
+//     sourceData.textContent = source;
+//     var pageNumberData = document.createElement('td');
+//     pageNumberData.textContent = pageNumber;
+//     sourceRow.appendChild(sourceData);
+//     sourceRow.appendChild(pageNumberData);
+//     table.appendChild(sourceRow);
+
+//     // Append the close button and table to the popup content
+//     popupContent.appendChild(closeButton);
+//     popupContent.appendChild(table);
+
+//     // Append the content to the popup div
+//     popupDiv.appendChild(popupContent);
+
+//     // Append the popup to the body
+//     document.body.appendChild(popupDiv);
+
+//     // Display the popup
+//     popupDiv.style.display = 'flex';
+// }
+
+// // Define the sendQuestion function in the global scope
+// function sendQuestion() {
+//     const socket=io();
+//     var question = document.getElementById("question").value.trim(); // Trim the question
+
+//     if (question === "") {
+//         alert("Ask Question!");
+//         return;
+//     }
+//     document.getElementById("waitImg").style.display = 'block'; // Show the loading image
+
+//     socket.emit('ask_question', { question: question });
+    
+//     socket.on('progress', function(data) {
+//         if(data.pin==pin){
+//             updateProgressBar(data.percentage);
+//             console.log(data.percentage)
+//         }
+//     });
+    
+//     socket.on('response', function(response) {
+//         updateProgressBar(100);
+//         console.log('100')
+//         setTimeout(() => {
+//             document.getElementById("waitImg").style.display = 'none';
+//         }, 1500);
+        
+//         if (response.message) {
+//             document.getElementById('message').innerText = response.message;
+//             setTimeout(function() {
+//                 document.getElementById('message').innerText = '';
+//             }, 8000); // delete after 8 seconds
+//         }
+
+//         // Display chat history
+//         var historyContainer = document.getElementById("questionAnswer");
+//         historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
+
+//         var historyList = document.getElementById("chatHistoryList");
+//         response.chat_history.forEach(function(item) {
+//             historyList.innerHTML += "<li><strong>Question:</strong> " + item.question + "<br>" +
+//                 "<strong>Answer:</strong> " + item.answer + "<br>" +
+//                 "<strong>Source:</strong> <a href='#' onclick=\"openFileInNewTab('" + item.source + "')\">" + item.source + "</a><br>" +
+//                 "<strong>Page Number:</strong> " + item.page_number + "</li><br>";
+//         });
+
+//         document.getElementById("question").value = ""; // Clear the question input
+//     });
+// }
 
 // Clear Chat
 function clearChat() {
