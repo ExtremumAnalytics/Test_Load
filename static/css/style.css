@@ -629,3 +629,14 @@
     top: 0;
     z-index: 2;
 }
+
+.flash_msg{
+    text-align: center;
+}
+
+
+.flash-container {
+    width: auto; /* Adjust the width as needed */
+    height: 20px;
+    text-align: center;
+  }

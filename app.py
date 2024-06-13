@@ -6,6 +6,7 @@ import json
 from io import BytesIO
 # Assuming Document is a custom class or namedtuple
 from collections import namedtuple
+from collections import defaultdict
 
 from flask import Flask, jsonify, url_for, flash
 from flask import render_template, request, g, redirect, session
@@ -15,6 +16,7 @@ import pickle
 
 # sentiment and word cloud use only
 import nltk
+from langchain_core.retrievers import BaseRetriever
 from nltk.tokenize import word_tokenize
 from wordcloud import WordCloud
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
@@ -47,6 +49,7 @@ from langchain_community.vectorstores.azuresearch import AzureSearch
 from langchain.vectorstores import AzureSearch
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
+from langchain.chains.llm import LLMChain
 
 # for mp3 to pdf
 from reportlab.lib.pagesizes import letter
@@ -549,9 +552,9 @@ def update_when_file_delete():
             socketio.emit('progress', {'percentage': 75, 'pin': session['login_pin']})
             time.sleep(2)
         if Source_URL != "":
-            delete_documents_by_metadata(["Source_Url"])
+            delete_documents_from_vectordb(["Source_Website"])
             session['total_files_list'] += 1
-            f_name_url = Source_URL
+            f_name_url = "Source_Website"
             file_type = 'Source_Url'
             bar_chart_url[file_type] = bar_chart_url.get(file_type, 0) + 1
             # Update bar_chart_url with values from session, if available
@@ -673,7 +676,7 @@ def get_vectostore(text_chunks, operation='add'):
         raise ValueError("Invalid operation. Choose 'add', 'update', 'delete', or 'override'.")
 
 
-def delete_documents_by_metadata(documents_to_delete):
+def delete_documents_from_vectordb(documents_to_delete):
     """
     Deletes documents from the Azure vector store based on the 'documents' metadata attribute.
 
@@ -726,7 +729,7 @@ def delete_documents_by_metadata(documents_to_delete):
         if not delete_document_ids:
             raise Exception("No valid document IDs found to delete")
 
-        # print("delete_document_ids------->", delete_document_ids)
+        print("delete_document_ids------->", delete_document_ids)
 
         # Prepare actions for batch delete
         actions = [{"@search.action": "delete", "id": doc_id} for doc_id in delete_document_ids]
@@ -743,6 +746,42 @@ def delete_documents_by_metadata(documents_to_delete):
         print({'message': str(e)})
 
 
+# def get_conversation_chain(vectorstore):
+#     """
+#     Retrieves a conversation chain for conversational retrieval using Azure models.
+#
+#     Args:
+#         vectorstore: The AzureSearch vector store instance.
+#
+#     Returns:
+#         function: A function to handle question answering with context check.
+#     """
+#     deployment_name = set_model()
+#     llm = AzureChatOpenAI(azure_deployment=deployment_name)
+#     template = """Use the following pieces of context to answer the question at the end.
+#     If you don't know the answer, just say that you don't know, don't try to make up an answer.
+#     Use three sentences maximum. Keep the answer as concise as possible.
+#     {context}
+#     Question: {question}
+#     Helpful Answer:"""
+#
+#     CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
+#
+#     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
+#                                       output_key="answer")
+#
+#     qa_chain = LLMChain(llm=llm, prompt=CUSTOM_QUESTION_PROMPT)
+#
+#     conversation_chain = ConversationalRetrievalChain.from_llm(
+#         llm=llm,
+#         retriever=vectorstore.as_retriever(),
+#         memory=memory,
+#         return_source_documents=True,
+#         combine_docs_chain=qa_chain  # Use the custom QA chain here
+#     )
+#
+#     return conversation_chain
+
 def get_conversation_chain(vectorstore):
     """
     Retrieves a conversation chain for conversational retrieval using Azure models.
@@ -755,8 +794,8 @@ def get_conversation_chain(vectorstore):
     """
     deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name)
-    template = """Use the following pieces of context to answer the question at the end. 
-    If you don't know the answer, just say that you don't know, don't try to make up an answer. 
+    template = """Use the following pieces of context to answer the question at the end.
+    If you don't know the answer, just say that you don't know, don't try to make up an answer.
     Use three sentences maximum. Keep the answer as concise as possible.
     {context}
     Question: {question}
@@ -775,40 +814,6 @@ def get_conversation_chain(vectorstore):
     )
 
     return conversation_chain
-
-
-
-
-
-
-# def get_conversation_chain(vectorstore):
-#     """
-#     Retrieves a conversation chain for conversational retrieval using Azure models.
-#
-#     Args:
-#         vectorstore: The AzureSearch vector store instance.
-#
-#     Returns:
-#         ConversationalRetrievalChain: A conversation chain for conversational retrieval.
-#     """
-#     # llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo")
-#     deployment_name = set_model()
-#     llm = AzureChatOpenAI(azure_deployment=deployment_name)
-#     template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
-#     just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
-#     {context}
-#     Question: {question}
-#     Helpful Answer:"""
-#     CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
-#     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
-#                                       output_key="answer", question_prompt=CUSTOM_QUESTION_PROMPT,)
-#     conversation_chain = ConversationalRetrievalChain.from_llm(
-#         llm=llm,
-#         retriever=vectorstore.as_retriever(),
-#         memory=memory,
-#         return_source_documents=True
-#     )
-#     return conversation_chain
 
 
 def custom_summary(docs, custom_prompt, chain_type):
@@ -1245,12 +1250,6 @@ def log_out_forall():
     session.clear()
 
 
-# import logging
-# from logging.handlers import TimedRotatingFileHandler
-# import csv
-# import os
-# import datetime
-
 class CSVLogHandler(logging.Handler):
     def __init__(self, filename, mode='a', encoding='utf-8'):
         super().__init__()
@@ -1421,6 +1420,7 @@ def home():
                 index_name=index_name,
                 embedding_function=embeddings.embed_query,
             )
+            delete_documents_from_vectordb(["Source_Website"])
             return jsonify({'redirect': url_for('data_source')})
 
         g.flag = 0
@@ -1755,8 +1755,6 @@ def summary():
     session['summary_word_cpunt'] = 0
     return render_template('summary.html')
 
-from collections import defaultdict
-
 
 # Function to merge content from dictionaries with the same 'documents' key
 def merge_documents(doc_list):
@@ -1795,6 +1793,7 @@ def handle_summary_input(data):
     global text_word_cloud
     session['summary_add'] = []
     start_time = time.time()
+    emit('progress', {'percentage': 10, 'pin': session['login_pin']})
 
     try:
         custom_p = data.get('summary_que')
@@ -1852,7 +1851,7 @@ def handle_summary_input(data):
 
         # Iterate over the merged_documents dictionary and structure the output
         structured_documents = []
-
+        emit('progress', {'percentage': 40, 'pin': session['login_pin']})
         for file_name, file_info in merged_documents.items():
             page_content = file_info['content']
             raw_metadata = file_info['metadata']
@@ -1871,7 +1870,7 @@ def handle_summary_input(data):
 
             # Append to structured_documents
             structured_documents.append([file_name, [document]])
-
+        emit('progress', {'percentage': 60, 'pin': session['login_pin']})
         # Print the structured documents list to verify
         # print("structured_documents--->", structured_documents)
         summ = []
@@ -1944,7 +1943,7 @@ def ask():
 @socketio.on('ask_question')
 def handle_ask_question(data):
     # Update progress to 0%
-    emit('progress', {'percentage': 0, 'pin': session['login_pin']})
+    emit('progress', {'percentage': 10, 'pin': session['login_pin']})
     global senti_text_Q_A
     start_time = time.time()
 
@@ -1963,26 +1962,36 @@ def handle_ask_question(data):
         emit('progress', {'percentage': 25, 'pin': session['login_pin']})
 
         # new_db = FAISS.load_local(faiss_index_path, embeddings, allow_dangerous_deserialization=True)
-        conversation = get_conversation_chain(vector_store)
-        response = conversation({"question": question})
-        # print("response------------->", response["answer"])
+
+        # Create the conversation chain handler
+        conversation_chain_handler = get_conversation_chain(vector_store)
+        response = conversation_chain_handler(question)
+
+        # conversation = get_conversation_chain(vector_store)
+        # response = conversation({"question": question})
+
+        # print("response------------->", response)
 
         # Update progress to 50%
         emit('progress', {'percentage': 50, 'pin': session['login_pin']})
         time.sleep(0.5)
         sorry_phrases = ["I'm sorry", "I don't have any information", "I apologize", "Sorry",
-                         "I don't have enough context to answer this question.", "Hello! How can I assist you today?"]
+                         "I don't have enough context to answer this question.", "Hello! How can I assist you today?",
+                         "I'm an AI language model and I am always connected to the internet as "
+                         "long as my server is running properly."]
+
         # Check if any of the sorry phrases are in the response or if source_documents is empty
         if any(phrase in response["answer"] for phrase in sorry_phrases) or not response.get("source_documents"):
             doc_source = ["N/A"]
             doc_page_num = ["N/A"]
         else:
-            doc_source = [response["source_documents"][0].metadata.get("source", "N/A")]
-            doc_page_num = [response["source_documents"][0].metadata.get("page", "N/A")]
+            doc_source = [doc.metadata.get("source", "N/A") for doc in response["source_documents"]]
+            doc_page_num = [str(doc.metadata.get("page", "N/A")) for doc in response["source_documents"]]
 
+        # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
         final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
                             response['chat_history'][i + 1].content if response['chat_history'][i + 1] else "",
-                            doc_source[i], doc_page_num[i])
+                            ", ".join(doc_source), ", ".join(doc_page_num))
                            for i in range(0, len(response['chat_history']), 2)]
 
         chat_history_list = [{"question": chat_pair[0],
@@ -1990,6 +1999,25 @@ def handle_ask_question(data):
                               "source": chat_pair[2],
                               "page_number": chat_pair[3]}
                              for chat_pair in final_chat_hist]
+
+        # # Check if any of the sorry phrases are in the response or if source_documents is empty
+        # if any(phrase in response["answer"] for phrase in sorry_phrases) or not response.get("source_documents"):
+        #     doc_source = ["N/A"]
+        #     doc_page_num = ["N/A"]
+        # else:
+        #     doc_source = [response["source_documents"][0].metadata.get("source", "N/A")]
+        #     doc_page_num = [response["source_documents"][0].metadata.get("page", "N/A")]
+        # # print("response------->", response["source_documents"].metadata.get("source", "N/A"))
+        # final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
+        #                     response['chat_history'][i + 1].content if response['chat_history'][i + 1] else "",
+        #                     doc_source[i], doc_page_num[i])
+        #                    for i in range(0, len(response['chat_history']), 2)]
+        #
+        # chat_history_list = [{"question": chat_pair[0],
+        #                       "answer": chat_pair[1],
+        #                       "source": chat_pair[2],
+        #                       "page_number": chat_pair[3]}
+        #                      for chat_pair in final_chat_hist]
 
         senti_text_Q_A = ' '.join(entry['answer'] for entry in chat_history_list)
 
@@ -2065,7 +2093,7 @@ def delete_files():
                 g.flag = 0
                 logger.error(f"delete for delete route: {file_name} not found", exc_info=True)
                 return jsonify({'error': f'File {file_name} not found'}), 404
-        delete_documents_by_metadata(file_names)
+        delete_documents_from_vectordb(file_names)
         update_bar_chart_from_blob(session, blob_service_client, container_name)
         g.flag = 1  # Set flag to 1 on success
         logger.info(f"Selected vault files deleted successfully")
@@ -2088,7 +2116,7 @@ def get_data_source():
         # Construct the data with status based on lists
         data = []
         for blob in blobs:
-            if blob.name.split('/')[1]!='draft':
+            if blob.name.split('/')[1] != 'draft':
                 file_name = blob.name.split('/')[1]
                 if file_name in progress_files:
                     status = 'U | EC'
@@ -2247,14 +2275,14 @@ def download_pdf(url, folder_name, filename):
     response = requests.get(url)
     file_path = os.path.join(folder_name, filename + '.pdf')
 
-    # print(f"Downloading: {filename} from {url} to {file_path}")
+    print(f"Downloading: {filename} from {url} to {file_path}")
     current_file = filename  # Update current file being downloaded
 
     with open(file_path, 'wb') as f:
         f.write(response.content)
     g.flag = 1
     logger.info(f"Route download_progress success")
-    # print(f"Downloaded: {filename}")
+    print(f"Downloaded: {filename}")
 
 
 @socketio.on('fetch_pdf_files')
