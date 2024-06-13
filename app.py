@@ -1419,7 +1419,7 @@ def home():
                 index_name=index_name,
                 embedding_function=embeddings.embed_query,
             )
-            delete_documents_from_vectordb(["Source_Website"])
+            # delete_documents_from_vectordb(["Source_Website"])
             return jsonify({'redirect': url_for('data_source')})
 
         g.flag = 0
