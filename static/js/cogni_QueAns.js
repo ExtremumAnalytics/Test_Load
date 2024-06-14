@@ -61,7 +61,7 @@ function sendQuestion() {
             var listItem = document.createElement('li');
             listItem.innerHTML = "<strong>Question:</strong> " + item.question + "<br>" +
                 "<strong>Answer:</strong> " + item.answer + "<br>" +
-                "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong>Source:</strong> </a>";
+                "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong> </a>";
             historyList.appendChild(listItem);
         });
 
@@ -77,10 +77,22 @@ function sendQuestion() {
 }
 
 function openFileInNewTab(url) {
-    var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(url);
-    var win = window.open(googleDocsUrl, '_blank');
-    win.focus();
+    try {
+        // Ensure URL is fully encoded
+        var encodedUrl = encodeURIComponent(url.trim());
+        var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodedUrl;
+        console.log('Opening URL:', googleDocsUrl);
+        var win = window.open(googleDocsUrl, '_blank');
+        if (win) {
+            win.focus();
+        } else {
+            console.error("Failed to open new tab. Popup blocker might be enabled.");
+        }
+    } catch (e) {
+        console.error("Error opening file in new tab:", e);
+    }
 }
+
 
 function openPopup(sources, pageNumbers) {
     console.log("Opening popup with sources:", sources, "and page numbers:", pageNumbers);
@@ -108,25 +120,36 @@ function openPopup(sources, pageNumbers) {
     // Create and append the table header row
     var headerRow = document.createElement('tr');
     var sourceHeader = document.createElement('th');
-    sourceHeader.textContent = 'Source URL';
+    sourceHeader.textContent = 'Source Filename';
     var pageNumberHeader = document.createElement('th');
     pageNumberHeader.textContent = 'Page Number';
     headerRow.appendChild(sourceHeader);
     headerRow.appendChild(pageNumberHeader);
     table.appendChild(headerRow);
 
+    // Function to extract file name from URL
+    function extractFileName(url) {
+        return url.split('/').pop();
+    }
+
     // Create and append the source rows
     for (var i = 0; i < sources.length; i++) {
         var sourceRow = document.createElement('tr');
         var sourceData = document.createElement('td');
         var sourceLink = document.createElement('a');
-        sourceLink.href = 'javascript:void(0)';
-        sourceLink.textContent = sources[i];
-        sourceLink.addEventListener('click', (function(source) {
+
+        var fileName = extractFileName(sources[i]);  // Extract the file name from the URL
+
+        sourceLink.href = 'javascript:void(0)';  // Prevent default link behavior
+        sourceLink.textContent = fileName;
+
+        // Add event listener to open the file in Google Viewer
+        sourceLink.addEventListener('click', (function(url) {
             return function() {
-                openFileInNewTab(source);
+                openFileInNewTab(url);
             };
         })(sources[i]));
+
         sourceData.appendChild(sourceLink);
         var pageNumberData = document.createElement('td');
         pageNumberData.textContent = pageNumbers[i];
@@ -148,6 +171,150 @@ function openPopup(sources, pageNumbers) {
     // Display the popup
     popupDiv.style.display = 'flex';
 }
+
+
+//working
+// function openPopup(sources, pageNumbers) {
+//     console.log("Opening popup with sources:", sources, "and page numbers:", pageNumbers);
+
+//     // Create the popup div
+//     var popupDiv = document.createElement('div');
+//     popupDiv.classList.add('popup');
+
+//     // Create the content div
+//     var popupContent = document.createElement('div');
+//     popupContent.classList.add('popup-content');
+
+//     // Create the close button
+//     var closeButton = document.createElement('span');
+//     closeButton.classList.add('close-button');
+//     closeButton.innerHTML = '&times;';
+//     closeButton.onclick = function() {
+//         popupDiv.style.display = 'none';
+//         document.body.removeChild(popupDiv);
+//     };
+
+//     // Create the table
+//     var table = document.createElement('table');
+
+//     // Create and append the table header row
+//     var headerRow = document.createElement('tr');
+//     var sourceHeader = document.createElement('th');
+//     sourceHeader.textContent = 'Source Filename';
+//     var pageNumberHeader = document.createElement('th');
+//     pageNumberHeader.textContent = 'Page Number';
+//     headerRow.appendChild(sourceHeader);
+//     headerRow.appendChild(pageNumberHeader);
+//     table.appendChild(headerRow);
+
+//     // Create and append the source rows
+//     for (var i = 0; i < sources.length; i++) {
+//         var sourceRow = document.createElement('tr');
+//         var sourceData = document.createElement('td');
+//         var sourceLink = document.createElement('a');
+//         sourceLink.href = 'javascript:void(0)';
+//         sourceLink.textContent = sources[i];
+
+//         sourceLink.addEventListener('click', (function(source) {
+//             return function() {
+//                 openFileInNewTab(source);
+//             };
+//         })(sources[i]));
+
+//         sourceData.appendChild(sourceLink);
+//         var pageNumberData = document.createElement('td');
+//         pageNumberData.textContent = pageNumbers[i];
+//         sourceRow.appendChild(sourceData);
+//         sourceRow.appendChild(pageNumberData);
+//         table.appendChild(sourceRow);
+//     }
+
+//     // Append the close button and table to the popup content
+//     popupContent.appendChild(closeButton);
+//     popupContent.appendChild(table);
+
+//     // Append the content to the popup div
+//     popupDiv.appendChild(popupContent);
+
+//     // Append the popup to the body
+//     document.body.appendChild(popupDiv);
+
+//     // Display the popup
+//     popupDiv.style.display = 'flex';
+// }
+
+
+
+
+
+
+
+// function openPopup(sources, pageNumbers) {
+//     console.log("Opening popup with sources:", sources, "and page numbers:", pageNumbers);
+
+//     // Create the popup div
+//     var popupDiv = document.createElement('div');
+//     popupDiv.classList.add('popup');
+
+//     // Create the content div
+//     var popupContent = document.createElement('div');
+//     popupContent.classList.add('popup-content');
+
+//     // Create the close button
+//     var closeButton = document.createElement('span');
+//     closeButton.classList.add('close-button');
+//     closeButton.innerHTML = '&times;';
+//     closeButton.onclick = function() {
+//         popupDiv.style.display = 'none';
+//         document.body.removeChild(popupDiv);
+//     };
+
+//     // Create the table
+//     var table = document.createElement('table');
+
+//     // Create and append the table header row
+//     var headerRow = document.createElement('tr');
+//     var sourceHeader = document.createElement('th');
+//     sourceHeader.textContent = 'Source URL';
+//     var pageNumberHeader = document.createElement('th');
+//     pageNumberHeader.textContent = 'Page Number';
+//     headerRow.appendChild(sourceHeader);
+//     headerRow.appendChild(pageNumberHeader);
+//     table.appendChild(headerRow);
+
+//     // Create and append the source rows
+//     for (var i = 0; i < sources.length; i++) {
+//         var sourceRow = document.createElement('tr');
+//         var sourceData = document.createElement('td');
+//         var sourceLink = document.createElement('a');
+//         sourceLink.href = 'javascript:void(0)';
+//         sourceLink.textContent = sources[i];
+//         sourceLink.addEventListener('click', (function(source) {
+//             return function() {
+//                 openFileInNewTab(source);
+//             };
+//         })(sources[i]));
+//         sourceData.appendChild(sourceLink);
+//         var pageNumberData = document.createElement('td');
+//         pageNumberData.textContent = pageNumbers[i];
+//         sourceRow.appendChild(sourceData);
+//         sourceRow.appendChild(pageNumberData);
+//         table.appendChild(sourceRow);
+//     }
+
+//     // Append the close button and table to the popup content
+//     popupContent.appendChild(closeButton);
+//     popupContent.appendChild(table);
+
+//     // Append the content to the popup div
+//     popupDiv.appendChild(popupContent);
+
+//     // Append the popup to the body
+//     document.body.appendChild(popupDiv);
+
+//     // Display the popup
+//     popupDiv.style.display = 'flex';
+// }
 
 
 // function sendQuestion() {

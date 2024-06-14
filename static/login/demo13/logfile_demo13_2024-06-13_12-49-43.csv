@@ -1,5 +1,5 @@
 timestamp,category,user_id,function,line_number,flag,message,exception
-2024-06-13 11:36:26,ERROR,asif24,create_or_pass_folder,202,0,Function create_or_pass_folder error,"Function create_or_pass_folder error
+2024-06-13 12:49:45,ERROR,demo13,create_or_pass_folder,202,0,Function create_or_pass_folder error,"Function create_or_pass_folder error
 Traceback (most recent call last):
   File ""C:\Users\Asif\Desktop\Main_CogniLink_App\app.py"", line 195, in create_or_pass_folder
     container_client.get_blob_client(container_name, user_folder).upload_blob("""")
@@ -13,34 +13,34 @@ Traceback (most recent call last):
     exec(""raise error from None"")   # pylint: disable=exec-used # nosec
   File ""<string>"", line 1, in <module>
 azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
-RequestId:cd7e2e35-c01e-002f-3957-bdf43c000000
-Time:2024-06-13T06:06:25.9362114Z
+RequestId:3a8f18af-e01e-0077-3762-bdf047000000
+Time:2024-06-13T07:19:44.8315794Z
 ErrorCode:InvalidQueryParameterValue
 queryparametername:snapshot
-queryparametervalue:asif24
+queryparametervalue:demo13
 Content: <?xml version=""1.0"" encoding=""utf-8""?>
 <Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
-RequestId:cd7e2e35-c01e-002f-3957-bdf43c000000
-Time:2024-06-13T06:06:25.9362114Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
-2024-06-13 11:36:26,ERROR,asif24,create_or_pass_folder,211,0,"Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
-RequestId:cd7e2e35-c01e-002f-3957-bdf43c000000
-Time:2024-06-13T06:06:25.9362114Z
+RequestId:3a8f18af-e01e-0077-3762-bdf047000000
+Time:2024-06-13T07:19:44.8315794Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>demo13</QueryParameterValue></Error>"
+2024-06-13 12:49:45,ERROR,demo13,create_or_pass_folder,211,0,"Function create_or_pass_folder Error creating folder'demo13': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:3a8f18af-e01e-0077-3762-bdf047000000
+Time:2024-06-13T07:19:44.8315794Z
 ErrorCode:InvalidQueryParameterValue
 queryparametername:snapshot
-queryparametervalue:asif24
+queryparametervalue:demo13
 Content: <?xml version=""1.0"" encoding=""utf-8""?>
 <Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
-RequestId:cd7e2e35-c01e-002f-3957-bdf43c000000
-Time:2024-06-13T06:06:25.9362114Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> ","Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
-RequestId:cd7e2e35-c01e-002f-3957-bdf43c000000
-Time:2024-06-13T06:06:25.9362114Z
+RequestId:3a8f18af-e01e-0077-3762-bdf047000000
+Time:2024-06-13T07:19:44.8315794Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>demo13</QueryParameterValue></Error> ","Function create_or_pass_folder Error creating folder'demo13': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:3a8f18af-e01e-0077-3762-bdf047000000
+Time:2024-06-13T07:19:44.8315794Z
 ErrorCode:InvalidQueryParameterValue
 queryparametername:snapshot
-queryparametervalue:asif24
+queryparametervalue:demo13
 Content: <?xml version=""1.0"" encoding=""utf-8""?>
 <Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
-RequestId:cd7e2e35-c01e-002f-3957-bdf43c000000
-Time:2024-06-13T06:06:25.9362114Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> 
+RequestId:3a8f18af-e01e-0077-3762-bdf047000000
+Time:2024-06-13T07:19:44.8315794Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>demo13</QueryParameterValue></Error> 
 Traceback (most recent call last):
   File ""C:\Users\Asif\Desktop\Main_CogniLink_App\app.py"", line 195, in create_or_pass_folder
     container_client.get_blob_client(container_name, user_folder).upload_blob("""")
@@ -54,22 +54,14 @@ Traceback (most recent call last):
     exec(""raise error from None"")   # pylint: disable=exec-used # nosec
   File ""<string>"", line 1, in <module>
 azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
-RequestId:cd7e2e35-c01e-002f-3957-bdf43c000000
-Time:2024-06-13T06:06:25.9362114Z
+RequestId:3a8f18af-e01e-0077-3762-bdf047000000
+Time:2024-06-13T07:19:44.8315794Z
 ErrorCode:InvalidQueryParameterValue
 queryparametername:snapshot
-queryparametervalue:asif24
+queryparametervalue:demo13
 Content: <?xml version=""1.0"" encoding=""utf-8""?>
 <Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
-RequestId:cd7e2e35-c01e-002f-3957-bdf43c000000
-Time:2024-06-13T06:06:25.9362114Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
-2024-06-13 11:36:26,INFO,asif24,home,1413,1,User asif24 logged in successfully,
-2024-06-13 11:36:26,INFO,asif24,update_bar_chart_from_blob,322,1,Function update_bar_chart_from_blob successfully Return blob_list,
-2024-06-13 11:36:31,INFO,asif24,update_bar_chart_from_blob,322,1,Function update_bar_chart_from_blob successfully Return blob_list,
-2024-06-13 11:36:32,INFO,asif24,get_data_source,2135,1,table_update route successfully send data,
-2024-06-13 11:36:48,INFO,asif24,perform_lda___Q_A,1045,1,QnA topics generated.,
-2024-06-13 11:36:48,INFO,asif24,handle_ask_question,2037,1,Answer Generated in 10.616561651229858 seconds,
-2024-06-13 11:40:55,INFO,asif24,perform_lda___Q_A,1045,1,QnA topics generated.,
-2024-06-13 11:40:55,INFO,asif24,handle_ask_question,2037,1,Answer Generated in 7.919799566268921 seconds,
-2024-06-13 11:41:15,INFO,asif24,perform_lda___Q_A,1045,1,QnA topics generated.,
-2024-06-13 11:41:15,INFO,asif24,handle_ask_question,2037,1,Answer Generated in 7.283310890197754 seconds,
+RequestId:3a8f18af-e01e-0077-3762-bdf047000000
+Time:2024-06-13T07:19:44.8315794Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>demo13</QueryParameterValue></Error>"
+2024-06-13 12:49:45,INFO,demo13,home,1409,1,User demo13 logged in successfully,
+2024-06-13 12:49:46,INFO,demo13,update_bar_chart_from_blob,322,1,Function update_bar_chart_from_blob successfully Return blob_list,

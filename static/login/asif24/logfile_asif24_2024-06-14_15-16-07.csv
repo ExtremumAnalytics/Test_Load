@@ -1,0 +1,215 @@
+timestamp,category,user_id,function,line_number,flag,message,exception
+2024-06-14 15:16:08,ERROR,asif24,create_or_pass_folder,202,0,Function create_or_pass_folder error,"Function create_or_pass_folder error
+Traceback (most recent call last):
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\app.py"", line 195, in create_or_pass_folder
+    container_client.get_blob_client(container_name, user_folder).upload_blob("""")
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\core\tracing\decorator.py"", line 78, in wrapper_use_tracer
+    return func(*args, **kwargs)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_blob_client.py"", line 765, in upload_blob
+    return upload_block_blob(**options)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_upload_helpers.py"", line 195, in upload_block_blob
+    process_storage_error(error)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_shared\response_handlers.py"", line 184, in process_storage_error
+    exec(""raise error from None"")   # pylint: disable=exec-used # nosec
+  File ""<string>"", line 1, in <module>
+azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
+RequestId:590c1286-d01e-0012-083f-be411a000000
+Time:2024-06-14T09:46:08.7925345Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:590c1286-d01e-0012-083f-be411a000000
+Time:2024-06-14T09:46:08.7925345Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
+2024-06-14 15:16:08,ERROR,asif24,create_or_pass_folder,211,0,"Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:590c1286-d01e-0012-083f-be411a000000
+Time:2024-06-14T09:46:08.7925345Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:590c1286-d01e-0012-083f-be411a000000
+Time:2024-06-14T09:46:08.7925345Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> ","Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:590c1286-d01e-0012-083f-be411a000000
+Time:2024-06-14T09:46:08.7925345Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:590c1286-d01e-0012-083f-be411a000000
+Time:2024-06-14T09:46:08.7925345Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> 
+Traceback (most recent call last):
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\app.py"", line 195, in create_or_pass_folder
+    container_client.get_blob_client(container_name, user_folder).upload_blob("""")
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\core\tracing\decorator.py"", line 78, in wrapper_use_tracer
+    return func(*args, **kwargs)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_blob_client.py"", line 765, in upload_blob
+    return upload_block_blob(**options)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_upload_helpers.py"", line 195, in upload_block_blob
+    process_storage_error(error)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_shared\response_handlers.py"", line 184, in process_storage_error
+    exec(""raise error from None"")   # pylint: disable=exec-used # nosec
+  File ""<string>"", line 1, in <module>
+azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
+RequestId:590c1286-d01e-0012-083f-be411a000000
+Time:2024-06-14T09:46:08.7925345Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:590c1286-d01e-0012-083f-be411a000000
+Time:2024-06-14T09:46:08.7925345Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
+2024-06-14 15:16:08,INFO,asif24,home,1411,1,User asif24 logged in successfully,
+2024-06-14 15:16:08,ERROR,asif24,create_or_pass_folder,202,0,Function create_or_pass_folder error,"Function create_or_pass_folder error
+Traceback (most recent call last):
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\app.py"", line 195, in create_or_pass_folder
+    container_client.get_blob_client(container_name, user_folder).upload_blob("""")
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\core\tracing\decorator.py"", line 78, in wrapper_use_tracer
+    return func(*args, **kwargs)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_blob_client.py"", line 765, in upload_blob
+    return upload_block_blob(**options)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_upload_helpers.py"", line 195, in upload_block_blob
+    process_storage_error(error)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_shared\response_handlers.py"", line 184, in process_storage_error
+    exec(""raise error from None"")   # pylint: disable=exec-used # nosec
+  File ""<string>"", line 1, in <module>
+azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
+RequestId:4eebca97-101e-0069-7b3f-be2aaa000000
+Time:2024-06-14T09:46:08.8346896Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:4eebca97-101e-0069-7b3f-be2aaa000000
+Time:2024-06-14T09:46:08.8346896Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
+2024-06-14 15:16:08,ERROR,asif24,create_or_pass_folder,211,0,"Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:4eebca97-101e-0069-7b3f-be2aaa000000
+Time:2024-06-14T09:46:08.8346896Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:4eebca97-101e-0069-7b3f-be2aaa000000
+Time:2024-06-14T09:46:08.8346896Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> ","Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:4eebca97-101e-0069-7b3f-be2aaa000000
+Time:2024-06-14T09:46:08.8346896Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:4eebca97-101e-0069-7b3f-be2aaa000000
+Time:2024-06-14T09:46:08.8346896Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> 
+Traceback (most recent call last):
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\app.py"", line 195, in create_or_pass_folder
+    container_client.get_blob_client(container_name, user_folder).upload_blob("""")
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\core\tracing\decorator.py"", line 78, in wrapper_use_tracer
+    return func(*args, **kwargs)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_blob_client.py"", line 765, in upload_blob
+    return upload_block_blob(**options)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_upload_helpers.py"", line 195, in upload_block_blob
+    process_storage_error(error)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_shared\response_handlers.py"", line 184, in process_storage_error
+    exec(""raise error from None"")   # pylint: disable=exec-used # nosec
+  File ""<string>"", line 1, in <module>
+azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
+RequestId:4eebca97-101e-0069-7b3f-be2aaa000000
+Time:2024-06-14T09:46:08.8346896Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:4eebca97-101e-0069-7b3f-be2aaa000000
+Time:2024-06-14T09:46:08.8346896Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
+2024-06-14 15:16:08,INFO,asif24,home,1411,1,User asif24 logged in successfully,
+2024-06-14 15:16:09,INFO,asif24,update_bar_chart_from_blob,323,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-06-14 15:16:09,INFO,asif24,update_bar_chart_from_blob,323,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-06-14 15:16:12,INFO,asif24,update_bar_chart_from_blob,323,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-06-14 15:16:12,INFO,asif24,update_bar_chart_from_blob,323,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-06-14 15:16:23,INFO,asif24,get_data_source,2284,1,table_update route successfully send data,
+2024-06-14 15:16:58,INFO,asif24,perform_lda____summ,1133,1,Summary topics generated.,
+2024-06-14 15:16:58,INFO,asif24,handle_summary_input,1983,1,Summary Generated in 41.4137008190155 seconds,
+2024-06-14 15:18:29,INFO,asif24,update_bar_chart_from_blob,323,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-06-14 15:28:38,ERROR,asif24,create_or_pass_folder,202,0,Function create_or_pass_folder error,"Function create_or_pass_folder error
+Traceback (most recent call last):
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\app.py"", line 195, in create_or_pass_folder
+    container_client.get_blob_client(container_name, user_folder).upload_blob("""")
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\core\tracing\decorator.py"", line 78, in wrapper_use_tracer
+    return func(*args, **kwargs)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_blob_client.py"", line 765, in upload_blob
+    return upload_block_blob(**options)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_upload_helpers.py"", line 195, in upload_block_blob
+    process_storage_error(error)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_shared\response_handlers.py"", line 184, in process_storage_error
+    exec(""raise error from None"")   # pylint: disable=exec-used # nosec
+  File ""<string>"", line 1, in <module>
+azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
+RequestId:da57166e-a01e-0016-7d41-beb498000000
+Time:2024-06-14T09:58:38.8630249Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:da57166e-a01e-0016-7d41-beb498000000
+Time:2024-06-14T09:58:38.8630249Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
+2024-06-14 15:28:38,ERROR,asif24,create_or_pass_folder,211,0,"Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:da57166e-a01e-0016-7d41-beb498000000
+Time:2024-06-14T09:58:38.8630249Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:da57166e-a01e-0016-7d41-beb498000000
+Time:2024-06-14T09:58:38.8630249Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> ","Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:da57166e-a01e-0016-7d41-beb498000000
+Time:2024-06-14T09:58:38.8630249Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:da57166e-a01e-0016-7d41-beb498000000
+Time:2024-06-14T09:58:38.8630249Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> 
+Traceback (most recent call last):
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\app.py"", line 195, in create_or_pass_folder
+    container_client.get_blob_client(container_name, user_folder).upload_blob("""")
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\core\tracing\decorator.py"", line 78, in wrapper_use_tracer
+    return func(*args, **kwargs)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_blob_client.py"", line 765, in upload_blob
+    return upload_block_blob(**options)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_upload_helpers.py"", line 195, in upload_block_blob
+    process_storage_error(error)
+  File ""C:\Users\Asif\Desktop\Main_CogniLink_App\venv\lib\site-packages\azure\storage\blob\_shared\response_handlers.py"", line 184, in process_storage_error
+    exec(""raise error from None"")   # pylint: disable=exec-used # nosec
+  File ""<string>"", line 1, in <module>
+azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
+RequestId:da57166e-a01e-0016-7d41-beb498000000
+Time:2024-06-14T09:58:38.8630249Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:da57166e-a01e-0016-7d41-beb498000000
+Time:2024-06-14T09:58:38.8630249Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
+2024-06-14 15:28:38,INFO,asif24,home,1411,1,User asif24 logged in successfully,
+2024-06-14 15:28:39,INFO,asif24,update_bar_chart_from_blob,323,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-06-14 15:28:43,INFO,asif24,update_bar_chart_from_blob,323,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-06-14 15:29:05,INFO,asif24,get_data_source,2284,1,table_update route successfully send data,
+2024-06-14 15:31:10,INFO,asif24,perform_lda____summ,1133,1,Summary topics generated.,
+2024-06-14 15:31:10,INFO,asif24,handle_summary_input,1983,1,Summary Generated in 44.20312166213989 seconds,
+2024-06-14 15:34:20,INFO,asif24,perform_lda___Q_A,1043,1,QnA topics generated.,
+2024-06-14 15:34:20,INFO,asif24,handle_ask_question,2170,1,Answer Generated in 7.527602672576904 seconds,
+2024-06-14 15:43:35,INFO,asif24,update_bar_chart_from_blob,323,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-06-14 15:43:51,INFO,asif24,get_data_source,2284,1,table_update route successfully send data,
+2024-06-14 15:44:38,INFO,asif24,update_bar_chart_from_blob,323,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-06-14 15:44:48,INFO,asif24,get_data_source,2284,1,table_update route successfully send data,

@@ -152,10 +152,8 @@ nltk.download('punkt')
 # for Azure server use only
 account_name = "testcongnilink"
 container_name = "congnilink-container"
-
 account_url = "https://testcongnilink.blob.core.windows.net"
 default_credential = DefaultAzureCredential()
-
 blob_service_client = BlobServiceClient(account_url, credential=default_credential)
 container_client = blob_service_client.get_container_client(container_name)
 
@@ -290,27 +288,28 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
 
         # Iterate through each blob in the folder
         for blob in blob_list:
-            file_name = blob.name.split('/')[-1]  # Extract file name from blob path
+            if blob.name.split('/')[1] != 'draft':
+                file_name = blob.name.split('/')[-1]  # Extract file name from blob path
 
-            # Update the bar_chart dictionary based on file type
-            if file_name.endswith('.pdf') or file_name.endswith('.PDF'):
-                file_type = 'PDF'
-            elif file_name.endswith('.docx') or file_name.endswith('.doc'):
-                file_type = 'DOCX'
-            elif file_name.endswith('.csv') or file_name.endswith('.CSV'):
-                file_type = 'CSV'
-            elif file_name.endswith('.mp3'):
-                file_type = 'MP3'
-            elif file_name.endswith('.xlsx') or file_name.endswith('.xlscd .'):
-                file_type = 'XLSX'
-            else:
-                file_type = 'Other'
+                # Update the bar_chart dictionary based on file type
+                if file_name.endswith('.pdf') or file_name.endswith('.PDF'):
+                    file_type = 'PDF'
+                elif file_name.endswith('.docx') or file_name.endswith('.doc'):
+                    file_type = 'DOCX'
+                elif file_name.endswith('.csv') or file_name.endswith('.CSV'):
+                    file_type = 'CSV'
+                elif file_name.endswith('.mp3'):
+                    file_type = 'MP3'
+                elif file_name.endswith('.xlsx') or file_name.endswith('.xlscd .'):
+                    file_type = 'XLSX'
+                else:
+                    file_type = 'Other'
 
-            # Update bar_chart dictionary
-            if file_type in bar_chart:
-                bar_chart[file_type] += 1
-            else:
-                bar_chart[file_type] = 1
+                # Update bar_chart dictionary
+                if file_type in bar_chart:
+                    bar_chart[file_type] += 1
+                else:
+                    bar_chart[file_type] = 1
         session['bar_chart_ss'].update(bar_chart)
         # Emit an event to notify clients about the updated bar chart
         socketio.emit('update_bar_chart', {
@@ -361,12 +360,12 @@ def update_when_file_delete():
     # print(all_blobs)
     all_blobs_list = list(all_blobs)  # Convert to list to enable filtering
 
-    for blob in all_blobs_list:
-        file_name = blob.name.split('/')[-1]  # Extract file name from blob path
-
-        if file_name.endswith('.csv') or file_name.endswith('.CSV'):
-            session['progress_files'].append(file_name)
-            socketio.emit('success', session['progress_files'])
+    # for blob in all_blobs_list:
+    #     file_name = blob.name.split('/')[-1]  # Extract file name from blob path
+    #
+    #     if file_name.endswith('.csv') or file_name.endswith('.CSV'):
+    #         session['progress_files'].append(file_name)
+    #         socketio.emit('success', session['progress_files'])
 
     blob_list = [blob for blob in all_blobs_list if not (blob.name.endswith('.csv') or blob.name.endswith('.CSV'))]
     # print(blob_list)
@@ -746,6 +745,39 @@ def delete_documents_from_vectordb(documents_to_delete):
         print({'message': str(e)})
 
 
+def get_conversation_chain(vectorstore):
+    """
+    Retrieves a conversation chain for conversational retrieval using Azure models.
+
+    Args:
+        vectorstore: The AzureSearch vector store instance.
+
+    Returns:
+        function: A function to handle question answering with context check.
+    """
+    deployment_name = set_model()
+    llm = AzureChatOpenAI(azure_deployment=deployment_name)
+    template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, 
+        just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible. 
+        {context}
+        Question: {question}
+        Helpful Answer:"""
+    CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
+
+    memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
+                                      output_key="answer")
+
+    conversation_chain = ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        retriever=vectorstore.as_retriever(),
+        memory=memory,
+        return_source_documents=True,
+        combine_docs_chain_kwargs={"prompt": CUSTOM_QUESTION_PROMPT}
+    )
+
+    return conversation_chain
+
+
 # def get_conversation_chain(vectorstore):
 #     """
 #     Retrieves a conversation chain for conversational retrieval using Azure models.
@@ -770,50 +802,14 @@ def delete_documents_from_vectordb(documents_to_delete):
 #     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
 #                                       output_key="answer")
 #
-#     qa_chain = LLMChain(llm=llm, prompt=CUSTOM_QUESTION_PROMPT)
-#
 #     conversation_chain = ConversationalRetrievalChain.from_llm(
 #         llm=llm,
 #         retriever=vectorstore.as_retriever(),
 #         memory=memory,
-#         return_source_documents=True,
-#         combine_docs_chain=qa_chain  # Use the custom QA chain here
+#         return_source_documents=True
 #     )
 #
 #     return conversation_chain
-
-def get_conversation_chain(vectorstore):
-    """
-    Retrieves a conversation chain for conversational retrieval using Azure models.
-
-    Args:
-        vectorstore: The AzureSearch vector store instance.
-
-    Returns:
-        function: A function to handle question answering with context check.
-    """
-    deployment_name = set_model()
-    llm = AzureChatOpenAI(azure_deployment=deployment_name)
-    template = """Use the following pieces of context to answer the question at the end.
-    If you don't know the answer, just say that you don't know, don't try to make up an answer.
-    Use three sentences maximum. Keep the answer as concise as possible.
-    {context}
-    Question: {question}
-    Helpful Answer:"""
-
-    CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
-
-    memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
-                                      output_key="answer")
-
-    conversation_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=vectorstore.as_retriever(),
-        memory=memory,
-        return_source_documents=True
-    )
-
-    return conversation_chain
 
 
 def custom_summary(docs, custom_prompt, chain_type):
@@ -832,7 +828,7 @@ def custom_summary(docs, custom_prompt, chain_type):
     COMBINE_PROMPT = PromptTemplate(template=custom_prompt, input_variables=["text"])
     MAP_PROMPT = PromptTemplate(template="Summarize:\n{text}", input_variables=["text"])
     model = session['engine']
-    print("summary---->session['engine']---->", model)
+    # print("summary---->session['engine']---->", model)
     deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name, model_name=model, temperature=0.50)
 
@@ -1420,7 +1416,7 @@ def home():
                 index_name=index_name,
                 embedding_function=embeddings.embed_query,
             )
-            delete_documents_from_vectordb(["Source_Website"])
+            # delete_documents_from_vectordb(["Source_Website"])
             return jsonify({'redirect': url_for('data_source')})
 
         g.flag = 0
@@ -1505,26 +1501,26 @@ def popup_form():
             # if 'myFile' in request.files or 'audio_file' in request.files:
             #     print('Not Any File Fond')
             #     return jsonify({'message': 'File not Fond'}), 400
-            mb_pop = 0  # Initialize mb_pop before the loop
+            # mb_pop = 0  # Initialize mb_pop before the loop
             files = request.files.getlist('myFile')
             if not len(files):
                 return jsonify({'message': 'File not Fond'}), 400
             print('name of file is', files)
-            for file in files:
-                file.seek(0, os.SEEK_END)  # Move the cursor to the end of the file
-                file_size_bytes = file.tell()  # Get the current cursor position, which is the file size in bytes
-                file.seek(0)  # Reset the cursor back to the beginning of the file
-                mb_pop += file_size_bytes / (1024 * 1024)
-
-            mb_p = int(mb_pop)  # Move this line here
-            Limit_By_Size = int(Limit_By_Size)
-
-            # print('Limit By Size(K/Count) file size exceeds', Limit_By_Size, mb_p)
-            if mb_p >= Limit_By_Size != 0:
-                print('Limit By Size(K/Count) file size exceeds')
-                return jsonify({'message': 'Limit By Size(K/Count) file size exceeds'}), 400
-                # Convert bytes to megabytes
-            session['MB'] += float("{:.2f}".format(mb_pop))
+            # for file in files:
+            #     file.seek(0, os.SEEK_END)  # Move the cursor to the end of the file
+            #     file_size_bytes = file.tell()  # Get the current cursor position, which is the file size in bytes
+            #     file.seek(0)  # Reset the cursor back to the beginning of the file
+            #     mb_pop += file_size_bytes / (1024 * 1024)
+            #
+            # mb_p = int(mb_pop)  # Move this line here
+            # Limit_By_Size = int(Limit_By_Size)
+            #
+            # # print('Limit By Size(K/Count) file size exceeds', Limit_By_Size, mb_p)
+            # if mb_p >= Limit_By_Size != 0:
+            #     print('Limit By Size(K/Count) file size exceeds')
+            #     return jsonify({'message': 'Limit By Size(K/Count) file size exceeds'}), 400
+            #     # Convert bytes to megabytes
+            # session['MB'] += float("{:.2f}".format(mb_pop))
             # Calculate total number of files
             for file in files:
                 upload_to_blob(file, session, blob_service_client, container_name)
@@ -1798,8 +1794,6 @@ def handle_summary_input(data):
     try:
         custom_p = data.get('summary_que')
         session['summary_word_cpunt'] = data['value']
-        # print("summary_word_cpunt_input_function--->", summary_word_cpunt)
-        print(f"summary_word_cpunt_input_function---> {session['login_pin']} --> {session['summary_word_cpunt']}")
         # Define the Document class or namedtuple
         Document = namedtuple('Document', ['page_content', 'metadata'])
 
@@ -1837,18 +1831,6 @@ def handle_summary_input(data):
         merged_documents = merge_documents(document_dict)
         # print("merged_documents----->", merged_documents)
 
-        # # Iterate over the merged_documents dictionary and structure the output
-        #         # structured_documents = []
-        #         #
-        #         # for file_name, file_info in merged_documents.items():
-        #         #     page_content = file_info['content']
-        #         #     metadata = json.loads(file_info['metadata'])
-        #         #     document = Document(page_content=page_content, metadata=metadata)
-        #         #     structured_documents.append([file_name, [document]])
-        #         #
-        #         # # Print the structured documents list to verify
-        #         # print("structured_documents--->", structured_documents)
-
         # Iterate over the merged_documents dictionary and structure the output
         structured_documents = []
         emit('progress', {'percentage': 40, 'pin': session['login_pin']})
@@ -1870,8 +1852,6 @@ def handle_summary_input(data):
 
             # Append to structured_documents
             structured_documents.append([file_name, [document]])
-        emit('progress', {'percentage': 60, 'pin': session['login_pin']})
-        # Print the structured documents list to verify
         # print("structured_documents--->", structured_documents)
         summ = []
         counter = 1
@@ -1901,6 +1881,108 @@ def handle_summary_input(data):
         logger.error('Summary generation error', exc_info=True)
         print('Exception of summary_input:', str(e))
         emit('summary_response', {'message': 'No data Load'})
+
+
+# @socketio.on('summary_input')
+# def handle_summary_input(data):
+#     global text_word_cloud
+#     session['summary_add'] = []
+#     start_time = time.time()
+#     emit('progress', {'percentage': 10, 'pin': session['login_pin']})
+#
+#     try:
+#         custom_p = data.get('summary_que')
+#         session['summary_word_cpunt'] = data['value']
+#         print(f"summary_word_cpunt_input_function---> {session['login_pin']} --> {session['summary_word_cpunt']}")
+#
+#         Document = namedtuple('Document', ['page_content', 'metadata'])
+#
+#         if int(session['summary_word_cpunt']) == 0:
+#             emit('summary_response', {'message': 'summary word count is zero'})
+#             return
+#         else:
+#             custom_p = custom_p + ' and summary in ' + str(session['summary_word_cpunt']) + ' words'
+#
+#         index_name = str(session['login_pin'])
+#         search_client = SearchClient(
+#             endpoint=vector_store_address,
+#             index_name=index_name,
+#             credential=AzureKeyCredential(vector_store_password)
+#         )
+#         document_dict = []
+#         results = search_client.search(search_text="*", select="*", include_total_count=True)
+#         for rel in results:
+#             metadata = json.loads(rel['metadata'])
+#             document_name = metadata['documents']
+#
+#             combined_dict = {
+#                 'content': rel['content'],
+#                 'documents': document_name,
+#                 'metadata': rel['metadata']
+#             }
+#             document_dict.append(combined_dict)
+#
+#         merged_documents = merge_documents(document_dict)
+#         structured_documents = []
+#         emit('progress', {'percentage': 40, 'pin': session['login_pin']})
+#         for file_name, file_info in merged_documents.items():
+#             page_content = file_info['content']
+#             raw_metadata = file_info['metadata']
+#
+#             json_objects = raw_metadata.strip().split('\n')
+#             parsed_metadata_list = [json.loads(obj) for obj in json_objects if obj.strip()]
+#
+#             metadata = {}
+#             for d in parsed_metadata_list:
+#                 metadata.update(d)
+#
+#             document = Document(page_content=page_content, metadata=metadata)
+#             structured_documents.append([file_name, [document]])
+#
+#         def chunk_text(text, max_size):
+#             return [text[i:i + max_size] for i in range(0, len(text), max_size)]
+#
+#         MAX_TOTAL_TOKENS = 8192  # The model's maximum context length
+#
+#         summ = []
+#         counter = 1
+#         total_tokens = 0
+#         for filename, documents in structured_documents:
+#             for document in documents:
+#                 chunks = chunk_text(document.page_content, MAX_TOTAL_TOKENS)
+#                 for chunk in chunks:
+#                     chunk_tokens = len(chunk.split())
+#                     if total_tokens + chunk_tokens > MAX_TOTAL_TOKENS:
+#                         emit('summary_response', {'message': f'exceeds the total token limit "{filename}"'})
+#                         continue  # Skip the chunk if it exceeds the total token limit
+#                     chunk_document = Document(page_content=chunk, metadata=document.metadata)
+#                     time.sleep(0.5)  # Introduce a half-second delay
+#                     summary = custom_summary([chunk_document], custom_p, chain_type)
+#                     key = f'{filename}--summary--{counter}'
+#                     summary_dict = {'key': key, 'value': summary}
+#                     summ.append(summary_dict)
+#                     total_tokens += chunk_tokens  # Update the total token count
+#                 counter += 1
+#
+#         session['summary_add'].extend(summ)
+#         emit('progress', {'percentage': 75, 'pin': session['login_pin']})
+#         senti_text_summ = ' '.join(entry['value'] for entry in summ)
+#         analyze_sentiment_summ(senti_text_summ)
+#
+#         generate_word_cloud(senti_text_summ)
+#         perform_lda____summ(senti_text_summ)
+#
+#         elapsed_time = time.time() - start_time
+#         g.flag = 1
+#         logger.info(f'Summary Generated in {elapsed_time} seconds')
+#         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+#         time.sleep(0.5)
+#         emit('summary_response', session['summary_add'][::-1])
+#     except Exception as e:
+#         g.flag = 0
+#         logger.error('Summary generation error', exc_info=True)
+#         print('Exception of summary_input:', str(e))
+#         emit('summary_response', {'message': 'No data Load'})
 
 
 @socketio.on('clear_chat_summ')
@@ -1978,15 +2060,48 @@ def handle_ask_question(data):
         sorry_phrases = ["I'm sorry", "I don't have any information", "I apologize", "Sorry",
                          "I don't have enough context to answer this question.", "Hello! How can I assist you today?",
                          "I'm an AI language model and I am always connected to the internet as "
-                         "long as my server is running properly."]
-
-        # Check if any of the sorry phrases are in the response or if source_documents is empty
+                         "long as my server is running properly.", "I don't have enough information to answer that "
+                                                                   "question based on the provided context"]
+        # Check if the response contains any sorry phrases or has no source documents
         if any(phrase in response["answer"] for phrase in sorry_phrases) or not response.get("source_documents"):
             doc_source = ["N/A"]
             doc_page_num = ["N/A"]
         else:
-            doc_source = [doc.metadata.get("source", "N/A") for doc in response["source_documents"]]
-            doc_page_num = [str(doc.metadata.get("page", "N/A")) for doc in response["source_documents"]]
+            # Initialize a set to track seen pages and lists for sources and page numbers
+            seen_pages = set()
+            doc_source = []
+            doc_page_num = []
+
+            # Iterate over source documents in the response
+            for doc in response["source_documents"]:
+                source = doc.metadata.get("source", "N/A")
+                page = doc.metadata.get("page", "N/A")
+
+                # Adjust the page number to start from 1 if it starts from 0
+                if isinstance(page, int) and page == 0:
+                    page = 1
+                elif isinstance(page, int):
+                    page += 1
+
+                page_str = str(page)
+
+                # Add source and page to the lists if the page has not been seen before
+                if page_str not in seen_pages:
+                    seen_pages.add(page_str)
+                    doc_source.append(source)
+                    doc_page_num.append(page_str)
+
+            # # Get sources and page numbers from the response, ensuring no duplicates
+            # seen_sources = set()
+            # doc_source = []
+            # doc_page_num = []
+            # for doc in response["source_documents"]:
+            #     source = doc.metadata.get("source", "N/A")
+            #     page = str(doc.metadata.get("page", "N/A"))
+            #     if source not in seen_sources:
+            #         seen_sources.add(source)
+            #         doc_source.append(source)
+            #         doc_page_num.append(page)
 
         # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
         final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
@@ -1994,11 +2109,31 @@ def handle_ask_question(data):
                             ", ".join(doc_source), ", ".join(doc_page_num))
                            for i in range(0, len(response['chat_history']), 2)]
 
+        # Create a list of dictionaries for the chat history
         chat_history_list = [{"question": chat_pair[0],
                               "answer": chat_pair[1],
                               "source": chat_pair[2],
                               "page_number": chat_pair[3]}
                              for chat_pair in final_chat_hist]
+        # # Check if any of the sorry phrases are in the response or if source_documents is empty
+        # if any(phrase in response["answer"] for phrase in sorry_phrases) or not response.get("source_documents"):
+        #     doc_source = ["N/A"]
+        #     doc_page_num = ["N/A"]
+        # else:
+        #     doc_source = [doc.metadata.get("source", "N/A") for doc in response["source_documents"]]
+        #     doc_page_num = [str(doc.metadata.get("page", "N/A")) for doc in response["source_documents"]]
+        #
+        # # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
+        # final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
+        #                     response['chat_history'][i + 1].content if response['chat_history'][i + 1] else "",
+        #                     ", ".join(doc_source), ", ".join(doc_page_num))
+        #                    for i in range(0, len(response['chat_history']), 2)]
+        #
+        # chat_history_list = [{"question": chat_pair[0],
+        #                       "answer": chat_pair[1],
+        #                       "source": chat_pair[2],
+        #                       "page_number": chat_pair[3]}
+        #                      for chat_pair in final_chat_hist]
 
         # # Check if any of the sorry phrases are in the response or if source_documents is empty
         # if any(phrase in response["answer"] for phrase in sorry_phrases) or not response.get("source_documents"):
@@ -2107,10 +2242,26 @@ def delete_files():
 @app.route("/table_update", methods=['GET'])
 def get_data_source():
     try:
-        folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
-        blobs = container_client.list_blobs(name_starts_with=folder_name)
-        # Fetch lists from session
-        progress_files = session.get('progress_files', [])
+        # Initialize SearchClient
+        index_name: str = str(session['login_pin'])
+        search_client = SearchClient(
+            endpoint=vector_store_address,
+            index_name=index_name,
+            credential=AzureKeyCredential(vector_store_password)
+        )
+        results = search_client.search(search_text="*", select="*", include_total_count=True)
+        VecTor_liSt = []
+
+        unique_documents = set()
+
+        for result in results:
+            embeddings_dict = json.loads(result['metadata'])
+            # print(embeddings_dict)  # This prints the embeddings_dict for each result
+            document = embeddings_dict.get('documents')
+            if document and document not in unique_documents:
+                VecTor_liSt.append(document)
+                unique_documents.add(document)
+        blobs = container_client.list_blobs(name_starts_with=index_name)
         failed_files = session.get('failed_files', [])
         embedding_not_created = session.get('embedding_not_created', [])
         # Construct the data with status based on lists
@@ -2118,7 +2269,7 @@ def get_data_source():
         for blob in blobs:
             if blob.name.split('/')[1] != 'draft':
                 file_name = blob.name.split('/')[1]
-                if file_name in progress_files:
+                if file_name in VecTor_liSt:
                     status = 'U | EC'
                 elif file_name in failed_files:
                     status = 'U | F'
