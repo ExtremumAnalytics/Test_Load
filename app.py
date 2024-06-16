@@ -1752,7 +1752,10 @@ def summary():
     return render_template('summary.html')
 
 
-# Function to merge content from dictionaries with the same 'documents' key
+# Define the Document namedtuple
+Document = namedtuple('Document', ['page_content', 'metadata'])
+
+
 def merge_documents(doc_list):
     """
     Merges the content and metadata of documents with the same 'documents' key.
@@ -1784,6 +1787,34 @@ def merge_documents(doc_list):
     return final_docs
 
 
+def split_into_chunks(text, chunk_size):
+    """
+    Splits text into chunks of a given size.
+
+    Args:
+        text (str): The text to split.
+        chunk_size (int): The maximum size of each chunk.
+
+    Returns:
+        list: A list of text chunks.
+    """
+    words = text.split()
+    chunks = []
+    current_chunk = []
+
+    for word in words:
+        if len(' '.join(current_chunk + [word])) <= chunk_size:
+            current_chunk.append(word)
+        else:
+            chunks.append(' '.join(current_chunk))
+            current_chunk = [word]
+
+    if current_chunk:
+        chunks.append(' '.join(current_chunk))
+
+    return chunks
+
+
 @socketio.on('summary_input')
 def handle_summary_input(data):
     global text_word_cloud
@@ -1794,10 +1825,7 @@ def handle_summary_input(data):
     try:
         custom_p = data.get('summary_que')
         session['summary_word_cpunt'] = data['value']
-        # Define the Document class or namedtuple
-        Document = namedtuple('Document', ['page_content', 'metadata'])
 
-        # if session.get('summary_word_cpunt', 0) == 0:
         if int(session['summary_word_cpunt']) == 0:
             emit('summary_response', {'message': 'summary word count is zero'})
             return
@@ -1805,20 +1833,17 @@ def handle_summary_input(data):
             custom_p = custom_p + ' and summary in ' + str(session['summary_word_cpunt']) + ' word'
 
         index_name = str(session['login_pin'])
-        # Initialize SearchClient
         search_client = SearchClient(
             endpoint=vector_store_address,
             index_name=index_name,
             credential=AzureKeyCredential(vector_store_password)
         )
+
         document_dict = []
         results = search_client.search(search_text="*", select="*", include_total_count=True)
         for rel in results:
-            # Extract the document name from metadata
             metadata = json.loads(rel['metadata'])
             document_name = metadata['documents']
-
-            # Create a new dictionary combining content, documents, and metadata
             combined_dict = {
                 'content': rel['content'],
                 'documents': document_name,
@@ -1826,33 +1851,27 @@ def handle_summary_input(data):
             }
             document_dict.append(combined_dict)
 
-        # print("List of Dict:", document_dict)
-
         merged_documents = merge_documents(document_dict)
-        # print("merged_documents----->", merged_documents)
 
-        # Iterate over the merged_documents dictionary and structure the output
         structured_documents = []
         emit('progress', {'percentage': 40, 'pin': session['login_pin']})
         for file_name, file_info in merged_documents.items():
             page_content = file_info['content']
             raw_metadata = file_info['metadata']
 
-            # Split the metadata string by newlines and parse each JSON object separately
             json_objects = raw_metadata.strip().split('\n')
             parsed_metadata_list = [json.loads(obj) for obj in json_objects if obj.strip()]
 
-            # Merge parsed metadata into a single dictionary
             metadata = {}
             for d in parsed_metadata_list:
                 metadata.update(d)
 
-            # Create Document object
-            document = Document(page_content=page_content, metadata=metadata)
+            # Split page_content into chunks of max 8000 words
+            chunks = split_into_chunks(page_content, 8000)
+            documents = [Document(page_content=chunk, metadata=metadata) for chunk in chunks]
 
-            # Append to structured_documents
-            structured_documents.append([file_name, [document]])
-        # print("structured_documents--->", structured_documents)
+            structured_documents.append((file_name, documents))
+
         summ = []
         counter = 1
         for filename, documents in structured_documents:
@@ -1879,7 +1898,6 @@ def handle_summary_input(data):
     except Exception as e:
         g.flag = 0
         logger.error('Summary generation error', exc_info=True)
-        print('Exception of summary_input:', str(e))
         emit('summary_response', {'message': 'No data Load'})
 
 
