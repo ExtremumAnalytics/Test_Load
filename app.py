@@ -232,7 +232,7 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
     if 'login_pin' not in session:
         return "Error: 'login_pin' not found in session."
     try:
-        folder_name = str(session['login_pin'])
+        folder_name = "cognilink/" + str(session['login_pin'])
 
         blob_name = f"{folder_name}/{file_content.filename}"
         blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
@@ -283,12 +283,12 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
         # Get the folder name from the session
         folder_name = str(session['login_pin'])
         # Get a list of blobs in the specified folder
-        blob_list = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name)
+        blob_list = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with='cognilink/'+ folder_name)
         # print("blob_list------?", blob_list)
 
         # Iterate through each blob in the folder
         for blob in blob_list:
-            if blob.name.split('/')[1] != 'draft':
+            if blob.name.split('/')[2] != 'draft':
                 file_name = blob.name.split('/')[-1]  # Extract file name from blob path
 
                 # Update the bar_chart dictionary based on file type
@@ -356,7 +356,7 @@ def update_when_file_delete():
 
     folder_name_azure = str(session['login_pin'])
     folder_name = os.path.join('static', 'login', folder_name_azure)
-    all_blobs = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name_azure)
+    all_blobs = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with='cognilink/'+folder_name_azure)
     # print(all_blobs)
     all_blobs_list = list(all_blobs)  # Convert to list to enable filtering
 
@@ -376,7 +376,7 @@ def update_when_file_delete():
     # Initialize SearchClient
     search_client = SearchClient(
         endpoint=vector_store_address,
-        index_name=folder_name_azure,
+        index_name='cognilink-' + folder_name_azure,
         credential=AzureKeyCredential(vector_store_password)
     )
     results = search_client.search(search_text="*", select="*", include_total_count=True)
@@ -500,7 +500,7 @@ def update_when_file_delete():
                     file_name = os.path.basename(temp_pdf_path)
                     with open(temp_pdf_path, "rb") as file:
                         content = file.read()
-                    blob_name = f"{folder_name_azure}/{file_name}"
+                    blob_name = f"cognilink/{folder_name_azure}/{file_name}"
                     blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
 
                     # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
@@ -549,7 +549,6 @@ def update_when_file_delete():
                 gauge_source_chart_data = gauge_chart_auth()
                 socketio.emit('update_gauge_chart', gauge_source_chart_data)
             socketio.emit('progress', {'percentage': 75, 'pin': session['login_pin']})
-            time.sleep(2)
         if Source_URL != "":
             delete_documents_from_vectordb(["Source_Website"])
             session['total_files_list'] += 1
@@ -590,7 +589,7 @@ def update_when_file_delete():
             socketio.emit('update_gauge_chart', gauge_source_chart_data)
 
         socketio.emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-        time.sleep(0.5)
+        time.sleep(0.01)
         socketio.emit('pending', session['embedding_not_created'])
         socketio.emit('failed', session['failed_files'])
         socketio.emit('success', session['progress_files'])
@@ -655,7 +654,7 @@ def get_vectostore(text_chunks, operation='add'):
     vector_store: AzureSearch = AzureSearch(
         azure_search_endpoint=vector_store_address,
         azure_search_key=vector_store_password,
-        index_name=index_name,
+        index_name='cognilink-' + index_name,
         embedding_function=embeddings.embed_query,
     )
 
@@ -692,7 +691,7 @@ def delete_documents_from_vectordb(documents_to_delete):
         index_name = str(session['login_pin'])
         search_client = SearchClient(
             endpoint=vector_store_address,
-            index_name=index_name,
+            index_name='cognilink-' + index_name,
             credential=AzureKeyCredential(vector_store_password)
         )
 
@@ -758,10 +757,14 @@ def get_conversation_chain(vectorstore):
     deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name)
     template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, 
-        just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible. 
-        {context}
-        Question: {question}
-        Helpful Answer:"""
+                just say that you don't know, don't try to make up an answer. 
+                Use three sentences maximum. Keep the answer as concise as possible. 
+                If there is no context provided, do not answer the question and respond with 'No information available to answer the question.'
+
+                {context}
+                Question: {question}
+                Helpful Answer:
+                """
     CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
 
     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
@@ -1413,14 +1416,13 @@ def home():
             vector_store: AzureSearch = AzureSearch(
                 azure_search_endpoint=vector_store_address,
                 azure_search_key=vector_store_password,
-                index_name=index_name,
+                index_name='cognilink-'+index_name,
                 embedding_function=embeddings.embed_query,
             )
             # delete_documents_from_vectordb(["Source_Website"])
             return jsonify({'redirect': url_for('data_source')})
 
         g.flag = 0
-        logger.error(f"Invalid login attempt for Group User {group_user} with PIN {pin}", exc_info=True)
         flash('Invalid Group User or PIN Or Status Deactivate. Please try again.', 'error')
         return jsonify({'redirect': url_for('home')})
 
@@ -1556,7 +1558,7 @@ def run_query(data):
     query = data['query']
     database = 'master'
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    folder_name_azure = str(session['login_pin'])
+    folder_name_azure = 'cognilink/' +str(session['login_pin'])
     file_name = f"query_results_{timestamp}.csv"
 
     try:
@@ -1579,7 +1581,7 @@ def run_query(data):
             df.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
 
-            blob_name = f"{folder_name_azure}/{file_name}"
+            blob_name =  f"cognilink/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             blob_client.upload_blob(
                 csv_buffer.getvalue(),
@@ -1614,7 +1616,7 @@ def run_query(data):
             df.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
 
-            blob_name = f"{folder_name_azure}/{file_name}"
+            blob_name =  f"cognilink/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             blob_client.upload_blob(
                 csv_buffer.getvalue(),
@@ -1835,7 +1837,7 @@ def handle_summary_input(data):
         index_name = str(session['login_pin'])
         search_client = SearchClient(
             endpoint=vector_store_address,
-            index_name=index_name,
+            index_name="cognilink-"+index_name,
             credential=AzureKeyCredential(vector_store_password)
         )
 
@@ -2055,7 +2057,7 @@ def handle_ask_question(data):
         vector_store: AzureSearch = AzureSearch(
             azure_search_endpoint=vector_store_address,
             azure_search_key=vector_store_password,
-            index_name=index_name,
+            index_name="cognilink-" + index_name,
             embedding_function=embeddings.embed_query)
 
         # Update progress to 25%
@@ -2074,16 +2076,24 @@ def handle_ask_question(data):
 
         # Update progress to 50%
         emit('progress', {'percentage': 50, 'pin': session['login_pin']})
-        time.sleep(0.5)
+        time.sleep(0.01)
         sorry_phrases = ["I'm sorry", "I don't have any information", "I apologize", "Sorry",
                          "I don't have enough context to answer this question.", "Hello! How can I assist you today?",
                          "I'm an AI language model and I am always connected to the internet as "
-                         "long as my server is running properly.", "I don't have enough information to answer that "
-                                                                   "question based on the provided context"]
-        # Check if the response contains any sorry phrases or has no source documents
-        if any(phrase in response["answer"] for phrase in sorry_phrases) or not response.get("source_documents"):
-            doc_source = ["N/A"]
-            doc_page_num = ["N/A"]
+                         "long as my server is running properly.", "I don't have enough information to answer that question based on the provided context"
+                         , "There is no information provided in the context to answer this question.",
+                         "There is no context provided to answer this question.",
+                         "No information available to answer the question."
+                         ]
+        # Check if the response starts with any sorry phrases or has no source documents or if the first source
+        # document is empty
+        if (
+                any(response["answer"].startswith(phrase) for phrase in sorry_phrases) or
+                not response.get("source_documents") or
+                (response.get("source_documents") and not response["source_documents"][0])
+        ):
+            doc_source = ["N|A"]
+            doc_page_num = ["N|A"]
         else:
             # Initialize a set to track seen pages and lists for sources and page numbers
             seen_pages = set()
@@ -2232,7 +2242,7 @@ def delete_files():
         deleted_files = []
 
         for file_name in file_names:
-            blobs = container_client.list_blobs(name_starts_with=folder_name)
+            blobs = container_client.list_blobs(name_starts_with="cognilink/"+folder_name)
 
             # Find the blob with the matching file name
             target_blob = next((blob for blob in blobs if blob.name.split('/')[-1] == file_name), None)
@@ -2264,7 +2274,7 @@ def get_data_source():
         index_name: str = str(session['login_pin'])
         search_client = SearchClient(
             endpoint=vector_store_address,
-            index_name=index_name,
+            index_name="cognilink-"+index_name,
             credential=AzureKeyCredential(vector_store_password)
         )
         results = search_client.search(search_text="*", select="*", include_total_count=True)
@@ -2279,14 +2289,14 @@ def get_data_source():
             if document and document not in unique_documents:
                 VecTor_liSt.append(document)
                 unique_documents.add(document)
-        blobs = container_client.list_blobs(name_starts_with=index_name)
+        blobs = container_client.list_blobs(name_starts_with="cognilink/"+index_name)
         failed_files = session.get('failed_files', [])
         embedding_not_created = session.get('embedding_not_created', [])
         # Construct the data with status based on lists
         data = []
         for blob in blobs:
-            if blob.name.split('/')[1] != 'draft':
-                file_name = blob.name.split('/')[1]
+            if blob.name.split('/')[2] != 'draft':
+                file_name = blob.name.split('/')[2]
                 if file_name in VecTor_liSt:
                     status = 'U | EC'
                 elif file_name in failed_files:
@@ -2517,7 +2527,7 @@ def delete_pdf_file(data):
                 return socketio.emit('delete_response', {'message': 'Failed To Delete'})
         else:
             # Assuming you have the folder name for Azure stored in `folder_name_azure`
-            blob_name = f"{folder_name_azure}/{file_name}"
+            blob_name = f"cognilink/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
 
             file_path = os.path.join("static/files", login_pin, file_name)
