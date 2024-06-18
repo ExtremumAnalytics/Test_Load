@@ -2072,7 +2072,7 @@ def handle_ask_question(data):
         # conversation = get_conversation_chain(vector_store)
         # response = conversation({"question": question})
 
-        # print("response------------->", response)
+        print("response------------->", response)
 
         # Update progress to 50%
         emit('progress', {'percentage': 50, 'pin': session['login_pin']})
