@@ -152,10 +152,8 @@ nltk.download('punkt')
 # for Azure server use only
 account_name = "testcongnilink"
 container_name = "congnilink-container"
-
 account_url = "https://testcongnilink.blob.core.windows.net"
 default_credential = DefaultAzureCredential()
-
 blob_service_client = BlobServiceClient(account_url, credential=default_credential)
 container_client = blob_service_client.get_container_client(container_name)
 
@@ -234,7 +232,7 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
     if 'login_pin' not in session:
         return "Error: 'login_pin' not found in session."
     try:
-        folder_name = str(session['login_pin'])
+        folder_name = "cognilink/" + str(session['login_pin'])
 
         blob_name = f"{folder_name}/{file_content.filename}"
         blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
@@ -285,12 +283,12 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
         # Get the folder name from the session
         folder_name = str(session['login_pin'])
         # Get a list of blobs in the specified folder
-        blob_list = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name)
+        blob_list = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with='cognilink/'+ folder_name)
         # print("blob_list------?", blob_list)
 
         # Iterate through each blob in the folder
         for blob in blob_list:
-            if blob.name.split('/')[1] != 'draft':
+            if blob.name.split('/')[2] != 'draft':
                 file_name = blob.name.split('/')[-1]  # Extract file name from blob path
 
                 # Update the bar_chart dictionary based on file type
@@ -358,16 +356,16 @@ def update_when_file_delete():
 
     folder_name_azure = str(session['login_pin'])
     folder_name = os.path.join('static', 'login', folder_name_azure)
-    all_blobs = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with=folder_name_azure)
+    all_blobs = blob_service_client.get_container_client(container_name).list_blobs(name_starts_with='cognilink/'+folder_name_azure)
     # print(all_blobs)
     all_blobs_list = list(all_blobs)  # Convert to list to enable filtering
 
-    for blob in all_blobs_list:
-        file_name = blob.name.split('/')[-1]  # Extract file name from blob path
-
-        if file_name.endswith('.csv') or file_name.endswith('.CSV'):
-            session['progress_files'].append(file_name)
-            socketio.emit('success', session['progress_files'])
+    # for blob in all_blobs_list:
+    #     file_name = blob.name.split('/')[-1]  # Extract file name from blob path
+    #
+    #     if file_name.endswith('.csv') or file_name.endswith('.CSV'):
+    #         session['progress_files'].append(file_name)
+    #         socketio.emit('success', session['progress_files'])
 
     blob_list = [blob for blob in all_blobs_list if not (blob.name.endswith('.csv') or blob.name.endswith('.CSV'))]
     # print(blob_list)
@@ -378,7 +376,7 @@ def update_when_file_delete():
     # Initialize SearchClient
     search_client = SearchClient(
         endpoint=vector_store_address,
-        index_name=folder_name_azure,
+        index_name='cognilink-' + folder_name_azure,
         credential=AzureKeyCredential(vector_store_password)
     )
     results = search_client.search(search_text="*", select="*", include_total_count=True)
@@ -502,7 +500,7 @@ def update_when_file_delete():
                     file_name = os.path.basename(temp_pdf_path)
                     with open(temp_pdf_path, "rb") as file:
                         content = file.read()
-                    blob_name = f"{folder_name_azure}/{file_name}"
+                    blob_name = f"cognilink/{folder_name_azure}/{file_name}"
                     blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
 
                     # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
@@ -551,7 +549,6 @@ def update_when_file_delete():
                 gauge_source_chart_data = gauge_chart_auth()
                 socketio.emit('update_gauge_chart', gauge_source_chart_data)
             socketio.emit('progress', {'percentage': 75, 'pin': session['login_pin']})
-            time.sleep(2)
         if Source_URL != "":
             delete_documents_from_vectordb(["Source_Website"])
             session['total_files_list'] += 1
@@ -592,7 +589,7 @@ def update_when_file_delete():
             socketio.emit('update_gauge_chart', gauge_source_chart_data)
 
         socketio.emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-        time.sleep(0.5)
+        time.sleep(0.01)
         socketio.emit('pending', session['embedding_not_created'])
         socketio.emit('failed', session['failed_files'])
         socketio.emit('success', session['progress_files'])
@@ -657,7 +654,7 @@ def get_vectostore(text_chunks, operation='add'):
     vector_store: AzureSearch = AzureSearch(
         azure_search_endpoint=vector_store_address,
         azure_search_key=vector_store_password,
-        index_name=index_name,
+        index_name='cognilink-' + index_name,
         embedding_function=embeddings.embed_query,
     )
 
@@ -694,7 +691,7 @@ def delete_documents_from_vectordb(documents_to_delete):
         index_name = str(session['login_pin'])
         search_client = SearchClient(
             endpoint=vector_store_address,
-            index_name=index_name,
+            index_name='cognilink-' + index_name,
             credential=AzureKeyCredential(vector_store_password)
         )
 
@@ -747,6 +744,43 @@ def delete_documents_from_vectordb(documents_to_delete):
         print({'message': str(e)})
 
 
+def get_conversation_chain(vectorstore):
+    """
+    Retrieves a conversation chain for conversational retrieval using Azure models.
+
+    Args:
+        vectorstore: The AzureSearch vector store instance.
+
+    Returns:
+        function: A function to handle question answering with context check.
+    """
+    deployment_name = set_model()
+    llm = AzureChatOpenAI(azure_deployment=deployment_name)
+    template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, 
+                just say that you don't know, don't try to make up an answer. 
+                Use three sentences maximum. Keep the answer as concise as possible. 
+                If there is no context provided, do not answer the question and respond with 'No information available to answer the question.'
+
+                {context}
+                Question: {question}
+                Helpful Answer:
+                """
+    CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
+
+    memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
+                                      output_key="answer")
+
+    conversation_chain = ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        retriever=vectorstore.as_retriever(),
+        memory=memory,
+        return_source_documents=True,
+        combine_docs_chain_kwargs={"prompt": CUSTOM_QUESTION_PROMPT}
+    )
+
+    return conversation_chain
+
+
 # def get_conversation_chain(vectorstore):
 #     """
 #     Retrieves a conversation chain for conversational retrieval using Azure models.
@@ -771,49 +805,14 @@ def delete_documents_from_vectordb(documents_to_delete):
 #     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
 #                                       output_key="answer")
 #
-#     qa_chain = LLMChain(llm=llm, prompt=CUSTOM_QUESTION_PROMPT)
-#
 #     conversation_chain = ConversationalRetrievalChain.from_llm(
 #         llm=llm,
 #         retriever=vectorstore.as_retriever(),
 #         memory=memory,
-#         return_source_documents=True,
-#         combine_docs_chain=qa_chain  # Use the custom QA chain here
+#         return_source_documents=True
 #     )
 #
 #     return conversation_chain
-
-def get_conversation_chain(vectorstore):
-    """
-    Retrieves a conversation chain for conversational retrieval using Azure models.
-
-    Args:
-        vectorstore: The AzureSearch vector store instance.
-
-    Returns:
-        function: A function to handle question answering with context check.
-    """
-    deployment_name = set_model()
-    llm = AzureChatOpenAI(azure_deployment=deployment_name)
-    template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, 
-        just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible. 
-        {context}
-        Question: {question}
-        Helpful Answer:"""
-    CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
-
-    memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
-                                      output_key="answer")
-
-    conversation_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=vectorstore.as_retriever(),
-        memory=memory,
-        return_source_documents=True,
-        combine_docs_chain_kwargs={"prompt": CUSTOM_QUESTION_PROMPT}
-    )
-
-    return conversation_chain
 
 
 def custom_summary(docs, custom_prompt, chain_type):
@@ -832,7 +831,7 @@ def custom_summary(docs, custom_prompt, chain_type):
     COMBINE_PROMPT = PromptTemplate(template=custom_prompt, input_variables=["text"])
     MAP_PROMPT = PromptTemplate(template="Summarize:\n{text}", input_variables=["text"])
     model = session['engine']
-    print("summary---->session['engine']---->", model)
+    # print("summary---->session['engine']---->", model)
     deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name, model_name=model, temperature=0.50)
 
@@ -1417,14 +1416,13 @@ def home():
             vector_store: AzureSearch = AzureSearch(
                 azure_search_endpoint=vector_store_address,
                 azure_search_key=vector_store_password,
-                index_name=index_name,
+                index_name='cognilink-'+index_name,
                 embedding_function=embeddings.embed_query,
             )
             # delete_documents_from_vectordb(["Source_Website"])
             return jsonify({'redirect': url_for('data_source')})
 
         g.flag = 0
-        logger.error(f"Invalid login attempt for Group User {group_user} with PIN {pin}", exc_info=True)
         flash('Invalid Group User or PIN Or Status Deactivate. Please try again.', 'error')
         return jsonify({'redirect': url_for('home')})
 
@@ -1505,26 +1503,26 @@ def popup_form():
             # if 'myFile' in request.files or 'audio_file' in request.files:
             #     print('Not Any File Fond')
             #     return jsonify({'message': 'File not Fond'}), 400
-            mb_pop = 0  # Initialize mb_pop before the loop
+            # mb_pop = 0  # Initialize mb_pop before the loop
             files = request.files.getlist('myFile')
             if not len(files):
                 return jsonify({'message': 'File not Fond'}), 400
             print('name of file is', files)
-            for file in files:
-                file.seek(0, os.SEEK_END)  # Move the cursor to the end of the file
-                file_size_bytes = file.tell()  # Get the current cursor position, which is the file size in bytes
-                file.seek(0)  # Reset the cursor back to the beginning of the file
-                mb_pop += file_size_bytes / (1024 * 1024)
-
-            mb_p = int(mb_pop)  # Move this line here
-            Limit_By_Size = int(Limit_By_Size)
-
-            # print('Limit By Size(K/Count) file size exceeds', Limit_By_Size, mb_p)
-            if mb_p >= Limit_By_Size != 0:
-                print('Limit By Size(K/Count) file size exceeds')
-                return jsonify({'message': 'Limit By Size(K/Count) file size exceeds'}), 400
-                # Convert bytes to megabytes
-            session['MB'] += float("{:.2f}".format(mb_pop))
+            # for file in files:
+            #     file.seek(0, os.SEEK_END)  # Move the cursor to the end of the file
+            #     file_size_bytes = file.tell()  # Get the current cursor position, which is the file size in bytes
+            #     file.seek(0)  # Reset the cursor back to the beginning of the file
+            #     mb_pop += file_size_bytes / (1024 * 1024)
+            #
+            # mb_p = int(mb_pop)  # Move this line here
+            # Limit_By_Size = int(Limit_By_Size)
+            #
+            # # print('Limit By Size(K/Count) file size exceeds', Limit_By_Size, mb_p)
+            # if mb_p >= Limit_By_Size != 0:
+            #     print('Limit By Size(K/Count) file size exceeds')
+            #     return jsonify({'message': 'Limit By Size(K/Count) file size exceeds'}), 400
+            #     # Convert bytes to megabytes
+            # session['MB'] += float("{:.2f}".format(mb_pop))
             # Calculate total number of files
             for file in files:
                 upload_to_blob(file, session, blob_service_client, container_name)
@@ -1560,7 +1558,7 @@ def run_query(data):
     query = data['query']
     database = 'master'
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    folder_name_azure = str(session['login_pin'])
+    folder_name_azure = 'cognilink/' +str(session['login_pin'])
     file_name = f"query_results_{timestamp}.csv"
 
     try:
@@ -1583,7 +1581,7 @@ def run_query(data):
             df.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
 
-            blob_name = f"{folder_name_azure}/{file_name}"
+            blob_name =  f"cognilink/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             blob_client.upload_blob(
                 csv_buffer.getvalue(),
@@ -1618,7 +1616,7 @@ def run_query(data):
             df.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
 
-            blob_name = f"{folder_name_azure}/{file_name}"
+            blob_name =  f"cognilink/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             blob_client.upload_blob(
                 csv_buffer.getvalue(),
@@ -1756,7 +1754,10 @@ def summary():
     return render_template('summary.html')
 
 
-# Function to merge content from dictionaries with the same 'documents' key
+# Define the Document namedtuple
+Document = namedtuple('Document', ['page_content', 'metadata'])
+
+
 def merge_documents(doc_list):
     """
     Merges the content and metadata of documents with the same 'documents' key.
@@ -1788,6 +1789,34 @@ def merge_documents(doc_list):
     return final_docs
 
 
+def split_into_chunks(text, chunk_size):
+    """
+    Splits text into chunks of a given size.
+
+    Args:
+        text (str): The text to split.
+        chunk_size (int): The maximum size of each chunk.
+
+    Returns:
+        list: A list of text chunks.
+    """
+    words = text.split()
+    chunks = []
+    current_chunk = []
+
+    for word in words:
+        if len(' '.join(current_chunk + [word])) <= chunk_size:
+            current_chunk.append(word)
+        else:
+            chunks.append(' '.join(current_chunk))
+            current_chunk = [word]
+
+    if current_chunk:
+        chunks.append(' '.join(current_chunk))
+
+    return chunks
+
+
 @socketio.on('summary_input')
 def handle_summary_input(data):
     global text_word_cloud
@@ -1798,12 +1827,7 @@ def handle_summary_input(data):
     try:
         custom_p = data.get('summary_que')
         session['summary_word_cpunt'] = data['value']
-        # print("summary_word_cpunt_input_function--->", summary_word_cpunt)
-        print(f"summary_word_cpunt_input_function---> {session['login_pin']} --> {session['summary_word_cpunt']}")
-        # Define the Document class or namedtuple
-        Document = namedtuple('Document', ['page_content', 'metadata'])
 
-        # if session.get('summary_word_cpunt', 0) == 0:
         if int(session['summary_word_cpunt']) == 0:
             emit('summary_response', {'message': 'summary word count is zero'})
             return
@@ -1811,20 +1835,17 @@ def handle_summary_input(data):
             custom_p = custom_p + ' and summary in ' + str(session['summary_word_cpunt']) + ' word'
 
         index_name = str(session['login_pin'])
-        # Initialize SearchClient
         search_client = SearchClient(
             endpoint=vector_store_address,
-            index_name=index_name,
+            index_name="cognilink-"+index_name,
             credential=AzureKeyCredential(vector_store_password)
         )
+
         document_dict = []
         results = search_client.search(search_text="*", select="*", include_total_count=True)
         for rel in results:
-            # Extract the document name from metadata
             metadata = json.loads(rel['metadata'])
             document_name = metadata['documents']
-
-            # Create a new dictionary combining content, documents, and metadata
             combined_dict = {
                 'content': rel['content'],
                 'documents': document_name,
@@ -1832,47 +1853,27 @@ def handle_summary_input(data):
             }
             document_dict.append(combined_dict)
 
-        # print("List of Dict:", document_dict)
-
         merged_documents = merge_documents(document_dict)
-        # print("merged_documents----->", merged_documents)
 
-        # # Iterate over the merged_documents dictionary and structure the output
-        #         # structured_documents = []
-        #         #
-        #         # for file_name, file_info in merged_documents.items():
-        #         #     page_content = file_info['content']
-        #         #     metadata = json.loads(file_info['metadata'])
-        #         #     document = Document(page_content=page_content, metadata=metadata)
-        #         #     structured_documents.append([file_name, [document]])
-        #         #
-        #         # # Print the structured documents list to verify
-        #         # print("structured_documents--->", structured_documents)
-
-        # Iterate over the merged_documents dictionary and structure the output
         structured_documents = []
         emit('progress', {'percentage': 40, 'pin': session['login_pin']})
         for file_name, file_info in merged_documents.items():
             page_content = file_info['content']
             raw_metadata = file_info['metadata']
 
-            # Split the metadata string by newlines and parse each JSON object separately
             json_objects = raw_metadata.strip().split('\n')
             parsed_metadata_list = [json.loads(obj) for obj in json_objects if obj.strip()]
 
-            # Merge parsed metadata into a single dictionary
             metadata = {}
             for d in parsed_metadata_list:
                 metadata.update(d)
 
-            # Create Document object
-            document = Document(page_content=page_content, metadata=metadata)
+            # Split page_content into chunks of max 8000 words
+            chunks = split_into_chunks(page_content, 8000)
+            documents = [Document(page_content=chunk, metadata=metadata) for chunk in chunks]
 
-            # Append to structured_documents
-            structured_documents.append([file_name, [document]])
-        emit('progress', {'percentage': 60, 'pin': session['login_pin']})
-        # Print the structured documents list to verify
-        # print("structured_documents--->", structured_documents)
+            structured_documents.append((file_name, documents))
+
         summ = []
         counter = 1
         for filename, documents in structured_documents:
@@ -1899,8 +1900,109 @@ def handle_summary_input(data):
     except Exception as e:
         g.flag = 0
         logger.error('Summary generation error', exc_info=True)
-        print('Exception of summary_input:', str(e))
         emit('summary_response', {'message': 'No data Load'})
+
+
+# @socketio.on('summary_input')
+# def handle_summary_input(data):
+#     global text_word_cloud
+#     session['summary_add'] = []
+#     start_time = time.time()
+#     emit('progress', {'percentage': 10, 'pin': session['login_pin']})
+#
+#     try:
+#         custom_p = data.get('summary_que')
+#         session['summary_word_cpunt'] = data['value']
+#         print(f"summary_word_cpunt_input_function---> {session['login_pin']} --> {session['summary_word_cpunt']}")
+#
+#         Document = namedtuple('Document', ['page_content', 'metadata'])
+#
+#         if int(session['summary_word_cpunt']) == 0:
+#             emit('summary_response', {'message': 'summary word count is zero'})
+#             return
+#         else:
+#             custom_p = custom_p + ' and summary in ' + str(session['summary_word_cpunt']) + ' words'
+#
+#         index_name = str(session['login_pin'])
+#         search_client = SearchClient(
+#             endpoint=vector_store_address,
+#             index_name=index_name,
+#             credential=AzureKeyCredential(vector_store_password)
+#         )
+#         document_dict = []
+#         results = search_client.search(search_text="*", select="*", include_total_count=True)
+#         for rel in results:
+#             metadata = json.loads(rel['metadata'])
+#             document_name = metadata['documents']
+#
+#             combined_dict = {
+#                 'content': rel['content'],
+#                 'documents': document_name,
+#                 'metadata': rel['metadata']
+#             }
+#             document_dict.append(combined_dict)
+#
+#         merged_documents = merge_documents(document_dict)
+#         structured_documents = []
+#         emit('progress', {'percentage': 40, 'pin': session['login_pin']})
+#         for file_name, file_info in merged_documents.items():
+#             page_content = file_info['content']
+#             raw_metadata = file_info['metadata']
+#
+#             json_objects = raw_metadata.strip().split('\n')
+#             parsed_metadata_list = [json.loads(obj) for obj in json_objects if obj.strip()]
+#
+#             metadata = {}
+#             for d in parsed_metadata_list:
+#                 metadata.update(d)
+#
+#             document = Document(page_content=page_content, metadata=metadata)
+#             structured_documents.append([file_name, [document]])
+#
+#         def chunk_text(text, max_size):
+#             return [text[i:i + max_size] for i in range(0, len(text), max_size)]
+#
+#         MAX_TOTAL_TOKENS = 8192  # The model's maximum context length
+#
+#         summ = []
+#         counter = 1
+#         total_tokens = 0
+#         for filename, documents in structured_documents:
+#             for document in documents:
+#                 chunks = chunk_text(document.page_content, MAX_TOTAL_TOKENS)
+#                 for chunk in chunks:
+#                     chunk_tokens = len(chunk.split())
+#                     if total_tokens + chunk_tokens > MAX_TOTAL_TOKENS:
+#                         emit('summary_response', {'message': f'exceeds the total token limit "{filename}"'})
+#                         continue  # Skip the chunk if it exceeds the total token limit
+#                     chunk_document = Document(page_content=chunk, metadata=document.metadata)
+#                     time.sleep(0.5)  # Introduce a half-second delay
+#                     summary = custom_summary([chunk_document], custom_p, chain_type)
+#                     key = f'{filename}--summary--{counter}'
+#                     summary_dict = {'key': key, 'value': summary}
+#                     summ.append(summary_dict)
+#                     total_tokens += chunk_tokens  # Update the total token count
+#                 counter += 1
+#
+#         session['summary_add'].extend(summ)
+#         emit('progress', {'percentage': 75, 'pin': session['login_pin']})
+#         senti_text_summ = ' '.join(entry['value'] for entry in summ)
+#         analyze_sentiment_summ(senti_text_summ)
+#
+#         generate_word_cloud(senti_text_summ)
+#         perform_lda____summ(senti_text_summ)
+#
+#         elapsed_time = time.time() - start_time
+#         g.flag = 1
+#         logger.info(f'Summary Generated in {elapsed_time} seconds')
+#         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+#         time.sleep(0.5)
+#         emit('summary_response', session['summary_add'][::-1])
+#     except Exception as e:
+#         g.flag = 0
+#         logger.error('Summary generation error', exc_info=True)
+#         print('Exception of summary_input:', str(e))
+#         emit('summary_response', {'message': 'No data Load'})
 
 
 @socketio.on('clear_chat_summ')
@@ -1955,7 +2057,7 @@ def handle_ask_question(data):
         vector_store: AzureSearch = AzureSearch(
             azure_search_endpoint=vector_store_address,
             azure_search_key=vector_store_password,
-            index_name=index_name,
+            index_name="cognilink-" + index_name,
             embedding_function=embeddings.embed_query)
 
         # Update progress to 25%
@@ -1970,33 +2072,64 @@ def handle_ask_question(data):
         # conversation = get_conversation_chain(vector_store)
         # response = conversation({"question": question})
 
-        # print("response------------->", response)
+        print("response------------->", response)
 
         # Update progress to 50%
         emit('progress', {'percentage': 50, 'pin': session['login_pin']})
-        time.sleep(0.5)
+        time.sleep(0.01)
         sorry_phrases = ["I'm sorry", "I don't have any information", "I apologize", "Sorry",
                          "I don't have enough context to answer this question.", "Hello! How can I assist you today?",
                          "I'm an AI language model and I am always connected to the internet as "
-                         "long as my server is running properly.", "I don't have enough information to answer that "
-                                                                   "question based on the provided context"]
-
-        # Check if the response contains any sorry phrases or has no source documents
-        if any(phrase in response["answer"] for phrase in sorry_phrases) or not response.get("source_documents"):
-            doc_source = ["N/A"]
-            doc_page_num = ["N/A"]
+                         "long as my server is running properly.", "I don't have enough information to answer that question based on the provided context"
+                         , "There is no information provided in the context to answer this question.",
+                         "There is no context provided to answer this question.",
+                         "No information available to answer the question."
+                         ]
+        # Check if the response starts with any sorry phrases or has no source documents or if the first source
+        # document is empty
+        if (
+                any(response["answer"].startswith(phrase) for phrase in sorry_phrases) or
+                not response.get("source_documents") or
+                (response.get("source_documents") and not response["source_documents"][0])
+        ):
+            doc_source = ["N|A"]
+            doc_page_num = ["N|A"]
         else:
-            # Get sources and page numbers from the response, ensuring no duplicates
-            seen_sources = set()
+            # Initialize a set to track seen pages and lists for sources and page numbers
+            seen_pages = set()
             doc_source = []
             doc_page_num = []
+
+            # Iterate over source documents in the response
             for doc in response["source_documents"]:
                 source = doc.metadata.get("source", "N/A")
-                page = str(doc.metadata.get("page", "N/A"))
-                if source not in seen_sources:
-                    seen_sources.add(source)
+                page = doc.metadata.get("page", "N/A")
+
+                # Adjust the page number to start from 1 if it starts from 0
+                if isinstance(page, int) and page == 0:
+                    page = 1
+                elif isinstance(page, int):
+                    page += 1
+
+                page_str = str(page)
+
+                # Add source and page to the lists if the page has not been seen before
+                if page_str not in seen_pages:
+                    seen_pages.add(page_str)
                     doc_source.append(source)
-                    doc_page_num.append(page)
+                    doc_page_num.append(page_str)
+
+            # # Get sources and page numbers from the response, ensuring no duplicates
+            # seen_sources = set()
+            # doc_source = []
+            # doc_page_num = []
+            # for doc in response["source_documents"]:
+            #     source = doc.metadata.get("source", "N/A")
+            #     page = str(doc.metadata.get("page", "N/A"))
+            #     if source not in seen_sources:
+            #         seen_sources.add(source)
+            #         doc_source.append(source)
+            #         doc_page_num.append(page)
 
         # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
         final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
@@ -2010,6 +2143,25 @@ def handle_ask_question(data):
                               "source": chat_pair[2],
                               "page_number": chat_pair[3]}
                              for chat_pair in final_chat_hist]
+        # # Check if any of the sorry phrases are in the response or if source_documents is empty
+        # if any(phrase in response["answer"] for phrase in sorry_phrases) or not response.get("source_documents"):
+        #     doc_source = ["N/A"]
+        #     doc_page_num = ["N/A"]
+        # else:
+        #     doc_source = [doc.metadata.get("source", "N/A") for doc in response["source_documents"]]
+        #     doc_page_num = [str(doc.metadata.get("page", "N/A")) for doc in response["source_documents"]]
+        #
+        # # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
+        # final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
+        #                     response['chat_history'][i + 1].content if response['chat_history'][i + 1] else "",
+        #                     ", ".join(doc_source), ", ".join(doc_page_num))
+        #                    for i in range(0, len(response['chat_history']), 2)]
+        #
+        # chat_history_list = [{"question": chat_pair[0],
+        #                       "answer": chat_pair[1],
+        #                       "source": chat_pair[2],
+        #                       "page_number": chat_pair[3]}
+        #                      for chat_pair in final_chat_hist]
 
         # # Check if any of the sorry phrases are in the response or if source_documents is empty
         # if any(phrase in response["answer"] for phrase in sorry_phrases) or not response.get("source_documents"):
@@ -2090,7 +2242,7 @@ def delete_files():
         deleted_files = []
 
         for file_name in file_names:
-            blobs = container_client.list_blobs(name_starts_with=folder_name)
+            blobs = container_client.list_blobs(name_starts_with="cognilink/"+folder_name)
 
             # Find the blob with the matching file name
             target_blob = next((blob for blob in blobs if blob.name.split('/')[-1] == file_name), None)
@@ -2122,7 +2274,7 @@ def get_data_source():
         index_name: str = str(session['login_pin'])
         search_client = SearchClient(
             endpoint=vector_store_address,
-            index_name=index_name,
+            index_name="cognilink-"+index_name,
             credential=AzureKeyCredential(vector_store_password)
         )
         results = search_client.search(search_text="*", select="*", include_total_count=True)
@@ -2137,14 +2289,14 @@ def get_data_source():
             if document and document not in unique_documents:
                 VecTor_liSt.append(document)
                 unique_documents.add(document)
-        blobs = container_client.list_blobs(name_starts_with=index_name)
+        blobs = container_client.list_blobs(name_starts_with="cognilink/"+index_name)
         failed_files = session.get('failed_files', [])
         embedding_not_created = session.get('embedding_not_created', [])
         # Construct the data with status based on lists
         data = []
         for blob in blobs:
-            if blob.name.split('/')[1] != 'draft':
-                file_name = blob.name.split('/')[1]
+            if blob.name.split('/')[2] != 'draft':
+                file_name = blob.name.split('/')[2]
                 if file_name in VecTor_liSt:
                     status = 'U | EC'
                 elif file_name in failed_files:
@@ -2375,7 +2527,7 @@ def delete_pdf_file(data):
                 return socketio.emit('delete_response', {'message': 'Failed To Delete'})
         else:
             # Assuming you have the folder name for Azure stored in `folder_name_azure`
-            blob_name = f"{folder_name_azure}/{file_name}"
+            blob_name = f"cognilink/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
 
             file_path = os.path.join("static/files", login_pin, file_name)
