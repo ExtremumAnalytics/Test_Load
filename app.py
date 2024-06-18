@@ -2570,7 +2570,7 @@ def handle_eda_process(data):
             g.flag = 1
             logger.info("SocketIO Eda_Process File name received")
             blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(
-                name_starts_with=folder_name)
+                name_starts_with='cognilink/'+folder_name)
             for blob in blob_list_eda:
                 if blob.name in file_url:
                     blob_client = container_client.get_blob_client(blob)
