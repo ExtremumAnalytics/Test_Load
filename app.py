@@ -231,7 +231,7 @@ def question_answer_on_structure_data(conn_string, query_input=None):
         db = SQLDatabase.from_uri(conn_string)
     except Exception as ex:
         print(ex)
-        return "Database connection issue."
+        return "Database connection issue.", "error in db connection no sql rquery generated"
     
     try:
 
