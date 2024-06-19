@@ -4,6 +4,7 @@ import time
 import base64
 import json
 from io import BytesIO
+import re
 
 # Assuming Document is a custom class or namedtuple
 from collections import namedtuple
@@ -216,6 +217,13 @@ def create_or_pass_folder(container_client, session):
         return "Error: 'login_pin' not found in session."
 
 
+def clean_filename(filename):
+    # Remove special characters and replace spaces with underscores
+    cleaned_filename = re.sub(r'[^\w\s.-]', '', filename)
+    cleaned_filename = re.sub(r'\s+', '_', cleaned_filename)
+    return cleaned_filename
+
+
 def upload_to_blob(file_content, session, blob_service_client, container_name):
     """Uploads a file to Azure Blob Storage with enhanced security and error handling.
 
@@ -232,32 +240,77 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
 
     if 'login_pin' not in session:
         return "Error: 'login_pin' not found in session."
+
     try:
         folder_name = "cognilink/" + str(session['login_pin'])
 
-        blob_name = f"{folder_name}/{file_content.filename}"
+        # Clean the file name
+        cleaned_filename = clean_filename(file_content.filename)
+
+        blob_name = f"{folder_name}/{cleaned_filename}"
         blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
 
         # Read the content of file_content
         content = file_content.read()
 
-        # # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
-        # blob_client.upload_blob(content, blob_type="BlockBlob",
-        #                         content_settings=ContentSettings(content_type="application/octet-stream"),
-        #                         overwrite=True)
-        # Upload with overwrite and proper content type handling
+        # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
         blob_client.upload_blob(content, blob_type="BlockBlob",
                                 content_settings=ContentSettings(content_type=file_content.content_type),
                                 overwrite=True)
-    except Exception as e:
-        g.flag = 0  # Set flag to 1 on success1
-        logger.error(f"Function upload_to_blob error", exc_info=True)
-        print('upload_to_blob----->', str(e))
 
-    # Return the URL of the uploaded Blob
-    g.flag = 1  # Set flag to 1 on success1
-    logger.info(f"Function upload_to_blob successfully created blob_client.url")
-    return blob_client.url
+        g.flag = 1  # Set flag to 1 on success
+        logger.info("Function upload_to_blob successfully uploaded the blob")
+
+        return blob_client.url
+
+    except Exception as e:
+        g.flag = 0  # Set flag to 0 on error
+        logger.error("Function upload_to_blob error", exc_info=True)
+        return f"Error: {str(e)}"
+
+
+# def upload_to_blob(file_content, session, blob_service_client, container_name):
+#     """Uploads a file to Azure Blob Storage with enhanced security and error handling.
+#
+#     Args:
+#         file_content (http.MultipartFile): The file object to upload.
+#         session (dict): User session dictionary.
+#         blob_service_client (BlobServiceClient): Azure Blob Service client instance.
+#         container_name (str): Name of the Azure Blob Storage container.
+#
+#     Returns:
+#         str: URL of the uploaded blob or an error message.
+#     """
+#     global blob_client
+#
+#     if 'login_pin' not in session:
+#         return "Error: 'login_pin' not found in session."
+#     try:
+#         folder_name = "cognilink/" + str(session['login_pin'])
+#
+#         blob_name = f"{folder_name}/{file_content.filename}"
+#         blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+#
+#         # Read the content of file_content
+#         content = file_content.read()
+#
+#         # # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
+#         # blob_client.upload_blob(content, blob_type="BlockBlob",
+#         #                         content_settings=ContentSettings(content_type="application/octet-stream"),
+#         #                         overwrite=True)
+#         # Upload with overwrite and proper content type handling
+#         blob_client.upload_blob(content, blob_type="BlockBlob",
+#                                 content_settings=ContentSettings(content_type=file_content.content_type),
+#                                 overwrite=True)
+#     except Exception as e:
+#         g.flag = 0  # Set flag to 1 on success1
+#         logger.error(f"Function upload_to_blob error", exc_info=True)
+#         print('upload_to_blob----->', str(e))
+#
+#     # Return the URL of the uploaded Blob
+#     g.flag = 1  # Set flag to 1 on success1
+#     logger.info(f"Function upload_to_blob successfully created blob_client.url")
+#     return blob_client.url
 
 
 def update_bar_chart_from_blob(session, blob_service_client, container_name):
@@ -782,7 +835,7 @@ def delete_documents_from_vectordb(documents_to_delete):
         if not delete_document_ids:
             raise Exception("No valid document IDs found to delete")
 
-        print("delete_document_ids------->", delete_document_ids)
+        # print("delete_document_ids------->", delete_document_ids)
 
         # Prepare actions for batch delete
         actions = [{"@search.action": "delete", "id": doc_id} for doc_id in delete_document_ids]
@@ -2331,11 +2384,90 @@ def delete_files():
         return jsonify({'error': str(e)}), 500
 
 
+# @app.route("/table_update", methods=['GET'])
+# def get_data_source():
+#     try:
+#         # Initialize SearchClient
+#         index_name: str = str(session['login_pin'])
+#         search_client = SearchClient(
+#             endpoint=vector_store_address,
+#             index_name="cognilink-" + index_name,
+#             credential=AzureKeyCredential(vector_store_password)
+#         )
+#         results = search_client.search(search_text="*", select="*", include_total_count=True)
+#         VecTor_liSt = []
+#
+#         unique_documents = set()
+#
+#         for result in results:
+#             embeddings_dict = json.loads(result['metadata'])
+#             # print(embeddings_dict)  # This prints the embeddings_dict for each result
+#             document = embeddings_dict.get('documents')
+#             if document and document not in unique_documents:
+#                 VecTor_liSt.append(document)
+#                 unique_documents.add(document)
+#         blobs = container_client.list_blobs(name_starts_with="cognilink/" + index_name)
+#         failed_files = session.get('failed_files', [])
+#         embedding_not_created = session.get('embedding_not_created', [])
+#         # Construct the data with status based on lists
+#         data = []
+#         for blob in blobs:
+#             if blob.name.split('/')[2] != 'draft':
+#                 file_name = blob.name.split('/')[2]
+#                 if file_name in VecTor_liSt:
+#                     status = 'U | EC'
+#                 elif file_name in failed_files:
+#                     status = 'U | F'
+#                 elif file_name in embedding_not_created:
+#                     status = 'U | ENC'
+#                 else:
+#                     status = 'U | ENC'
+#                 data.append({
+#                     'name': file_name,
+#                     'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
+#                     'status': status
+#                 })
+#         g.flag = 1  # Set flag to 1 on success
+#         logger.info(f"table_update route successfully send data")
+#         # Emit the data to the socket channel 'updateTable'
+#         socketio.emit('updateTable', data)
+#         # Retrieve the blobs from the container
+#
+#         blobs_chart = container_client.list_blobs(name_starts_with="cognilink/" + index_name)
+#
+#         # Convert the iterator to a list to access the blob properties
+#         blob_list = [blob for blob in blobs_chart if not (blob.name.endswith('.csv') or blob.name.endswith('.CSV'))]
+#
+#         # print("Filtered Blob List:", blob_list)
+#
+#         # Step 1: Create a set of .mp3 file names without extensions
+#         mp3_files = {blob.name[:-4] for blob in blob_list if blob.name.endswith('.mp3')}
+#         # print("MP3 Files Set:", mp3_files)
+#
+#         # Step 2: Filter the blob_list to exclude .pdf files that have a corresponding .mp3 file
+#         new_blob_list = [blob for blob in blob_list if not (blob.name.endswith('.pdf') and blob.name[:-4] in mp3_files)]
+#         # print("New Blob List:", new_blob_list)
+#
+#         Tot_Suc = len(VecTor_liSt)
+#         blob_lent = len(new_blob_list)
+#         session['over_all_readiness'] = blob_lent
+#         session['total_success_rate'] = Tot_Suc
+#         gauge_source_chart_data = gauge_chart_auth()
+#         socketio.emit('update_gauge_chart', gauge_source_chart_data)
+#         update_bar_chart_from_blob(session, blob_service_client, container_name)
+#         return jsonify(data)
+#     except Exception as e:
+#         g.flag = 0  # Set flag to 1 on success
+#         logger.error(f"table_update route error", exc_info=True)
+#         print(f"Exceptions is{e}")
+#         return jsonify({'error': str(e)}), 500
+
+
 @app.route("/table_update", methods=['GET'])
 def get_data_source():
     try:
         # Initialize SearchClient
-        index_name: str = str(session['login_pin'])
+        index_name = str(session['login_pin'])
         search_client = SearchClient(
             endpoint=vector_store_address,
             index_name="cognilink-" + index_name,
@@ -2348,20 +2480,48 @@ def get_data_source():
 
         for result in results:
             embeddings_dict = json.loads(result['metadata'])
-            # print(embeddings_dict)  # This prints the embeddings_dict for each result
             document = embeddings_dict.get('documents')
             if document and document not in unique_documents:
                 VecTor_liSt.append(document)
                 unique_documents.add(document)
+
         blobs = container_client.list_blobs(name_starts_with="cognilink/" + index_name)
+
+        # Exclude files from blobs_chart based on criteria
+        blobs_chart = container_client.list_blobs(name_starts_with="cognilink/" + index_name)
+        blob_list = [blob for blob in blobs_chart if not (blob.name.lower().endswith('.csv'))]
+        mp3_files = {blob.name[:-4] for blob in blob_list if blob.name.endswith('.mp3')}
+        new_blob_list = [blob for blob in blob_list if not (blob.name.endswith('.pdf') and blob.name[:-4] in mp3_files)]
+
+        # Initialize the deleted files list
+        deleted_files_list = []
+        delete_file = container_client.list_blobs(name_starts_with="cognilink/" + index_name)
+
+        # Extract names from delete_file
+        delete_file_names = {blob.name.split('/')[-1] for blob in delete_file}
+
+        # Compare delete_file_names with new_blob_list and add items that are not in new_blob_names
+        new_blob_names = {blob.name.split('/')[-1] for blob in new_blob_list}
+        for file_name in delete_file_names:
+            if file_name not in new_blob_names:
+                deleted_files_list.append(file_name)
+
+        # print("deleted_files_list------>", deleted_files_list)
+
+        # Calculate overall readiness count
+        blob_lent = len(new_blob_list)
+        session['over_all_readiness'] = blob_lent
         failed_files = session.get('failed_files', [])
         embedding_not_created = session.get('embedding_not_created', [])
-        # Construct the data with status based on lists
+
+        # Prepare data with updated statuses
         data = []
         for blob in blobs:
             if blob.name.split('/')[2] != 'draft':
                 file_name = blob.name.split('/')[2]
                 if file_name in VecTor_liSt:
+                    status = 'U | EC'
+                elif file_name in deleted_files_list:
                     status = 'U | EC'
                 elif file_name in failed_files:
                     status = 'U | F'
@@ -2369,48 +2529,34 @@ def get_data_source():
                     status = 'U | ENC'
                 else:
                     status = 'U | ENC'
+
                 data.append({
                     'name': file_name,
                     'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
                     'status': status
                 })
-        g.flag = 1  # Set flag to 1 on success
-        logger.info(f"table_update route successfully send data")
-        # Emit the data to the socket channel 'updateTable'
-        socketio.emit('updateTable', data)
-        # Retrieve the blobs from the container
-
-        blobs_chart = container_client.list_blobs(name_starts_with="cognilink/" + index_name)
-
-        # Convert the iterator to a list to access the blob properties
-        blob_list = [blob for blob in blobs_chart if not (blob.name.endswith('.csv') or blob.name.endswith('.CSV'))]
-
-        # print("Filtered Blob List:", blob_list)
-
-        # Step 1: Create a set of .mp3 file names without extensions
-        mp3_files = {blob.name[:-4] for blob in blob_list if blob.name.endswith('.mp3')}
-        # print("MP3 Files Set:", mp3_files)
-
-        # Step 2: Filter the blob_list to exclude .pdf files that have a corresponding .mp3 file
-        new_blob_list = [blob for blob in blob_list if not (blob.name.endswith('.pdf') and blob.name[:-4] in mp3_files)]
-        # print("New Blob List:", new_blob_list)
 
         Tot_Suc = len(VecTor_liSt)
-        blob_lent = len(new_blob_list)
-        # print("Tot_Suc---->", Tot_Suc)
-        # print("blob_lent---->", blob_lent)
-        # vectorstore.save_local(os.path.join(folder_name, 'faiss_index'))
-        session['over_all_readiness'] = blob_lent
         session['total_success_rate'] = Tot_Suc
+
         gauge_source_chart_data = gauge_chart_auth()
         socketio.emit('update_gauge_chart', gauge_source_chart_data)
+
+        # Emit the data to the socket channel 'updateTable'
         update_bar_chart_from_blob(session, blob_service_client, container_name)
+        socketio.emit('updateTable', data)
+
+        g.flag = 1  # Set flag to 1 on success
+        logger.info(f"table_update route successfully sent data")
+
         return jsonify(data)
+
     except Exception as e:
-        g.flag = 0  # Set flag to 1 on success
+        g.flag = 0  # Set flag to 0 on error
         logger.error(f"table_update route error", exc_info=True)
-        print(f"Exceptions is{e}")
+        print(f"Exception is {e}")
         return jsonify({'error': str(e)}), 500
+
 
 
 @socketio.on('webcrawler_start')

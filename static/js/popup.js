@@ -515,7 +515,7 @@ function updateTable(searchTerm) {
 }
 
 // Set interval to check session status
-setInterval(updateTable, 7000); // Check every 2 seconds
+setInterval(updateTable, 5000); // Check every 2 seconds
 
 // Function to set all checkboxes to the same state as the "Select All" checkbox
 function toggleSelectAll(selectAllCheckbox) {
