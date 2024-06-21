@@ -1,24 +1,8 @@
-// fetchPDFFiles();
-
-// // Fetch PDF files from the server
-// function fetchPDFFiles() {
-//     fetch("/fetch_pdf_files")
-//     .then(response => response.json()) // Parse response as JSON
-//     .then(data => {
-//         console.log(data); // Check the data received
-
-//         // Pass the received data directly to displayPDFFiles
-//         displayPDFFiles(data.pdf_files);
-//     })
-//     .catch(error => console.error('Error fetching PDF files:', error));
-// }
-
 function closeWindow(){
     self.close();
 }
 
-
-
+// File Manager data fetch code
 document.addEventListener('DOMContentLoaded', (event) => {
     // const socket = io("wss://ea-resource.azurewebsites.net");
     const socket = io();
@@ -37,11 +21,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         socket.emit('fetch_pdf_files');
     }
     // Pass the received data directly to displayPDFFiles
-    displayPDFFiles(data.pdf_files);
-
-    // function closeWindow() {
-    //     self.close();
-    // }
+    // displayPDFFiles(data.pdf_files);
 });
 
 // Display PDF files in the table
@@ -60,14 +40,16 @@ function displayPDFFiles(pdfFiles) {
         const dateCell = document.createElement('td');
 
         const checkbox = document.createElement('input');
+        checkbox.id = 'select-checkbox';
         checkbox.type = 'checkbox';
-        checkbox.addEventListener('change', function() {
-            if (this.checked) {
-                row.classList.add('selected');
-            } else {
-                row.classList.remove('selected');
-            }
-        });
+        checkbox.onclick = function() { updateHeaderCheckbox(); }
+        // checkbox.addEventListener('change', function() {
+        //     if (this.checked) {
+        //         row.classList.add('selected');
+        //     } else {
+        //         row.classList.remove('selected');
+        //     }
+        // });
 
         checkboxCell.appendChild(checkbox);
         row.appendChild(checkboxCell);
@@ -103,96 +85,38 @@ function displayStats(totalScrapedFiles) {
     statsContainer.appendChild(scrapedFilesElement);
 }
 
+// // Delete seleted file from file manager
+// function deleteSelectedFiles() {
+//     const socket = io();
+//     const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
+//     selectedRows.forEach(row => {
+//         const fileName = row.dataset.fileName; // Get the file name from the row's data attribute
 
-function deleteSelectedFiles() {
-    const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
-    selectedRows.forEach(row => {
-        const fileName = row.dataset.fileName; // Get the file name from the row's data attribute
-        row.remove();
-        
-        // Print the file name before sending the request
-        console.log('File name:', fileName);
+//         // Send a request to Flask route via Socket.IO
+//         socket.emit('delete_pdf_file', {
+//             fileName: fileName
+//         });
+//         row.remove();
+//         // Print the file name before sending the request
+//         console.log('File name:', fileName);
+//     });
 
-        // Send a request to Flask route
-        fetch('/select_pdf_file', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                fileName: fileName,
-            })
-        })
-        .then(response => {
-            if (response.ok) {
-                // Parse the JSON response to extract the message
-                return response.json();
-            } else {
-                // If the response is not OK, throw an error
-                throw new Error('Network response was not ok');
-            }
-        })
-        .then(data => {
-            // Now, data should contain the parsed JSON response
-            $('#messagedelopload').text(data.message);
-            setTimeout(function() {
-                $('#messagedelopload').text('');
-            }, 8000); // Clear the message after 8 seconds
-            console.log(data.message);
-        })
-        .catch(error => console.error('Error:', error));
-    });
-}
+//     // Define the event listener for delete_response outside the deleteSelectedFiles function
+//     socket.on('delete_response', function(data) {
+//         $('#messagedelopload').text(data.message);
+//         setTimeout(function() {
+//             $('#messagedelopload').text('');
+//         }, 8000); // Clear the message after 8 seconds
+//         console.log(data.message);
+//     });
+// }
 
 
-function deletefilelocal() {
-    const deletePopup = document.getElementsByName('deletepopupn3')[0].getAttribute('name');
-    console.log(deletePopup);
-    const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
-    selectedRows.forEach(row => {
-        const fileName = row.dataset.fileName; // Get the file name from the row's data attribute
-        row.remove();
-        
-        // Print the file name before sending the request
-        console.log('File name:', fileName);
-
-        // Send a request to Flask route
-        fetch('/select_pdf_file', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                fileName: fileName,
-                deletePopup: deletePopup
-            })
-        })
-        .then(response => {
-            if (response.ok) {
-                // Parse the JSON response to extract the message
-                return response.json();
-            } else {
-                // If the response is not OK, throw an error
-                throw new Error('Network response was not ok');
-            }
-        })
-        .then(data => {
-            // Now, data should contain the parsed JSON response
-            $('#messagedelopload').text(data.message);
-            setTimeout(function() {
-                $('#messagedelopload').text('');
-            }, 8000); // Clear the message after 8 seconds
-            console.log(data.message);
-        })
-        .catch(error => console.error('Error:', error));
-    });
-}
-
-// Function to toggle all checkboxes (select/deselect)
-function toggleAllCheckboxes() {
+// Function to set all checkboxes to the same state as the "Select All" checkbox
+function toggleAllCheckboxes(selectAllCheckbox) {
     const checkboxes = document.querySelectorAll('#pdfTable tbody input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
-        checkbox.checked = !checkbox.checked; // Toggle the checked state
+        checkbox.checked = selectAllCheckbox.checked;
         if (checkbox.checked) {
             checkbox.parentNode.parentNode.classList.add('selected');
         } else {
@@ -200,3 +124,23 @@ function toggleAllCheckboxes() {
         }
     });
 }
+
+// Function to update the header checkbox state based on individual checkbox states
+function updateHeaderCheckbox() {
+    const headerCheckbox = document.getElementById('select-checkbox');
+    const checkboxes = document.querySelectorAll('#pdfTable tbody input[type="checkbox"]');
+    headerCheckbox.checked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+}
+
+// Add event listener to individual checkboxes to update header checkbox state
+document.addEventListener('DOMContentLoaded', () => {
+    const checkboxes = document.querySelectorAll('#pdfTable tbody input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            if (!checkbox.checked) {
+                document.getElementById('select-checkbox').checked = false;
+            }
+            updateHeaderCheckbox();
+        });
+    });
+});

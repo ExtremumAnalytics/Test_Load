@@ -1,3 +1,4 @@
+// Select Data Source Function
 function selectDataSource(element, dataSourceName) {
     // Remove highlights from other data sources
     var elements = document.querySelectorAll('.bg-light');
@@ -12,6 +13,7 @@ function selectDataSource(element, dataSourceName) {
     sessionStorage.setItem('selectedDataSource', dataSourceName);
 }
 
+// Loading the Selected Data Source
 function linkSelectedDataSource() {
     var dataSource = sessionStorage.getItem('selectedDataSource'); // Get the selected data source from sessionStorage
     var doc_template = document.getElementById('fileForm');
@@ -84,8 +86,6 @@ function linkSelectedDataSource() {
     }
 }
 
-
-
 // Function to handle URL submission
 function submitUrl() {
     var url = document.getElementById('sourceUrl').value;
@@ -93,21 +93,7 @@ function submitUrl() {
     // Add your handling logic here
 }
 
-// // Function to close the lds container UI
-// function pdfclosePopup() {
-//     var ldsContainer = document.querySelector('.lds');
-//     ldsContainer.innerHTML = `
-//         <div>
-//             <p style="color:#000000;">Linking Successful.
-//             Please Load the Cogni Link!
-//             </p>
-//         </div>
-//     `;
-// }
-
-// Function to close the popup 
-
-
+//Show Web Crawl File Manager 
 function displayWebCrawFileManager() {
     // Example of fetching HTML content from a server
     fetch('/file_manager')
@@ -124,12 +110,13 @@ function displayWebCrawFileManager() {
         .catch(error => console.error('Failed to load HTML content:', error));
 };
 
-
+// Scroll Vault Function
 function scrollToVault(){
     var vault = document.getElementById('vault_container');
     vault.scrollIntoView({behavior: 'smooth'});
 }
 
+// Select All Button Function
 function toggleSelectAll(){
     var checkboxes = document.querySelectorAll('#table-body input[type="checkbox"]');
     var selectAllCheckbox = document.getElementById('selectAll');
@@ -139,31 +126,27 @@ function toggleSelectAll(){
     });
 }
 
+// // Data Base Connection Form
+// document.getElementById('dbForm').onsubmit = async (event) => {
+//     event.preventDefault();
+//     const formData = new FormData(event.target);
 
-document.getElementById('dbForm').onsubmit = async (event) => {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    const response = await fetch('/run_query', {
-        method: 'POST',
-        body: JSON.stringify(Object.fromEntries(formData)),
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    });
- 
-    if (response.ok) {
-        $('#message').text(response.message);
-        // const blob = await response.blob();
-        // const url = window.URL.createObjectURL(blob);
-        // const a = document.createElement('a');
-        // a.style.display = 'none';
-        // a.href = url;
-        // a.download = 'query_results.csv';
-        // document.body.appendChild(a);
-        // a.click();
-        // window.URL.revokeObjectURL(url);
-    } else {
-        const result = await response.json();
-        document.getElementById('results').innerText = JSON.stringify(result);
-    }
-};
+//     // Initialize Socket.IO client
+//     const socket = io();
+
+//     socket.emit('run_query', Object.fromEntries(formData));
+
+//     socket.on('query_success', (data) => {
+//         document.getElementById('message').innerText = data.message || 'Query executed successfully.';
+//         setTimeout(() => {
+//             document.getElementById('message').innerText = '';
+//         }, 8000); // Clear message after 8 seconds
+//     });
+
+//     socket.on('query_error', (data) => {
+//         document.getElementById('message').innerText = JSON.stringify(data);
+//         setTimeout(() => {
+//             document.getElementById('message').innerText = '';
+//         }, 8000); // Clear message after 8 seconds
+//     });
+// };

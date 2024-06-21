@@ -1,47 +1,4 @@
-    // // Session expiry warning
-    // var sessionTimeout = 60; // 60 seconds = 1 minute
-    // var warningTimeout = 10; // 10 seconds before session expiry
-    // var lastActivity = new Date().getTime();
-
-    // // Function to check session status
-    // function checkSession() {
-    //     var currentTime = new Date().getTime();
-    //     var timeElapsed = (currentTime - lastActivity) / 1000; // Time elapsed since last activity in seconds
-
-    //     if (timeElapsed >= sessionTimeout) {
-    //         // Session expired
-    //         window.location.replace("/logout");
-    //     } else if (timeElapsed >= sessionTimeout - warningTimeout) {
-    //         // Show warning popup
-    //         displayWarning();
-    //     }
-    // }
-
-    // // Set interval to check session status
-    // setInterval(checkSession, 2000); // Check every 2 seconds
-
-    // // Logout button
-    // document.getElementById("logout").addEventListener("click", function() {
-    //     window.location.replace("/logout");
-    // });
-
-    // // Function to display warning popup
-    // function displayWarning() {
-    //     var popup = document.getElementById("warningpopup");
-    //     popup.style.display = "block";
-    // }
-
-    // // Function to hide warning popup
-    // function hideWarning() {
-    //     var popup = document.getElementById("warningpopup");
-    //     popup.style.display = "none";
-
-    //     // Reset last activity time
-    //     lastActivity = new Date().getTime();
-    // }
-
-
-    // Session expiry warning
+// Session expiry warning
 var sessionTimeout = 3600; // 60 seconds = 1 minute 5 min
 var warningTimeout = 300; // 10 seconds before session expiry
 var lastActivity = new Date().getTime();
@@ -117,6 +74,6 @@ function checkSessionWithBackend() {
         }
     });
 }
-
+checkSessionWithBackend();
 // Set interval to check session status with the backend
-setInterval(checkSessionWithBackend, 2000); // Check every 2 seconds
+setInterval(checkSessionWithBackend, 1000); // Check every 1 second

@@ -33,6 +33,9 @@
     <!-- jQuery and jQuery UI JS -->
 
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        
+    <!-- Socket IO library-->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
     <!-- Include Plotly.js library -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
 
@@ -98,69 +101,13 @@
                             <!-- <span class="d-none d-lg-inline-flex">Message</span> -->
                             <span class="d-none d-lg-inline-flex"></span>
                         </a>
-                        <div style="display: none;" class="dropdown-menu dropdown-menu-end bg-light border-0 rounded-0 rounded-bottom m-0">
-                            <a href="#" class="dropdown-item">
-                                <div class="d-flex align-items-center">
-                                    <img class="rounded-circle" src="static/img/user.jpg" alt="" style="width: 40px; height: 40px;">
-                                    <div class="ms-2">
-                                        <h6 class="fw-normal mb-0">Jhon send you a message</h6>
-                                        <small>15 minutes ago</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <hr class="dropdown-divider">
-                            <a href="#" class="dropdown-item">
-                                <div class="d-flex align-items-center">
-                                    <img class="rounded-circle" src="static/img/user.jpg" alt="" style="width: 40px; height: 40px;">
-                                    <div class="ms-2">
-                                        <h6 class="fw-normal mb-0">Jhon send you a message</h6>
-                                        <small>15 minutes ago</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <hr class="dropdown-divider">
-                            <a href="#" class="dropdown-item">
-                                <div class="d-flex align-items-center">
-                                    <img class="rounded-circle" src="static/img/user.jpg" alt="" style="width: 40px; height: 40px;">
-                                    <div class="ms-2">
-                                        <h6 class="fw-normal mb-0">Jhon send you a message</h6>
-                                        <small>15 minutes ago</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <hr class="dropdown-divider">
-                            <a href="#" class="dropdown-item text-center">See all message</a>
-                        </div>
-                    </div>
-                    <div class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fa fa-bell me-lg-2"></i>
-                            <!-- <span class="d-none d-lg-inline-flex">Notification</span> -->
-                            <span class="d-none d-lg-inline-flex"></span>
-                        </a>
-                        <div style="display: none;" class="dropdown-menu dropdown-menu-end bg-light border-0 rounded-0 rounded-bottom m-0">
-                            <a href="#" class="dropdown-item">
-                                <h6 class="fw-normal mb-0">Profile updated</h6>
-                                <small>15 minutes ago</small>
-                            </a>
-                            <hr class="dropdown-divider">
-                            <a href="#" class="dropdown-item">
-                                <h6 class="fw-normal mb-0">New user added</h6>
-                                <small>15 minutes ago</small>
-                            </a>
-                            <hr class="dropdown-divider">
-                            <a href="#" class="dropdown-item">
-                                <h6 class="fw-normal mb-0">Password changed</h6>
-                                <small>15 minutes ago</small>
-                            </a>
-                            <hr class="dropdown-divider">
-                            <a href="#" class="dropdown-item text-center">See all notifications</a>
-                        </div>
                     </div>
                     <div class="nav-item dropdown">
                         <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
                             <img class="rounded-2 me-lg-2" src="static/img/ea_symbol.png" alt="" style="width: 40px; height: 30px;">
-                            <span class="d-none d-lg-inline-flex">Admin</span>
+                            <span id="userName" class="d-none d-lg-inline-flex">
+                                <!-- User Name  -->
+                            </span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
                             <a href="#" class="dropdown-item">My Profile</a>
@@ -200,8 +147,8 @@
             </div>
 
             <!-- Ask Form Start -->
-            <div class="container-fluid d-flex flex-row">
-                <div class="container-fluid d-flex flex-column">
+            <div class="container-fluid d-flex flex-row mx-n2">
+                <div class="container-fluid d-flex flex-column px-2">
                     <div class="col-lg-12 bg-light rounded p-4 mb-2">
                         <h6 class="mb-2">Explore Your Data with CogniLink</h6>
                         <div class="d-flex flex-row mb-2">
@@ -210,7 +157,7 @@
                         </div>
                         <div class="col-lg-12 d-flex justify-content-center">
                             <div class="button-group mt-2">
-                                <button type="button" id="table_container" onclick="table_data_retrieve()" class="btn btn-primary mr-2" style="font-size: 14px;">Select CogniLink Data</button>
+                                <button type="button" id="table_container" onclick="table_data_retrieve()" class="btn btn-primary m-2" style="font-size: 14px;">Select CogniLink Data</button>
                                 
                                 <!-- HTML for the Popup Modal -->
                                 <div id="myModal" class="modal" style="display:none;">
@@ -222,8 +169,8 @@
                                 </div>
                             </div>
   
-                                <button type="button" id="eda_generate" class="btn btn-primary mr-2" onclick="sendQuestion()" style="font-size: 14px;">Generate</button>
-                                <button type="button" id="clarCcvchat" onclick="clearChat()" class="btn btn-primary mr-2" style="font-size: 14px;">Clear Chat</button>
+                                <button type="button" id="eda_generate" class="btn btn-primary m-2" onclick="sendQuestion()" style="font-size: 14px;">Generate</button>
+                                <button type="button" id="clarCcvchat" onclick="clearChat()" class="btn btn-primary m-2" style="font-size: 14px;">Clear Chat</button>
                             </div>
                         </div>
                     </div>
@@ -238,39 +185,9 @@
                         </div>
                         <div id="dataContainer"></div>
                         <div id="eda_graph" style="width:100%;height:500px;"></div>
-
-                        
                     </div>
                 </div>
-            </div>
-                <!-- Charts start -->
-                <!--div class="col-lg-4 d-flex flex-column">
-                    <div class="box bg-light rounded p-4 mb-2">
-                        <div class="d-flex align-items-center justify-content-center mb-2">
-                            <h6>Overall Readiness</h6>
-                        </div>
-                        <!- <canvas id="readiness_chart"></canvas>
-                        <div class="gauge" id="gauge-qa"></div>
-                    </div>
-                    <div class="box bg-light rounded p-4 mb-2">
-                        <div>
-                            <div class="d-flex align-items-center justify-content-center mb-2">
-                                <h6 class="mb-0">Response Sentiment</h6>
-                            </div>
-                            <div class="gauge" id="sentiment_chart"></div>
-                        <!-<div class="gauge" id="sentiment_chart"></div>>
-                        </div>
-                    </div>
-                    <div class="box bg-light rounded p-4 mb-2">
-                        <div>
-                            <h6 class="mb-2" style="text-align: center;">Themes & Topics</h6>
-                        </div>
-                        <div class="theme_topics" id="ldaQAText"></div>
-                    </div>
-                </div>
-            </div-->
-            
-
+            </div>        
 
             <!-- Footer Start -->
             <div class="container-fluid pt-4 px-4">
@@ -280,7 +197,6 @@
                             &copy; <a href="{{url_for('data_source')}}">Cogni Link</a>, All Right Reserved. 
                         </div>
                         <div class="col-12 col-sm-6 text-center text-sm-end">
-                            <!--/*** This template is free as long as you keep the footer author’s credit link/attribution link/backlink. If you'd like to use the template without the footer author’s credit link/attribution link/backlink, you can purchase the Credit Removal License from "https://htmlcodex.com/credit-removal". Thank you for your support. ***/-->
                             Designed By <a href="www.extremumanalytics.com">Extremum Analytics</a>
                         </div>
                     </div>
@@ -313,6 +229,7 @@
     <script src="{{ url_for('static', filename='js/audio_q_a.js') }}"></script>
     <script src="{{ url_for('static', filename='js/eda_audio.js') }}"></script>
     <script src="{{ url_for('static', filename='js/warningpop.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/user_details.js') }}"></script>
 </body>
 
 </html>

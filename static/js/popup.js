@@ -1,4 +1,6 @@
+var socket = io(); // Assuming Socket.IO is initialized correctly
 var pin = localStorage.getItem('pin');
+
 function validateForm() {
     var form = document.getElementById('optionsForm');
     var selectedOption = form.querySelector('input[name="option"]:checked');
@@ -11,74 +13,30 @@ function validateForm() {
     }
 }
 
-// function openPopup(option) {
-//     var popup = document.getElementById('popup');
-//     popup.style.display = 'block';
-
-//     var databaseForm = document.getElementById('databaseForm');
-//     var fileForm = document.getElementById('fileForm');
-//     var sourceForm = document.getElementById('SourceURL');
-//     var audioForm = document.getElementById('audio_file');
-//     var Web_Crawling = document.getElementById('Web_Crawling');
-
-//     if (option === 'database') {
-//         databaseForm.style.display = 'block';
-//         fileForm.style.display = 'none';
-//         sourceForm.style.display = 'none';
-//         audioForm.style.display = 'none';
-//         Web_Crawling.style.display = 'none';
-//     } else if (option === 'file') {
-//         fileForm.style.display = 'block';
-//         databaseForm.style.display = 'none';
-//         sourceForm.style.display = 'none';
-//         audioForm.style.display = 'none';
-//         Web_Crawling.style.display = 'none';
-//     }else if (option === 'Source_URL') {
-//         sourceForm.style.display = 'block';
-//         databaseForm.style.display = 'none';
-//         fileForm.style.display = 'none';
-//         audioForm.style.display = 'none';
-//         Web_Crawling.style.display = 'none';
-//     }else if (option === 'audio_file') {
-//         audioForm.style.display = 'block';
-//         databaseForm.style.display = 'none';
-//         fileForm.style.display = 'none';
-//         sourceForm.style.display = 'none';
-//         Web_Crawling.style.display = 'none';
-//     }else if (option === 'Web_Crawling') {
-//         Web_Crawling.style.display = 'block';
-//         databaseForm.style.display = 'none';
-//         fileForm.style.display = 'none';
-//         sourceForm.style.display = 'none';
-//         audioForm.style.display = 'none';
-//     }
-// }
-
-// function closePopup() {
-//     console.log('Popup Close');
-//     var popup = document.getElementById('popup');
-//     popup.style.display = 'none';
-
-//     // Clear form fields
-//     var form = document.getElementById('popupForm');
-//     form.reset();
-// }
-
 
 // web crawling code with files and all source with if conditions without select deselect features.
-
 function submitForm() {
     var webCrawlingForm = document.getElementById('Web_Crawling');
 
     if (webCrawlingForm.style.display === 'block') {
         // Execute Web Crawling program
         executeNewProgram();
-        // pdfclosePopup();
     } else {
         // Execute default program
         runDefaultProgram();
-        // pdfclosePopup();
     }
+}
+
+function stop_all() {
+    let stop_flag = true;
+    socket.emit('stop_process', { login_pin:pin, stop_flag: stop_flag });
+    console.log(' stop button is  pressed')
+
+    socket.on('stop_process_flag', function(data){
+        if(data.pin==pin){
+            console.log('Flag value received:',data.flag)
+        }
+    });
 }
 
 function pdfclosePopup() {
@@ -91,13 +49,33 @@ function pdfclosePopup() {
     var close = document.getElementById('close');
     var load = document.getElementById('loadData');
 
-    close.style.display = 'block';
+    defaultMsg.style.display = 'block';
     doc_template.style.display= 'none';
     mp3_template.style.display= 'none';
     webCrawl_template.style.display= 'none';
     source_URL_template.style.display= 'none';
     database_template.style.display= 'none';
-    defaultMsg.style.display= 'none';
+    close.style.display= 'none';
+    load.style.display= 'none';
+}
+
+function linkDataPopup() {
+    var doc_template = document.getElementById('fileForm');
+    var mp3_template = document.getElementById('audio_file');
+    var webCrawl_template = document.getElementById('Web_Crawling');
+    var source_URL_template = document.getElementById('SourceURL');
+    var database_template = document.getElementById('databaseForm');
+    var defaultMsg = document.getElementById('defaultMsg');
+    var close = document.getElementById('close');
+    var load = document.getElementById('loadData');
+
+    defaultMsg.style.display = 'none';
+    doc_template.style.display= 'none';
+    mp3_template.style.display= 'none';
+    webCrawl_template.style.display= 'none';
+    source_URL_template.style.display= 'none';
+    database_template.style.display= 'none';
+    close.style.display= 'block';
     load.style.display= 'none';
 }
 
@@ -121,47 +99,41 @@ function dataLoadUpdate() {
     load.style.display= 'block';
 }
 
-
+// Function to execute new web crawling program
 function executeNewProgram() {
     var url = document.getElementById('webCrawlingInput').value;
     console.log("URL to crawl:", url);
 
-    // Sending the URL to the server using Fetch API
-    fetch('/webcrawler', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ url: url })
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.json(); // Assuming response is JSON
+    // Sending the URL to the server using Socket.IO
+    socket.emit('webcrawler_start', { url: url, login_pin:pin });
+
+    // Update status event
+    socket.on('update_status', function(data) {
+        if(data.pin==pin){
+            console.log("Status Update:", data.status);
+            // Update UI with the new status, if needed
+            $('#message').text(data.status);
+            setTimeout(function() {
+                $('#message').text('');
+            }, 8000); // 8 seconds later, clear the message
         }
-        if (response.status === 404) {
-            throw new Error('URL Not Found');
+    });
+
+    // Update progress event
+    socket.on('update_progress', function(data) {
+        if(data.pin==pin){
+            console.log("Progress Update:", data);
+            // Update UI with the new progress, if needed
+            document.getElementById("progress").innerHTML = `
+                <label>Current Status: ${data.current_status}</label>
+                <label>Total Files:  ${data.total_files}</label>
+                <label>Files Downloaded:  ${data.files_downloaded}</label>
+                <label>Download Percentage:  ${data.progress_percentage}%</label>
+                <label>Current File Name:  ${data.current_file}</label>
+            `;
         }
-        throw new Error('Network response was not ok.');
-    })
-    .then(data => {
-        console.log(data); // Response from the server
-        // Display data or update UI based on the response
-        $('#messageweb').text(data.message);
-        setTimeout(function() {
-            $('#messageweb').text('');
-        }, 8000); // 8 seconds later, clear the message
-    })
-    .catch(error => {
-        console.error('There was a problem with the fetch operation:', error);
-        // Update UI to display error message
-        $('#messageweb').text(error.message);
-        setTimeout(function() {
-            $('#messageweb').text('');
-        }, 8000); // 8 seconds later, clear the message
     });
 }
-
-
 
 
 function pdfPopupopen() {
@@ -172,25 +144,25 @@ function pdfPopupopen() {
     fetchPDFFiles();
 }
 
-
-
-
-
-
-
-
-// Fetch PDF files from the server
 function fetchPDFFiles() {
-    fetch("/fetch_pdf_files")
-    .then(response => response.json()) // Parse response as JSON
-    .then(data => {
-        console.log(data); // Check the data received
+    var socket = io(); // Initialize Socket.IO connection
 
-        // Pass the received data directly to displayPDFFiles
-        displayPDFFiles(data.pdf_files);
-    })
-    .catch(error => console.error('Error fetching PDF files:', error));
+    // Emit the 'fetch_pdf_files' event to the server
+    socket.emit('fetch_pdf_files');
+
+    // Listen for the 'pdf_files' event from the server
+    socket.on('pdf_files', function(data) {
+        console.log(data); // Check the data received
+        displayPDFFiles(data.pdf_files); // Pass the received data to displayPDFFiles
+        socket.disconnect(); // Disconnect Socket.IO connection after receiving data
+    });
+
+    // Handle any errors
+    socket.on('connect_error', function(error) {
+        console.error('Error connecting to server:', error);
+    });
 }
+
 
 // Display PDF files in the table
 function displayPDFFiles(pdfFiles) {
@@ -252,43 +224,28 @@ function displayStats(totalScrapedFiles) {
 }
 
 
-function deleteSelectedFiles() {
+
+function uploadSelectedFiles() {
     const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
     selectedRows.forEach(row => {
-        const fileName = row.dataset.fileName; // Get the file name from the row's data attribute
+        const fileName = row.dataset.fileName;
         row.remove();
         
-        // Print the file name before sending the request
         console.log('File name:', fileName);
 
-        // Send a request to Flask route
-        fetch('/select_pdf_file', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                fileName: fileName,
-            })
-        })
-        .then(response => {
-            if (response.ok) {
-                // Parse the JSON response to extract the message
-                return response.json();
-            } else {
-                // If the response is not OK, throw an error
-                throw new Error('Network response was not ok');
-            }
-        })
-        .then(data => {
-            // Now, data should contain the parsed JSON response
+        // Send a request to the Flask Socket.IO endpoint
+        socket.emit('delete_pdf_file', {
+            fileName: fileName,
+            login_pin: pin
+        });
+
+        socket.on('delete_response', function(data) {
             $('#messagedelopload').text(data.message);
             setTimeout(function() {
                 $('#messagedelopload').text('');
-            }, 8000); // Clear the message after 8 seconds
+            }, 8000);
             console.log(data.message);
-        })
-        .catch(error => console.error('Error:', error));
+        });
     });
 }
 
@@ -305,35 +262,20 @@ function deletefilelocal() {
         console.log('File name:', fileName);
 
         // Send a request to Flask route
-        fetch('/select_pdf_file', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                fileName: fileName,
-                deletePopup: deletePopup
-            })
-        })
-        .then(response => {
-            if (response.ok) {
-                // Parse the JSON response to extract the message
-                return response.json();
-            } else {
-                // If the response is not OK, throw an error
-                throw new Error('Network response was not ok');
-            }
-        })
-        .then(data => {
-            // Now, data should contain the parsed JSON response
-            $('#messagedelopload').text(data.message);
-            setTimeout(function() {
-                $('#messagedelopload').text('');
-            }, 8000); // Clear the message after 8 seconds
-            console.log(data.message);
-        })
-        .catch(error => console.error('Error:', error));
+        socket.emit('delete_pdf_file', {
+            fileName: fileName,
+            deletePopup: deletePopup,
+            login_pin: pin // provide the login pin here
+        });
     });
+    socket.on('delete_response', function(data) {
+        $('#messagedelopload').text(data.message);
+        setTimeout(function() {
+            $('#messagedelopload').text('');
+        }, 8000); // Clear the message after 8 seconds
+        console.log(data.message);
+    });
+
 }
 
 
@@ -351,23 +293,7 @@ function toggleAllCheckboxes() {
 }
 
 
-// //table fetch data for web crawling.
-
-var socket = io();
-
-socket.on('progress', function(data) {
-    console.log(data);
-    document.getElementById('status').innerText = `Current Status: ${data.current_status}`;
-    document.getElementById('totalFiles').innerText = `Total Files: ${data.total_files}`;
-    document.getElementById('filesDownloaded').innerText = `Files Downloaded: ${data.files_downloaded}`;
-    document.getElementById('progressPercentage').innerText = `Progress Percentage: ${data.progress_percentage}%`;
-    document.getElementById('currentFileName').innerText = `Current File Name: ${data.current_file}`;
-});
-
-
-
 // this is default program
-
 function runDefaultProgram() {
     var fileInput = document.getElementById('fileInput');
     var mp3Input = document.getElementById('mp3Input');
@@ -387,34 +313,9 @@ function runDefaultProgram() {
         formData.append('myFile', files[i]);
     }
     
-
-    // var dbURL = document.getElementsByName('dbURL')[0].value;
-    // var username = document.getElementsByName('username')[0].value;
-    // var password = document.getElementsByName('password')[0].value;
-    // var Source_URL = document.getElementsByName('Source_URL')[0].value;
-
-    var dbType = document.getElementsByName('dbType')[0].value;
-    var hostname = document.getElementsByName('hostname')[0].value;
-    var port = document.getElementsByName('port')[0].value;
-    var username = document.getElementsByName('username')[0].value;
-    var password = document.getElementsByName('password')[0].value;
-    var query = document.getElementsByName('query')[0].value;
     var Source_URL = document.getElementsByName('Source_URL')[0].value;
     
-    //$("#myDiv").html('<img src="/static/images/wait.gif" alt="Wait" />');
     $("#waitImg").show(); // Show the loading image
-    // // Append additional fields
-    // formData.append('dbURL', dbURL);
-    // formData.append('username', username);
-    // formData.append('password', password);
-    // formData.append('Source_URL', Source_URL);
-      // Append additional fields
-    formData.append('dbType', dbType);
-    formData.append('hostname', hostname);
-    formData.append('port', port);
-    formData.append('username', username);
-    formData.append('password', password);
-    formData.append('query', query);
     formData.append('Source_URL', Source_URL);
 
     var xhr = new XMLHttpRequest();
@@ -427,13 +328,15 @@ function runDefaultProgram() {
                 document.getElementById('message').innerHTML = '';
             }, 8000);
             $("#waitImg").hide(); // Hide the loading image on success
-            pdfclosePopup();
-            document.getElementById('popupForm').reset();
+            linkDataPopup();
+            updateTable();
+            // document.getElementById('popupForm').reset();
         } else {
             document.getElementById('message').innerHTML = '<p>Failed to upload files. Please try again later.</p>';
             setTimeout(function () {
                 document.getElementById('message').innerHTML = '';
             }, 8000);
+            updateTable();
             $("#waitImg").hide(); // Hide the loading image on success
         }
     };
@@ -442,48 +345,46 @@ function runDefaultProgram() {
     // closePopup();
 }
 
+// Progress Updation Start
+socket.on('pending', function(data){
+    console.log('Pending',data);
+});
 
+socket.on('failed', function(data){
+    console.log('Failed',data);
+});
 
+socket.on('success', function(data){
+    console.log('Success',data);
+});
+// Progress Updation End
 
+function updateProgressBar(percentage) {
+    $("#waitImg1").css("width", percentage + "%");
+    $("#waitImg1").attr("aria-valuenow", percentage);
+    $("#waitImg1").text(percentage + "%");
+}
 
-// // load cognilink button
-
-
-// $(document).ready(function () {
-//     $("#loadCogniLink").click(function () {
-//         //$("#myDiv").html('');
-//         $("#waitImg").show(); // Show the loading image
-//         $.ajax({
-//             url: '/Cogni_button',
-//             type: 'GET',
-//             success: function (data) {
-//                 $("#waitImg").hide(); // Hide the loading image on success
-//                 $('#message').text(data.message);
-//                 setTimeout(function() {
-//                     $('#message').text('');
-//                 }, 8000);
-//                 console.log('Data is Loaded:', data);
-//                 dataLoadUpdate();
-//             },
-//             error: function (error) {
-//                 console.error('Error in Loading CogniLink data:', error);
-//                 $("#waitImg").hide(); // Hide the loading image on error
-//             }
-//         });
-//     });
-// });
-
-
+//Load CogniLink Button Press
 $(document).ready(function () {
     var socket = io();
 
     $("#loadCogniLink").click(function () {
-        $("#waitImg").show(); // Show the loading image
+        $(".progress").show(); //Show the progress bar
+        $("#waitImg1").show(); // Show the loading image
+        socket.on('progress', function(data){
+            if(data.pin==pin){
+                console.log('Percentage:',data.percentage);
+                updateProgressBar(data.percentage);
+            }
+        });
         $.ajax({
             url: '/Cogni_button',
             type: 'GET',
             success: function (data) {
-                $("#waitImg").hide(); // Hide the loading image on success
+                updateTable();
+                $("#waitImg1").hide(); // Hide the loading image on success
+                $(".progress").hide(); //Hide the progress bar
                 $('#message').text(data.message);
                 setTimeout(function() {
                     $('#message').text('');
@@ -493,16 +394,19 @@ $(document).ready(function () {
             },
             error: function (error) {
                 console.error('Error in Loading CogniLink data:', error);
-                $("#waitImg").hide(); // Hide the loading image on error
+                $("#waitImg1").hide(); // Hide the loading image on success
+                $(".progress").hide(); //Hide the progress bar
             }
         });
     });
 
     socket.on('button_response', function(msg) {
-        $('#message').text(msg.message);
-        setTimeout(function() {
-            $('#message').text('');
-        }, 8000);
+        if(msg.pin==pin){
+            $('#message').text(msg.message);
+            setTimeout(function() {
+                $('#message').text('');
+            }, 8000);
+        }
     });
 });
 
@@ -510,3 +414,248 @@ function dataLoadUpdate() {
     // Add your logic here to handle data load update
     console.log('Data load update function called');
 }
+
+// Open a new window
+function openInNewTab(url) {
+    var win = window.open(url, '_blank');
+    win.focus();
+}
+
+// Open source url in new tab 
+function openFileInNewTab(url) {
+    var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(url);
+    var win = window.open(googleDocsUrl, '_blank');
+    win.focus();
+}
+
+// Checking and returning the different file types START
+function isPDF(filename) {
+    return filename.toLowerCase().endsWith('.pdf');
+}
+
+function isExcel(filename) {
+    return filename.toLowerCase().endsWith('.xls') || filename.toLowerCase().endsWith('.xlsx');
+}
+
+function isWord(filename) {
+    return (
+        filename.toLowerCase().endsWith('.doc') ||
+        filename.toLowerCase().endsWith('.docx') ||
+        filename.toLowerCase().endsWith('.rtf')
+    );
+}
+
+function isPowerPoint(filename) {
+    return (
+        filename.toLowerCase().endsWith('.ppt') ||
+        filename.toLowerCase().endsWith('.pptx')
+    );
+}
+// Checking and returning the different file types END
+
+
+
+// Updating Digital Vault
+function updateTable(searchTerm) {
+    $.ajax({
+        url: '/table_update',
+        method: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            // Clear existing table rows
+            $('#table-body').empty();
+            
+            // Populate the table with new data
+            response.forEach(function(blob) {
+                // Extract the name from the URL
+                var name = blob.name.split('/').pop();
+                
+                // If search term is provided and the filename doesn't match, skip
+                if (searchTerm && name.toLowerCase().indexOf(searchTerm.toLowerCase()) === -1) {
+                    return;
+                }
+
+                // Construct the row with customized column headers
+                var row = '<tr>' +                    
+                          '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + blob.name + '"></td>' +
+                          '<td>' + blob.name + '</td>' +
+                          '<td>';
+
+                // Check the file type and provide appropriate action
+                if (isExcel(name)) {
+                    // If it's an Excel file, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
+                }else if (isPDF(name)) {
+                    // If it's a PDF, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
+                } else if (isWord(name)) {
+                    // If it's a Word document, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
+                } else if (isPowerPoint(name)) {
+                    // If it's a PowerPoint presentation, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
+                } else {
+                    // If it's none of the above, open it directly in the browser
+                    row += '<a href="' + blob.url + '" target="_blank">View</a>';
+                }
+
+                row += '</td>' +
+                    '<td class="action-links">' +
+                    //'<a href="' + blob.url + '" target="_blank" download>Download</a> </td>' +
+                    '<a href="' + blob.url + '" download="' + name + '">Download</a> </td>' +
+                    '<td>'+blob.status +'</td>' +
+                    '</tr>';
+                $('#table-body').append(row);
+            });
+        },
+        error: function(xhr, status, error) {
+            console.error('Error updating table:', error);
+        }
+    });
+}
+
+// Set interval to check session status
+setInterval(updateTable, 5000); // Check every 2 seconds
+
+// Function to set all checkboxes to the same state as the "Select All" checkbox
+function toggleSelectAll(selectAllCheckbox) {
+    const checkboxes = document.querySelectorAll('#data-table tbody input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+        if (checkbox.checked) {
+            checkbox.parentNode.parentNode.classList.add('selected');
+        } else {
+            checkbox.parentNode.parentNode.classList.remove('selected');
+        }
+    });
+}
+
+// Function to update the header checkbox state based on individual checkbox states
+function updateHeaderCheckbox() {
+    const headerCheckbox = document.getElementById('select-checkbox');
+    const checkboxes = document.querySelectorAll('#data-table tbody input[type="checkbox"]');
+    headerCheckbox.checked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+}
+
+// Add event listener to individual checkboxes to update header checkbox state
+document.addEventListener('DOMContentLoaded', () => {
+    const checkboxes = document.querySelectorAll('#data-table tbody input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            if (!checkbox.checked) {
+                document.getElementById('select-checkbox').checked = false;
+            }
+            updateHeaderCheckbox();
+        });
+    });
+});
+
+// Function to handle search
+function handleSearch() {
+    var searchTerm = $('#searchInput').val();
+    updateTable(searchTerm);
+}
+
+// Call updateTable function every 5 seconds
+$(document).ready(function() {
+    // Initial call
+    updateTable();
+
+    // Set interval to update every 10 seconds
+    // setInterval(updateTable, 10000); // 5000 milliseconds = 5 seconds
+
+    // Bind search button click event
+    $('#searchButton').click(handleSearch);
+});
+
+// Function to delete selected files
+function deleteSelectedFiles() {
+    const selectedFiles = [];
+    const checkboxes = document.querySelectorAll('#data-table tbody input[type="checkbox"]:checked');
+    const selectAllCheckbox = document.querySelector('#data-table thead input[type="checkbox"]');
+
+    checkboxes.forEach(checkbox => {
+        selectedFiles.push(checkbox.value);
+    });
+
+    // Uncheck the main header checkbox
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+    }
+    if (selectedFiles.length > 0) {
+        deleteFile(selectedFiles);
+        updateTable(); // Refresh the table after deletion
+    } else {
+        alert('No files selected');
+    }
+}
+
+socket.on('delete_selected_file_response', function(msg){
+    updateTable();
+    console.log(msg)
+});
+
+// Delete files from Vault
+function deleteFile(fileNames) {
+    // Send a DELETE request to the Flask route
+    $.ajax({
+        url: '/delete',
+        method: 'DELETE',
+        contentType: 'application/json',
+        data: JSON.stringify({ file_names: fileNames }),
+        dataType: 'json',
+        success: function(response) {
+            console.log(response.message) // Log success message
+            // Optionally, update UI or do something else after successful deletion
+            updateTable(); // Refresh the table after deletion
+        },
+        error: function(xhr, status, error) {
+            console.error('Error deleting files:', error);
+        }
+    });
+}
+
+// Data Base Connection Form
+document.getElementById('dbForm').onsubmit = async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+
+    // Initialize Socket.IO client
+    const socket = io();
+
+    socket.emit('run_query', Object.fromEntries(formData));
+
+    socket.on('query_success', (data) => {
+        document.getElementById('message').innerText = data.message || 'Query executed successfully.';
+        setTimeout(() => {
+            document.getElementById('message').innerText = '';
+        }, 8000); // Clear message after 8 seconds
+        updateTable();
+    });
+
+    socket.on('query_error', (data) => {
+        document.getElementById('message').innerText = JSON.stringify(data);
+        setTimeout(() => {
+            document.getElementById('message').innerText = '';
+        }, 8000); // Clear message after 8 seconds
+        updateTable();
+    });
+};
+
+// // Delete file from Vault
+// function deleteFile(fileName) {
+//     // Send a DELETE request to the Flask route
+//     $.ajax({
+//         url: '/delete/' + fileName,
+//         method: 'DELETE',
+//         dataType: 'json',
+//         success: function(response) {
+//             console.log(response.message); // Log success message
+//             // Optionally, update UI or do something else after successful deletion
+//             updateTable(); // Refresh the table after deletion
+//         },
+//         error: function(xhr, status, error) {
+//             console.error('Error deleting file:', error);
+//         }
+//     });
+// }

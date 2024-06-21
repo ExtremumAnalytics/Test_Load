@@ -1,3 +1,4 @@
+// Login Button Verification Start
 document.getElementById("submitButton").addEventListener("click", function (event) {
     // Prevent the default form submission
     event.preventDefault();
@@ -6,10 +7,12 @@ document.getElementById("submitButton").addEventListener("click", function (even
     var pin = document.getElementById("main_UserPin").value;
     localStorage.setItem('pin', pin);
     var guser = document.querySelector('[name="user_roles"]').value;
+    var engine = document.querySelector('[name="engine_menu"]').value; // Get the selected engine
 
     var formData = new FormData();
     formData.append('authpin', pin);
     formData.append('Grp_usr', guser);
+    formData.append('engine', engine); // Include the engine in the FormData
 
     // Perform an AJAX request
     fetch('/', {
@@ -31,4 +34,3 @@ document.getElementById("submitButton").addEventListener("click", function (even
         console.error('Error:', error);
     });
 });
-
