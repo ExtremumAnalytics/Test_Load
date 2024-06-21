@@ -5,6 +5,7 @@ import base64
 import json
 from io import BytesIO
 import re
+import docx
 
 # Assuming Document is a custom class or namedtuple
 from collections import namedtuple
@@ -52,6 +53,8 @@ from langchain.vectorstores import AzureSearch
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.llm import LLMChain
+from azure.cognitiveservices.vision.computervision import ComputerVisionClient
+from msrest.authentication import CognitiveServicesCredentials
 
 # for mp3 to pdf
 from reportlab.lib.pagesizes import letter
@@ -91,6 +94,7 @@ import io
 
 # for default Azure account use only
 vectorsecret = "vectordatabsekey"
+computer_vision = "computer-vision-key"
 openapi_key = "OPENAI-API-KEY"
 KVUri = f"https://eavault.vault.azure.net/"
 credential = DefaultAzureCredential()
@@ -99,6 +103,8 @@ retrieved_secret = client.get_secret(openapi_key)
 main_key = retrieved_secret.value
 retrieved = client.get_secret(vectorsecret)
 vector_store = retrieved.value
+retrieved_com = client.get_secret(computer_vision)
+computer_vision_key = retrieved_com.value
 
 # # for local use only
 # load_dotenv()
@@ -110,12 +116,18 @@ os.environ["OPENAI_API_KEY"] = main_key
 os.environ["OPENAI_API_VERSION"] = "2023-05-15"
 os.environ["AZURE_OPENAI_ENDPOINT"] = "https://ea-openai.openai.azure.com/"
 
-# for vector db
+# computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
+computer_vision_api_endpint = "https://test-computer-vision-extremum.cognitiveservices.azure.com/"
+# # for vector db
 vector_store_address = "https://cognilink-vectordb.search.windows.net"
 vector_store_password = vector_store
 
 # 1 - text-embedding-3large testing  2- text-embedding
 embeddings = AzureOpenAIEmbeddings(azure_deployment='text-embedding')
+
+computervision_credentials = CognitiveServicesCredentials(computer_vision_key)
+computervision_client = ComputerVisionClient(computer_vision_api_endpint, computervision_credentials)
+
 
 chunk_size = 8000
 chunk_overlap = 400
@@ -1610,6 +1622,30 @@ def handle_update_value(data):
     emit('size_value_updated', {'value': Limit_By_Size, 'message': 'Value updated successfully'})
 
 
+def extract_text_from_image(file_obj, language='en'):
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_path = temp_file.name
+        temp_file.write(file_obj.read())
+
+    with open(temp_path, "rb") as image_stream:
+        ocr_result = computervision_client.recognize_printed_text_in_stream(
+            image_stream, language=language)
+        content = ''
+        for region in ocr_result.regions:
+            for line in region.lines:
+                for word in line.words:
+                    content += word.text + ' '
+                content += '\n'
+        file_name = file_obj.filename
+        file_name = file_name.split('.')
+        f_name = file_name[0]
+        blob_name = f"cognilink/{str(session['login_pin'])}/{f_name}.text"
+        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+        blob_client.upload_blob(content.rstrip(), blob_type="BlockBlob",
+                                # content_settings=ContentSettings(content_type="text/plain"),
+                                overwrite=True)
+        # return text
+
 @app.route('/popup_form', methods=['POST'])
 def popup_form():
     global mb_pop, file_size_bytes
@@ -1641,7 +1677,10 @@ def popup_form():
             # session['MB'] += float("{:.2f}".format(mb_pop))
             # Calculate total number of files
             for file in files:
+                if '.png' in file.filename or '.jpg' in file.filename:
+                    extract_text_from_image(file)
                 upload_to_blob(file, session, blob_service_client, container_name)
+
 
         # elif request.form.get('dbURL', ''):
         #     db_url = request.form.get('dbURL', '')
