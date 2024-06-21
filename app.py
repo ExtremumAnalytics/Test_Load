@@ -5,7 +5,6 @@ import base64
 import json
 from io import BytesIO
 import re
-import docx
 
 # Assuming Document is a custom class or namedtuple
 from collections import namedtuple
@@ -443,7 +442,7 @@ def update_when_file_delete():
     #         session['progress_files'].append(file_name)
     #         socketio.emit('success', session['progress_files'])
 
-    blob_list = [blob for blob in all_blobs_list if not (blob.name.endswith('.csv') or blob.name.endswith('.CSV'))]
+    blob_list = [blob for blob in all_blobs_list if not (blob.name.endswith('.csv') or blob.name.endswith('.CSV') or blob.name.endswith('.jpg') or blob.name.endswith('.png') or  blob.name.endswith('.text') )]
     # Update session counts for CSV files directly
     csv_files_count = len(all_blobs_list) - len(blob_list)
     tot_succ += csv_files_count  # Mark CSV files as successfully read
