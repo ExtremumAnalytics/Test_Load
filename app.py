@@ -113,9 +113,9 @@ computer_vision_key = retrieved_com.value
 
 # # for local use only
 # load_dotenv()
-main_key = os.environ["Main_key"]
-vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
-computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
+# main_key = os.environ["Main_key"]
+# vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
+# computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
 
 os.environ["OPENAI_API_TYPE"] = "azure"
 os.environ["OPENAI_API_KEY"] = main_key
