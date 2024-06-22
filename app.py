@@ -99,7 +99,7 @@ import io
 
 # for default Azure account use only
 vectorsecret = "vectordatabsekey"
-computer_vision = "computer-vision-key"
+computer_vision = "computer-vision-key-v1"
 openapi_key = "OPENAI-API-KEY"
 KVUri = f"https://eavault.vault.azure.net/"
 credential = DefaultAzureCredential()
