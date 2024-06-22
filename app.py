@@ -5,7 +5,7 @@ import base64
 import json
 from io import BytesIO
 import re
-from fpdf import FPDF
+import docx
 
 # Assuming Document is a custom class or namedtuple
 from collections import namedtuple
@@ -111,9 +111,9 @@ computer_vision_key = retrieved_com.value
 
 # # for local use only
 # load_dotenv()
-# main_key = os.environ["Main_key"]
-# vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
-# computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
+main_key = os.environ["Main_key"]
+vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
+computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
 
 os.environ["OPENAI_API_TYPE"] = "azure"
 os.environ["OPENAI_API_KEY"] = main_key
@@ -1678,6 +1678,7 @@ def handle_update_value(data):
 #                                 # content_settings=ContentSettings(content_type="text/plain"),
 #                                 overwrite=True)
 def extract_text_from_image(file_obj, language):
+
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_path = temp_file.name
         temp_file.write(file_obj.read())
@@ -1689,14 +1690,14 @@ def extract_text_from_image(file_obj, language):
         # Extract the operation ID from the response
         operation_location = ocr_result.headers["Operation-Location"]
         operation_id = operation_location.split("/")[-1]
-
+ 
         # Poll for the result
         while True:
             result = computervision_client.get_read_result(operation_id)
             if result.status not in ['notStarted', 'running']:
                 break
             time.sleep(1)
-
+ 
         # Extract text from the result
         text = ""
         if result.status == OperationStatusCodes.succeeded:
@@ -1704,30 +1705,40 @@ def extract_text_from_image(file_obj, language):
                 for line in page.lines:
                     text += line.text + '\n'
 
-        # Create a PDF file from the extracted text
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_auto_page_break(auto=True, margin=15)
-        pdf.set_font("Arial", size=12)
+        doc = docx.Document()
+        doc_para = doc.add_paragraph(text)
 
-        for line in text.split('\n'):
-            pdf.cell(200, 10, txt=line, ln=True)
-        folder_name = os.path.join('static', 'login', str(session['login_pin']))
-        # Save the PDF file
-        file_name = file_obj.filename
-        file_name = file_name.split('.')
-        f_name = file_name[0]
-        pdf_file_path = f"{folder_name}/{f_name}.pdf"
-        pdf.output(pdf_file_path)
+        # Save DOCX to a BytesIO object
+        doc_output = io.BytesIO()
+        doc.save(doc_output)
+        doc_output.seek(0)
+        # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
+
+        f_name = file_obj.filename
+        f_name = f_name.split('.')[0]
 
         # Upload the PDF file to Azure Blob Storage
-        blob_name = f"cognilink/{str(session['login_pin'])}/{f_name}.pdf"
+        blob_name = f"cognilink/{str(session['login_pin'])}/{f_name}.docx"
         blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-        with open(pdf_file_path, "rb") as pdf_file:
-            blob_client.upload_blob(pdf_file, blob_type="BlockBlob", overwrite=True)
+        # with open(pdf_file_path, "rb") as pdf_file:
+        blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
 
-        # Clean up the temporary PDF file
-        os.remove(pdf_file_path)
+        # folder_name = os.path.join('static', 'login', str(session['login_pin']))
+        # # Save the PDF file
+        # file_name = file_obj.filename
+        # file_name = file_name.split('.')
+        # f_name = file_name[0]
+        # pdf_file_path = f"{folder_name}/{f_name}.pdf"
+        # pdf.output(pdf_file_path)
+
+        # # Upload the PDF file to Azure Blob Storage
+        # blob_name = f"cognilink/{str(session['login_pin'])}/{f_name}.pdf"
+        # blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+        # with open(pdf_file_path, "rb") as pdf_file:
+        #     blob_client.upload_blob(pdf_file, blob_type="BlockBlob", overwrite=True)
+
+        # # Clean up the temporary PDF file
+        # os.remove(pdf_file_path)
 
 
 @app.route('/popup_form', methods=['POST'])
