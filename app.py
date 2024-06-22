@@ -5,6 +5,7 @@ import base64
 import json
 from io import BytesIO
 import re
+import docx
 
 # Assuming Document is a custom class or namedtuple
 from collections import namedtuple
@@ -33,6 +34,11 @@ from azure.identity import ClientSecretCredential
 from azure.keyvault.secrets import SecretClient
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
+# for computer vision
+from azure.cognitiveservices.vision.computervision import ComputerVisionClient
+from azure.cognitiveservices.vision.computervision.models import OperationStatusCodes
+from msrest.authentication import CognitiveServicesCredentials
+
 from dotenv import load_dotenv
 
 # langchain module
@@ -107,8 +113,9 @@ computer_vision_key = retrieved_com.value
 
 # # for local use only
 # load_dotenv()
-# main_key = os.environ["Main_key"]
-# vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
+main_key = os.environ["Main_key"]
+vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
+computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
 
 os.environ["OPENAI_API_TYPE"] = "azure"
 os.environ["OPENAI_API_KEY"] = main_key
@@ -120,6 +127,13 @@ computer_vision_api_endpint = "https://test-computer-vision-extremum.cognitivese
 # # for vector db
 vector_store_address = "https://cognilink-vectordb.search.windows.net"
 vector_store_password = vector_store
+
+# for image computer vision
+COMPUTER_VISION_ENDPOINT = "https://test-computer-vision-extremum.cognitiveservices.azure.com/"
+# COMPUTER_VISION_password = computer_vision_key
+computervision_credentials = CognitiveServicesCredentials(computer_vision_key)
+computervision_client = ComputerVisionClient(COMPUTER_VISION_ENDPOINT, computervision_credentials)
+
 
 # 1 - text-embedding-3large testing  2- text-embedding
 embeddings = AzureOpenAIEmbeddings(azure_deployment='text-embedding')
@@ -368,6 +382,8 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
                     file_type = 'MP3'
                 elif file_name.endswith('.xlsx') or file_name.endswith('.xlscd .') or file_name.endswith('.xls .'):
                     file_type = 'XLSX'
+                elif file_name.endswith('.jpg') or file_name.endswith('.png') or file_name.endswith('.jpeg'):
+                    file_type = 'Image'
                 else:
                     file_type = 'Other'
 
@@ -392,6 +408,7 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
 
     # Return the updated bar_chart dictionary
     return blob_list
+
 
 #
 # # Normalize the filenames
@@ -445,15 +462,17 @@ def update_when_file_delete():
     blob_list = [blob for blob in all_blobs_list if not (blob.name.endswith('.csv') or blob.name.endswith('.CSV') or blob.name.endswith('.jpg') or blob.name.endswith('.png') or  blob.name.endswith('.text') )]
     # Update session counts for CSV files directly
     csv_files_count = len(all_blobs_list) - len(blob_list)
-    tot_succ += csv_files_count  # Mark CSV files as successfully read
-
+    tot_succ += csv_files_count
+    # Mark CSV files as successfully read
     # Step 1: Create a set of .mp3 file names without extensions
     mp3_files = {blob['name'][:-4] for blob in blob_list if blob['name'].endswith('.mp3')}
 
     # Step 2: Filter the blob_list to exclude .pdf files that have a corresponding .mp3 file
     new_blob_list = [blob for blob in blob_list if
                      not (blob['name'].endswith('.pdf') and blob['name'][:-4] in mp3_files)]
-
+    blob_list_jpg = [blob for blob in new_blob_list if not (
+            blob.name.endswith('.jpg') or blob.name.endswith('.JPG') or blob.name.endswith(
+        '.PNG') or blob.name.endswith('.png'))]
     # Initialize SearchClient
     search_client = SearchClient(
         endpoint=vector_store_address,
@@ -474,7 +493,7 @@ def update_when_file_delete():
             VecTor_liSt.append(document)
             unique_documents.add(document)
     # Filtering out blobs whose names are in vector_db_list
-    result_loop = [blob for blob in new_blob_list if not any(blob['name'].endswith(item) for item in VecTor_liSt)]
+    result_loop = [blob for blob in blob_list_jpg if not any(blob['name'].endswith(item) for item in VecTor_liSt)]
     blob_list_length = len(result_loop)
     if blob_list_length == 0 and Source_URL == "":
         session['bar_chart_ss'] = {}
@@ -518,6 +537,11 @@ def update_when_file_delete():
                     loader = PyPDFLoader(temp_path)
                     session['embedding_not_created'].append(file_name)
                     socketio.emit('pending', session['embedding_not_created'])
+
+                # if '.txt' in file_name or '.TXT' in file_name:
+                #     loader = TextLoader(temp_path)
+                #     session['embedding_not_created'].append(file_name)
+                #     socketio.emit('pending', session['embedding_not_created'])
 
                 elif '.mp3' in file_name:
                     loader = AssemblyAIAudioTranscriptLoader(temp_path, api_key="5bbe5761b36b4ff885dbd18836c3c723")
@@ -863,15 +887,6 @@ def delete_documents_from_vectordb(documents_to_delete):
         print({'message': str(e)})
 
 
-# """Use the following pieces of context to answer the question at the end. If you don't know the answer,
-#                 just say that you don't know, don't try to make up an answer.
-#                 Use three sentences maximum. Keep the answer as concise as possible.
-#                 If there is no context provided, do not answer the question and respond with 'No information available to answer the question.'
-#
-#                 {context}
-#                 Question: {question}
-#                 Helpful Answer:
-#                 """
 
 def get_conversation_chain(vectorstore):
     """
@@ -885,13 +900,27 @@ def get_conversation_chain(vectorstore):
     """
     deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name)
-    template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, 
-                just say, 'No information available to answer the question.'. 
-                Don't try to make up an answer. Use three sentences maximum. 
-                Keep the answer as concise as possible. 
+
+    template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
+                just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
+                If no information is available to answer the question, respond with: 'No information available to answer the question.'
                 {context}
                 Question: {question}
-                Helpful Answer:"""
+                Helpful Answer:
+                """
+    # template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
+    #             just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
+    #             If no information is available to answer the question, respond with: 'No information available to answer the question.'
+    #             {context}
+    #             Question: {question}
+    #             Helpful Answer:
+    #             """
+
+    # template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
+    # just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
+    # {context}
+    # Question: {question}
+    # Helpful Answer:"""
     CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
 
     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
@@ -1621,29 +1650,52 @@ def handle_update_value(data):
     emit('size_value_updated', {'value': Limit_By_Size, 'message': 'Value updated successfully'})
 
 
-def extract_text_from_image(file_obj, language='en'):
+
+def extract_text_from_image(file_obj, language):
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_path = temp_file.name
         temp_file.write(file_obj.read())
 
     with open(temp_path, "rb") as image_stream:
-        ocr_result = computervision_client.recognize_printed_text_in_stream(
-            image_stream, language=language)
-        content = ''
-        for region in ocr_result.regions:
-            for line in region.lines:
-                for word in line.words:
-                    content += word.text + ' '
-                content += '\n'
-        file_name = file_obj.filename
-        file_name = file_name.split('.')
-        f_name = file_name[0]
-        blob_name = f"cognilink/{str(session['login_pin'])}/{f_name}.text"
+        # Initiate the OCR process using the read API
+        ocr_result = computervision_client.read_in_stream(image_stream, language=language, raw=True)
+
+        # Extract the operation ID from the response
+        operation_location = ocr_result.headers["Operation-Location"]
+        operation_id = operation_location.split("/")[-1]
+ 
+        # Poll for the result
+        while True:
+            result = computervision_client.get_read_result(operation_id)
+            if result.status not in ['notStarted', 'running']:
+                break
+            time.sleep(1)
+ 
+        # Extract text from the result
+        text = ""
+        if result.status == OperationStatusCodes.succeeded:
+            for page in result.analyze_result.read_results:
+                for line in page.lines:
+                    text += line.text + '\n'
+
+        doc = docx.Document()
+        doc_para = doc.add_paragraph(text)
+
+        # Save DOCX to a BytesIO object
+        doc_output = io.BytesIO()
+        doc.save(doc_output)
+        doc_output.seek(0)
+        # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
+
+        f_name = file_obj.filename
+        f_name = f_name.split('.')[0]
+
+        # Upload the PDF file to Azure Blob Storage
+        blob_name = f"cognilink/{str(session['login_pin'])}/{f_name}.docx"
         blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-        blob_client.upload_blob(content.rstrip(), blob_type="BlockBlob",
-                                # content_settings=ContentSettings(content_type="text/plain"),
-                                overwrite=True)
-        # return text
+        # with open(pdf_file_path, "rb") as pdf_file:
+        blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
+
 
 @app.route('/popup_form', methods=['POST'])
 def popup_form():
@@ -1675,9 +1727,14 @@ def popup_form():
             #     # Convert bytes to megabytes
             # session['MB'] += float("{:.2f}".format(mb_pop))
             # Calculate total number of files
+            # for file in files:
+            #     upload_to_blob(file, session, blob_service_client, container_name)
+
             for file in files:
                 if '.png' in file.filename or '.jpg' in file.filename:
-                    extract_text_from_image(file)
+                    lang = request.form.get('selected_language', '')
+                    print("lang------>", lang)
+                    extract_text_from_image(file, lang)
                 upload_to_blob(file, session, blob_service_client, container_name)
 
 
@@ -2530,6 +2587,8 @@ def get_data_source():
         blob_list = [blob for blob in blobs_chart if not (blob.name.lower().endswith('.csv'))]
         mp3_files = {blob.name[:-4] for blob in blob_list if blob.name.endswith('.mp3')}
         new_blob_list = [blob for blob in blob_list if not (blob.name.endswith('.pdf') and blob.name[:-4] in mp3_files)]
+        new_blob_list_jpg = [blob for blob in new_blob_list if
+                             not (blob.name.lower().endswith('.jpg') or blob.name.lower().endswith('.png'))]
 
         # Initialize the deleted files list
         deleted_files_list = []
@@ -2539,7 +2598,7 @@ def get_data_source():
         delete_file_names = {blob.name.split('/')[-1] for blob in delete_file}
 
         # Compare delete_file_names with new_blob_list and add items that are not in new_blob_names
-        new_blob_names = {blob.name.split('/')[-1] for blob in new_blob_list}
+        new_blob_names = {blob.name.split('/')[-1] for blob in new_blob_list_jpg}
         for file_name in delete_file_names:
             if file_name not in new_blob_names:
                 deleted_files_list.append(file_name)
@@ -2547,7 +2606,7 @@ def get_data_source():
         # print("deleted_files_list------>", deleted_files_list)
 
         # Calculate overall readiness count
-        blob_lent = len(new_blob_list)
+        blob_lent = len(new_blob_list_jpg)
         session['over_all_readiness'] = blob_lent
         failed_files = session.get('failed_files', [])
         embedding_not_created = session.get('embedding_not_created', [])
@@ -2594,7 +2653,6 @@ def get_data_source():
         logger.error(f"table_update route error", exc_info=True)
         print(f"Exception is {e}")
         return jsonify({'error': str(e)}), 500
-
 
 
 @socketio.on('webcrawler_start')
