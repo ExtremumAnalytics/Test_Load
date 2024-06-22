@@ -21,6 +21,7 @@ function linkSelectedDataSource() {
     var webCrawl_template = document.getElementById('Web_Crawling');
     var source_URL_template = document.getElementById('SourceURL');
     var database_template = document.getElementById('databaseForm');
+    var image_template = document.getElementById('image_file');
     var defaultMsg = document.getElementById('defaultMsg');
     var close = document.getElementById('close');
     var load = document.getElementById('loadData');
@@ -33,6 +34,7 @@ function linkSelectedDataSource() {
             webCrawl_template.style.display= 'none';
             source_URL_template.style.display= 'none';
             database_template.style.display= 'none';
+            image_template.style.display= 'none';
             defaultMsg.style.display= 'none';
             close.style.display = 'none';
             load.style.display= 'none';
@@ -44,6 +46,7 @@ function linkSelectedDataSource() {
             webCrawl_template.style.display= 'none';
             source_URL_template.style.display= 'none';
             database_template.style.display= 'none';
+            image_template.style.display= 'none';
             defaultMsg.style.display= 'none';
             close.style.display = 'none';
             load.style.display= 'none';
@@ -55,6 +58,7 @@ function linkSelectedDataSource() {
             webCrawl_template.style.display= 'block';
             source_URL_template.style.display= 'none';
             database_template.style.display= 'none';
+            image_template.style.display= 'none';
             defaultMsg.style.display= 'none';
             close.style.display = 'none';
             load.style.display= 'none';
@@ -66,6 +70,7 @@ function linkSelectedDataSource() {
             webCrawl_template.style.display= 'none';
             source_URL_template.style.display= 'block';
             database_template.style.display= 'none';
+            image_template.style.display= 'none';
             defaultMsg.style.display= 'none';
             close.style.display = 'none';
             load.style.display= 'none';
@@ -77,6 +82,18 @@ function linkSelectedDataSource() {
             webCrawl_template.style.display= 'none';
             source_URL_template.style.display= 'none';
             database_template.style.display= 'block';
+            image_template.style.display= 'none';
+            defaultMsg.style.display= 'none';
+            close.style.display = 'none';
+            load.style.display= 'none';
+            break;
+        case 'Upload Images':
+            doc_template.style.display= 'none';
+            mp3_template.style.display= 'none';
+            webCrawl_template.style.display= 'none';
+            source_URL_template.style.display= 'none';
+            database_template.style.display= 'none'
+            image_template.style.display= 'block';
             defaultMsg.style.display= 'none';
             close.style.display = 'none';
             load.style.display= 'none';

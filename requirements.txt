@@ -74,3 +74,6 @@ langchain-openai==0.1.7
 tiktoken==0.7.0
 xlrd==2.0.1
 azure-cognitiveservices-vision-computervision
+fpdf==1.7.2
+docx
+
