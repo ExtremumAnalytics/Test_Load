@@ -526,7 +526,7 @@ function updateTable(searchTerm) {
 }
 
 // Set interval to check session status
-setInterval(updateTable, 5000); // Check every 2 seconds
+// setInterval(updateTable, 5000); // Check every 2 seconds
 
 // Function to set all checkboxes to the same state as the "Select All" checkbox
 function toggleSelectAll(selectAllCheckbox) {
@@ -606,9 +606,10 @@ socket.on('delete_selected_file_response', function(msg){
     console.log(msg)
 });
 
+
 // Delete files from Vault
 function deleteFile(fileNames) {
-    // Send a DELETE request to the Flask route
+    $("#waitImg_del").show(); // Show the loading image
     $.ajax({
         url: '/delete',
         method: 'DELETE',
@@ -619,12 +620,36 @@ function deleteFile(fileNames) {
             console.log(response.message) // Log success message
             // Optionally, update UI or do something else after successful deletion
             updateTable(); // Refresh the table after deletion
+            $("#waitImg_del").hide(); // Hide the loading image on success
         },
         error: function(xhr, status, error) {
             console.error('Error deleting files:', error);
+            $("#waitImg_del").hide(); // Hide the loading image on success
         }
     });
 }
+
+
+
+// // Delete files from Vault
+// function deleteFile(fileNames) {
+//     // Send a DELETE request to the Flask route
+//     $.ajax({
+//         url: '/delete',
+//         method: 'DELETE',
+//         contentType: 'application/json',
+//         data: JSON.stringify({ file_names: fileNames }),
+//         dataType: 'json',
+//         success: function(response) {
+//             console.log(response.message) // Log success message
+//             // Optionally, update UI or do something else after successful deletion
+//             updateTable(); // Refresh the table after deletion
+//         },
+//         error: function(xhr, status, error) {
+//             console.error('Error deleting files:', error);
+//         }
+//     });
+// }
 
 // Data Base Connection Form
 document.getElementById('dbForm').onsubmit = async (event) => {
