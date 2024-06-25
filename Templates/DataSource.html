@@ -176,8 +176,8 @@
                         </div>
                     </div>
                     <div class="col-auto">
-                        <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Scanner Queue')">
-                            <i class="fa fa-solid fa-file "></i>
+                        <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Upload Images')">
+                            <i class="fa fa-solid fa-image "></i>
                             <div class="ms-2">
                                 <p class="mb-0" style="color: #000000;"><a href="#">Scanner Queue</a></p>
                             </div>
@@ -352,9 +352,26 @@
                                 </div>
                             </div>
                         </div>
+                    
+                    
+                    <!-- Image Container -->
+                    <div id="image_file" class="Image-container p-2" style="display: none;">
+                        <label class="mb-2" style="color:#000000;" for="mp3File">Please Upload OCR Files:</label>
+                        <input type="file" id="input_image" name="file" class="form-control mb-2" accept=".jpg, .JPG, .png, .PNG" multiple>
+                        <select class="dropdown form-control" style"width:auto;" id ="lang"><option value = "en">English</option><option value = "hi">Hindi</option></select>         
+                        <!-- Button Group-->
+                        <div class="row mt-4">
+                                <div class="col-lg-12 d-flex justify-content-center">
+                                    <div class="button-group">
+                                        <button type="button" class="btn btn-primary m-2" onclick="submitForm()" style="font-size: 14px;">Submit</button>
+                                        <button type="button" class="btn btn-secondary m-2" onclick="pdfclosePopup()" style="font-size: 14px;">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                    
                 <div id="waitImg" class="progress progress-bar progress-bar-info progress-bar-striped bg-dark" style=" display:none; width:0%;"  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" >0% </div>
-
                 <!-- Ingestion Status -->
                 <div class="row-md-2">
                     <div class="box col-lg-12 bg-white border rounded p-2">
@@ -470,9 +487,13 @@
                     <div class="text-center">
                         <button class="btn btn-primary mt-2" onclick="deleteSelectedFiles()">Delete Files</button>
                     </div>
+                    <p></p>
+                    <div class="d-flex align-content-center justify-content-center">
+                        <i id="waitImg_del" class="fa fa-spinner fa-spin" style="display: none; color: var(--primary); font-size: 64px;"></i>
+                    </div>
                     <div class="p-2">
                         <label>Status Abbreviations:</label>
-                        <p>U : Uploaded, F : Fail, EC : Embeddings Created, ENC : Embeddings Not Created</p>
+                        <p>U : Uploaded, F : Fail, EC : Embeddings Created, ENC : Embeddings Not Created, N/A : Not Applicable</p>
                     </div>
                 </div>
             </div>

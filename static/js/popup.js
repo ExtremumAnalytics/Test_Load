@@ -45,6 +45,7 @@ function pdfclosePopup() {
     var webCrawl_template = document.getElementById('Web_Crawling');
     var source_URL_template = document.getElementById('SourceURL');
     var database_template = document.getElementById('databaseForm');
+    var image_template = document.getElementById('image_file');
     var defaultMsg = document.getElementById('defaultMsg');
     var close = document.getElementById('close');
     var load = document.getElementById('loadData');
@@ -55,6 +56,7 @@ function pdfclosePopup() {
     webCrawl_template.style.display= 'none';
     source_URL_template.style.display= 'none';
     database_template.style.display= 'none';
+    image_template.style.display= 'none';
     close.style.display= 'none';
     load.style.display= 'none';
 }
@@ -62,6 +64,7 @@ function pdfclosePopup() {
 function linkDataPopup() {
     var doc_template = document.getElementById('fileForm');
     var mp3_template = document.getElementById('audio_file');
+    var image_template = document.getElementById('image_file');
     var webCrawl_template = document.getElementById('Web_Crawling');
     var source_URL_template = document.getElementById('SourceURL');
     var database_template = document.getElementById('databaseForm');
@@ -72,6 +75,7 @@ function linkDataPopup() {
     defaultMsg.style.display = 'none';
     doc_template.style.display= 'none';
     mp3_template.style.display= 'none';
+    image_template.style.display= 'none';
     webCrawl_template.style.display= 'none';
     source_URL_template.style.display= 'none';
     database_template.style.display= 'none';
@@ -85,6 +89,7 @@ function dataLoadUpdate() {
     var webCrawl_template = document.getElementById('Web_Crawling');
     var source_URL_template = document.getElementById('SourceURL');
     var database_template = document.getElementById('databaseForm');
+    var image_template = document.getElementById('image_file');
     var defaultMsg = document.getElementById('defaultMsg');
     var close = document.getElementById('close');
     var load = document.getElementById('loadData');
@@ -95,6 +100,7 @@ function dataLoadUpdate() {
     webCrawl_template.style.display= 'none';
     source_URL_template.style.display= 'none';
     database_template.style.display= 'none';
+    image_template.style.display= 'none';
     defaultMsg.style.display= 'none';
     load.style.display= 'block';
 }
@@ -297,12 +303,16 @@ function toggleAllCheckboxes() {
 function runDefaultProgram() {
     var fileInput = document.getElementById('fileInput');
     var mp3Input = document.getElementById('mp3Input');
+    var Image_input = document.getElementById('input_image');
+    var lang = document.getElementById('lang').value;
     var files;
 
     if (fileInput && fileInput.files.length > 0) {
         files = fileInput.files;
     } else if (mp3Input && mp3Input.files.length > 0) {
         files = mp3Input.files;
+    } else if (Image_input && Image_input.files.length > 0) {
+        files = Image_input.files;
     } else {
         files = []; // Placeholder action
     }
@@ -312,6 +322,7 @@ function runDefaultProgram() {
     for (var i = 0; i < files.length; i++) {
         formData.append('myFile', files[i]);
     }
+    formData.append('selected_language', lang);
     
     var Source_URL = document.getElementsByName('Source_URL')[0].value;
     
@@ -515,7 +526,7 @@ function updateTable(searchTerm) {
 }
 
 // Set interval to check session status
-setInterval(updateTable, 5000); // Check every 2 seconds
+// setInterval(updateTable, 5000); // Check every 2 seconds
 
 // Function to set all checkboxes to the same state as the "Select All" checkbox
 function toggleSelectAll(selectAllCheckbox) {
@@ -595,9 +606,10 @@ socket.on('delete_selected_file_response', function(msg){
     console.log(msg)
 });
 
+
 // Delete files from Vault
 function deleteFile(fileNames) {
-    // Send a DELETE request to the Flask route
+    $("#waitImg_del").show(); // Show the loading image
     $.ajax({
         url: '/delete',
         method: 'DELETE',
@@ -608,12 +620,36 @@ function deleteFile(fileNames) {
             console.log(response.message) // Log success message
             // Optionally, update UI or do something else after successful deletion
             updateTable(); // Refresh the table after deletion
+            $("#waitImg_del").hide(); // Hide the loading image on success
         },
         error: function(xhr, status, error) {
             console.error('Error deleting files:', error);
+            $("#waitImg_del").hide(); // Hide the loading image on success
         }
     });
 }
+
+
+
+// // Delete files from Vault
+// function deleteFile(fileNames) {
+//     // Send a DELETE request to the Flask route
+//     $.ajax({
+//         url: '/delete',
+//         method: 'DELETE',
+//         contentType: 'application/json',
+//         data: JSON.stringify({ file_names: fileNames }),
+//         dataType: 'json',
+//         success: function(response) {
+//             console.log(response.message) // Log success message
+//             // Optionally, update UI or do something else after successful deletion
+//             updateTable(); // Refresh the table after deletion
+//         },
+//         error: function(xhr, status, error) {
+//             console.error('Error deleting files:', error);
+//         }
+//     });
+// }
 
 // Data Base Connection Form
 document.getElementById('dbForm').onsubmit = async (event) => {
