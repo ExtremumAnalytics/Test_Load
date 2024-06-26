@@ -2518,7 +2518,7 @@ def delete_files():
         # # Update progress to 75%
         # emit('progress_del', {'percentage': 30, 'pin': session['login_pin']})
         # time.sleep(0.1)
-
+        delete_documents_from_vectordb(file_names)
         # folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
         deleted_files = []
         for file_name in file_names:
@@ -2536,7 +2536,6 @@ def delete_files():
                 g.flag = 0
                 logger.error(f"delete for delete route: {file_name} not found", exc_info=True)
                 return jsonify({'error': f'File {file_name} not found'}), 404
-        delete_documents_from_vectordb(file_names)
         update_bar_chart_from_blob(session, blob_service_client, container_name)
         g.flag = 1  # Set flag to 1 on success
         logger.info(f"Selected vault files deleted successfully")
