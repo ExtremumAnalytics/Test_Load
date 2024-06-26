@@ -265,7 +265,7 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
         return "Error: 'login_pin' not found in session."
 
     try:
-        folder_name = "cognilink/" + str(session['login_pin'])
+        folder_name = "cognilink-dev/" + str(session['login_pin'])
 
         # Clean the file name
         cleaned_filename = clean_filename(file_content.filename)
@@ -361,7 +361,7 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
         folder_name = str(session['login_pin'])
         # Get a list of blobs in the specified folder
         blob_list = blob_service_client.get_container_client(container_name).list_blobs(
-            name_starts_with='cognilink/' + folder_name)
+            name_starts_with='cognilink-dev/' + folder_name)
         # print("blob_list------?", blob_list)
 
         # Iterate through each blob in the folder
@@ -378,12 +378,12 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
                     file_type = 'CSV'
                 elif file_name.endswith('.mp3'):
                     file_type = 'MP3'
-                elif 'Source_Website' in file_name:
-                    file_type = 'Website'
-                elif file_name.endswith('.xlsx') or file_name.endswith('.xlscd .') or file_name.endswith('.xls .'):
+                elif file_name.endswith('.xlsx') or file_name.endswith('.xlscd') or file_name.endswith('.xls'):
                     file_type = 'XLSX'
                 elif file_name.endswith('.jpg') or file_name.endswith('.png') or file_name.endswith('.jpeg'):
                     file_type = 'Image'
+                elif 'Source_Website' in file_name:
+                    file_type = 'Website'
                 else:
                     file_type = 'Other'
 
@@ -409,7 +409,7 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
     return blob_list
 
 
-#
+
 # # Normalize the filenames
 # def normalize_filename(name):
 #     return re.sub(r'\s+', ' ', name).strip()
@@ -445,12 +445,11 @@ def update_when_file_delete():
     session['embedding_not_created'] = []
     session['failed_files'] = []
     session['progress_files'] = []
-
     folder_name_azure = str(session['login_pin'])
     folder_name = os.path.join('static', 'login', folder_name_azure)
     file_path = os.path.join(folder_name, 'summary_chunk.pkl')
     all_blobs = blob_service_client.get_container_client(container_name).list_blobs(
-        name_starts_with='cognilink/' + folder_name_azure)
+        name_starts_with='cognilink-dev/' + folder_name_azure)
     all_blobs_list = list(all_blobs)  # Convert to list to enable filtering
 
     # for blob in all_blobs_list:
@@ -483,7 +482,7 @@ def update_when_file_delete():
     # Initialize SearchClient
     search_client = SearchClient(
         endpoint=vector_store_address,
-        index_name='cognilink-' + folder_name_azure,
+        index_name='cognilink-dev-' + folder_name_azure,
         credential=AzureKeyCredential(vector_store_password)
     )
     results = search_client.search(search_text="*", select="*", include_total_count=True)
@@ -614,7 +613,7 @@ def update_when_file_delete():
                     with open(temp_pdf_path, "rb") as file:
                         content = file.read()
 
-                    blob_name = f"cognilink/{folder_name_azure}/{file_name}"
+                    blob_name = f"cognilink-dev/{folder_name_azure}/{file_name}"
                     blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
                     blob_client.upload_blob(content, blob_type="BlockBlob",
                                             content_settings=ContentSettings(content_type="application/pdf"),
@@ -838,7 +837,7 @@ def get_vectostore(text_chunks, operation='add'):
     vector_store: AzureSearch = AzureSearch(
         azure_search_endpoint=vector_store_address,
         azure_search_key=vector_store_password,
-        index_name='cognilink-' + index_name,
+        index_name='cognilink-dev-' + index_name,
         embedding_function=embeddings.embed_query,
     )
 
@@ -875,7 +874,7 @@ def delete_documents_from_vectordb(documents_to_delete):
         index_name = str(session['login_pin'])
         search_client = SearchClient(
             endpoint=vector_store_address,
-            index_name='cognilink-' + index_name,
+            index_name='cognilink-dev-' + index_name,
             credential=AzureKeyCredential(vector_store_password)
         )
 
@@ -1535,6 +1534,7 @@ def setup_csv_logger(user_id):
 @app.route("/", methods=["GET", "POST"])
 def home():
     global logger
+    # print(request.url)
     role_names = UserRole.query.with_entities(UserRole.name.distinct()).all()
 
     if request.method == "POST":
@@ -1598,7 +1598,6 @@ def home():
             #     logger.handlers.clear()
             # logger.addHandler(handler)
             logger = CustomLoggerAdapter(logger, {'user_id': session['login_pin']})
-
             create_or_pass_folder(container_client, session)
             folder_files = os.path.join('static', 'files', str(session['login_pin']))
             if not os.path.exists(folder_files):
@@ -1612,7 +1611,7 @@ def home():
             vector_store: AzureSearch = AzureSearch(
                 azure_search_endpoint=vector_store_address,
                 azure_search_key=vector_store_password,
-                index_name='cognilink-' + index_name,
+                index_name='cognilink-dev-' + index_name,
                 embedding_function=embeddings.embed_query,
             )
             # delete_documents_from_vectordb(["Source_Website"])
@@ -1730,7 +1729,7 @@ def extract_text_from_image(file_obj, language):
         f_name = f_name.split('.')[0]
 
         # Upload the PDF file to Azure Blob Storage
-        blob_name = f"cognilink/{str(session['login_pin'])}/{f_name}.docx"
+        blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
         blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
         # with open(pdf_file_path, "rb") as pdf_file:
         blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
@@ -1815,7 +1814,7 @@ def popup_form():
             Source_URL = request.form.get('Source_URL', '')
             f_name_url = "Source_Website"
             # Upload the PDF file to Azure Blob Storage
-            blob_name = f"cognilink/{str(session['login_pin'])}/{f_name_url}"
+            blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name_url}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             # with open(pdf_file_path, "rb") as pdf_file:
             blob_client.upload_blob(f_name_url, blob_type="BlockBlob", overwrite=True)
@@ -1840,7 +1839,7 @@ def run_query(data):
     query = data['query']
     database = 'master'
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    folder_name_azure = 'cognilink/' + str(session['login_pin'])
+    folder_name_azure = 'cognilink-dev/' + str(session['login_pin'])
     file_name = f"query_results_{timestamp}.csv"
 
     try:
@@ -1863,7 +1862,7 @@ def run_query(data):
             df.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
 
-            blob_name = f"cognilink/{folder_name_azure}/{file_name}"
+            blob_name = f"cognilink-dev/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             blob_client.upload_blob(
                 csv_buffer.getvalue(),
@@ -1898,7 +1897,7 @@ def run_query(data):
             df.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
 
-            blob_name = f"cognilink/{folder_name_azure}/{file_name}"
+            blob_name = f"cognilink-dev/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             blob_client.upload_blob(
                 csv_buffer.getvalue(),
@@ -2197,9 +2196,20 @@ def handle_summary_input(data):
 
         # Load the pickle file from the folder
         pickle_file_path = os.path.join(folder_name, 'summary_chunk.pkl')
+
+        # Check if the pickle file exists
+        if not os.path.isfile(pickle_file_path):
+            emit('summary_response', {'message': 'No Data Load'})
+            return
+
         with open(pickle_file_path, 'rb') as f:
             all_summary = pickle.load(f)
-        print(f"myEntry ::: {len(all_summary)}")
+        lenth_sum = len(all_summary)
+        print(f"myEntry ::: {lenth_sum}")
+        if int(lenth_sum) == 0:
+            emit('summary_response', {'message': 'Please load data'})
+            return
+
         custom_p = data.get('summary_que')
 
         session['summary_word_cpunt'] = data['value']
@@ -2243,7 +2253,7 @@ def handle_summary_input(data):
         g.flag = 0
         logger.error('Summary generation error', exc_info=True)
         print('Exception of summary_input:', str(e))
-        emit('summary_response', {'message': 'No data Load'})
+        emit('summary_response', {'message': str(e)})
 
 
 @socketio.on('clear_chat_summ')
@@ -2298,7 +2308,7 @@ def handle_ask_question(data):
         vector_store: AzureSearch = AzureSearch(
             azure_search_endpoint=vector_store_address,
             azure_search_key=vector_store_password,
-            index_name="cognilink-" + index_name,
+            index_name="cognilink-dev-" + index_name,
             embedding_function=embeddings.embed_query)
 
         # Update progress to 25%
@@ -2479,7 +2489,7 @@ def delete_files():
 
         data = request.get_json()
         file_names = data.get('file_names', [])
-        print("delete file_names-->", file_names)
+        # print("delete file_names-->", file_names)
         login_pin_folder = str(session['login_pin'])
         folder_name = os.path.join('static', 'login', login_pin_folder)
         file_path = os.path.join(folder_name, 'summary_chunk.pkl')
@@ -2512,7 +2522,7 @@ def delete_files():
         # folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
         deleted_files = []
         for file_name in file_names:
-            blobs = container_client.list_blobs(name_starts_with="cognilink/" + login_pin_folder)
+            blobs = container_client.list_blobs(name_starts_with="cognilink-dev/" + login_pin_folder)
 
             # Find the blob with the matching file name
             target_blob = next((blob for blob in blobs if blob.name.split('/')[-1] == file_name), None)
@@ -2764,7 +2774,7 @@ def get_data_source():
         index_name = str(session['login_pin'])
         search_client = SearchClient(
             endpoint=vector_store_address,
-            index_name="cognilink-" + index_name,
+            index_name="cognilink-dev-" + index_name,
             credential=AzureKeyCredential(vector_store_password)
         )
         results = search_client.search(search_text="*", select="*", include_total_count=True)
@@ -2779,10 +2789,10 @@ def get_data_source():
                 VecTor_liSt.append(document)
                 unique_documents.add(document)
 
-        blobs = container_client.list_blobs(name_starts_with="cognilink/" + index_name)
+        blobs = container_client.list_blobs(name_starts_with="cognilink-dev/" + index_name)
 
         # Exclude files from blobs_chart based on criteria
-        blobs_chart = container_client.list_blobs(name_starts_with="cognilink/" + index_name)
+        blobs_chart = container_client.list_blobs(name_starts_with="cognilink-dev/" + index_name)
         blob_list = [blob for blob in blobs_chart if not (blob.name.lower().endswith('.csv'))]
         mp3_files = {blob.name[:-4] for blob in blob_list if blob.name.endswith('.mp3')}
         new_blob_list = [blob for blob in blob_list if not (blob.name.endswith('.pdf') and blob.name[:-4] in mp3_files)]
@@ -2791,7 +2801,7 @@ def get_data_source():
 
         # Initialize the deleted files list
         deleted_files_list = []
-        delete_file = container_client.list_blobs(name_starts_with="cognilink/" + index_name)
+        delete_file = container_client.list_blobs(name_starts_with="cognilink-dev/" + index_name)
 
         # Extract names from delete_file
         delete_file_names = {blob.name.split('/')[-1] for blob in delete_file}
@@ -3158,7 +3168,7 @@ def delete_pdf_file(data):
                 return socketio.emit('delete_response', {'message': 'Failed To Delete'})
         else:
             # Assuming you have the folder name for Azure stored in `folder_name_azure`
-            blob_name = f"cognilink/{folder_name_azure}/{file_name}"
+            blob_name = f"cognilink-dev/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
 
             file_path = os.path.join("static/files", login_pin, file_name)
@@ -3201,7 +3211,7 @@ def handle_eda_process(data):
             g.flag = 1
             logger.info("SocketIO Eda_Process File name received")
             blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(
-                name_starts_with='cognilink/' + folder_name)
+                name_starts_with='cognilink-dev/' + folder_name)
             for blob in blob_list_eda:
                 if blob.name in file_url:
                     blob_client = container_client.get_blob_client(blob)
