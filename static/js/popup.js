@@ -341,6 +341,12 @@ function runDefaultProgram() {
             $("#waitImg").hide(); // Hide the loading image on success
             linkDataPopup();
             updateTable();
+            // Reset the input fields
+            fileInput.value = '';
+            mp3Input.value = '';
+            Image_input.value = '';
+            document.getElementsByName('Source_URL')[0].value = '';
+            // document.getElementById('popupForm').reset();
             // document.getElementById('popupForm').reset();
         } else {
             document.getElementById('message').innerHTML = '<p>Failed to upload files. Please try again later.</p>';
