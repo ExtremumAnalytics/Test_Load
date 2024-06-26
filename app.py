@@ -763,14 +763,14 @@ def update_when_file_delete():
             # # vectorstore.save_local(os.path.join(folder_name, 'faiss_index'))
             # session['over_all_readiness'] = session['total_files_list']
             # session['total_success_rate'] = session['successful_list']
-
+            
             # session_interface.save_session(app, session)
             update_bar_chart_from_blob(session, blob_service_client, container_name)
             pie_chart_data = create_pie_chart()
             socketio.emit('updatePieChart', pie_chart_data)
             # gauge_source_chart_data = gauge_chart_auth()
             # socketio.emit('update_gauge_chart', gauge_source_chart_data)
-
+            Source_URL = ""
         socketio.emit('progress', {'percentage': 100, 'pin': session['login_pin']})
         time.sleep(0.01)
         socketio.emit('pending', session['embedding_not_created'])
