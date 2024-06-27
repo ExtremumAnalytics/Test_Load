@@ -1376,19 +1376,21 @@ def gauge_chart_auth():
         dict: A dictionary containing x and y values for the gauge chart.
     """
     if 'total_success_rate' in session and 'over_all_readiness' in session:
-        over_all_readiness = round(session['over_all_readiness'], 2)
-        if over_all_readiness != 0:
-            success_rate = round((session['total_success_rate'] / over_all_readiness) * 100, 2)
-            pin = session['login_pin']
-        else:
+        try:
+            over_all_readiness = float(session['over_all_readiness'])
+            total_success_rate = float(session['total_success_rate'])
+            if over_all_readiness != 0:
+                success_rate = round((total_success_rate / over_all_readiness) * 100, 2)
+            else:
+                success_rate = 0
+        except (ValueError, TypeError) as e:
             success_rate = 0
-            pin = session['login_pin']
+            over_all_readiness = 0
     else:
         success_rate = 0
         over_all_readiness = 0
-        pin = session['login_pin']
 
-    # print("gauge-------->auth", success_rate, over_all_readiness)
+    pin = session.get('login_pin', None)  # Use .get() to avoid KeyError
 
     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness], 'pin': pin}
     return gauge_fig
