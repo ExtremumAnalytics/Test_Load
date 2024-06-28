@@ -359,7 +359,7 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
     try:
         # Get a list of blobs in the specified folder
         blob_list = blob_service_client.get_container_client(container_name).list_blobs(
-            name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
+            name_starts_with=f"cognilink-dev/{str(session['login_pin'])}")
         # print("blob_list------?", blob_list)
 
         # Iterate through each blob in the folder
@@ -463,6 +463,8 @@ def update_when_file_delete():
             blob.name.endswith('.jpg') or
             blob.name.endswith('.png') or
             blob.name.endswith('.text') or
+            blob.name.endswith('.jpeg') or
+            blob.name.endswith('.JPEG') or
             'Source_Website' in blob.name)]
     # Update session counts for CSV files directly
     csv_files_count = len(all_blobs_list) - len(blob_list)
