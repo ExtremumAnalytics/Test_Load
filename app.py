@@ -478,7 +478,8 @@ def update_when_file_delete():
                      not (blob['name'].endswith('.pdf') and blob['name'][:-4] in mp3_files)]
     blob_list_jpg = [blob for blob in new_blob_list if not (
             blob.name.endswith('.jpg') or blob.name.endswith('.JPG') or blob.name.endswith(
-        '.PNG') or blob.name.endswith('.png'))]
+        '.PNG') or blob.name.endswith('.png')or blob.name.endswith(
+        '.jpeg') or blob.name.endswith('.JPEG'))]
     # Initialize SearchClient
     search_client = SearchClient(
         endpoint=vector_store_address,
@@ -2798,7 +2799,7 @@ def get_data_source():
         mp3_files = {blob.name[:-4] for blob in blob_list if blob.name.endswith('.mp3')}
         new_blob_list = [blob for blob in blob_list if not (blob.name.endswith('.pdf') and blob.name[:-4] in mp3_files)]
         new_blob_list_jpg = [blob for blob in new_blob_list if
-                             not (blob.name.lower().endswith('.jpg') or blob.name.lower().endswith('.png'))]
+                             not (blob.name.lower().endswith('.jpg') or blob.name.lower().endswith('.png') or blob.name.lower().endswith('.jpeg'))]
 
         # Initialize the deleted files list
         deleted_files_list = []
