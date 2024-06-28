@@ -357,24 +357,22 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
     bar_chart = {}
     blob_list = []
     try:
-        # Get the folder name from the session
-        folder_name = str(session['login_pin'])
         # Get a list of blobs in the specified folder
         blob_list = blob_service_client.get_container_client(container_name).list_blobs(
-            name_starts_with='cognilink-dev/' + folder_name)
+            name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
         # print("blob_list------?", blob_list)
 
         # Iterate through each blob in the folder
         for blob in blob_list:
             if blob.name.split('/')[2] != 'draft':
                 file_name = blob.name.split('/')[-1]  # Extract file name from blob path
-
+                file_name = file_name.lower()
                 # Update the bar_chart dictionary based on file type
-                if file_name.endswith('.pdf') or file_name.endswith('.PDF'):
+                if file_name.endswith('.pdf'):
                     file_type = 'PDF'
                 elif file_name.endswith('.docx') or file_name.endswith('.doc'):
                     file_type = 'DOCX'
-                elif file_name.endswith('.csv') or file_name.endswith('.CSV'):
+                elif file_name.endswith('.csv'):
                     file_type = 'CSV'
                 elif file_name.endswith('.mp3'):
                     file_type = 'MP3'
@@ -1797,7 +1795,7 @@ def popup_form():
             #     upload_to_blob(file, session, blob_service_client, container_name)
 
             for file in files:
-                if '.png' in file.filename or '.jpg' in file.filename:
+                if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg']):
                     lang = request.form.get('selected_language', '')
                     print("lang------>", lang)
                     extract_text_from_image(file, lang)
