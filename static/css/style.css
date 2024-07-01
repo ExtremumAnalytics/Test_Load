@@ -640,3 +640,10 @@
     height: 20px;
     text-align: center;
   }
+
+
+
+.disabled-div {
+    pointer-events: none;
+    opacity: 0.5; /* Optional: visually indicate the disabled state */
+}

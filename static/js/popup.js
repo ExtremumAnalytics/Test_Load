@@ -341,6 +341,12 @@ function runDefaultProgram() {
             $("#waitImg").hide(); // Hide the loading image on success
             linkDataPopup();
             updateTable();
+            // Reset the input fields
+            fileInput.value = '';
+            mp3Input.value = '';
+            Image_input.value = '';
+            document.getElementsByName('Source_URL')[0].value = '';
+            // document.getElementById('popupForm').reset();
             // document.getElementById('popupForm').reset();
         } else {
             document.getElementById('message').innerHTML = '<p>Failed to upload files. Please try again later.</p>';
@@ -467,6 +473,64 @@ function isPowerPoint(filename) {
 
 
 // Updating Digital Vault
+// function updateTable(searchTerm) {
+//     $.ajax({
+//         url: '/table_update',
+//         method: 'GET',
+//         dataType: 'json',
+//         success: function(response) {
+//             // Clear existing table rows
+//             $('#table-body').empty();
+            
+//             // Populate the table with new data
+//             response.forEach(function(blob) {
+//                 // Extract the name from the URL
+//                 var name = blob.name.split('/').pop();
+                
+//                 // If search term is provided and the filename doesn't match, skip
+//                 if (searchTerm && name.toLowerCase().indexOf(searchTerm.toLowerCase()) === -1) {
+//                     return;
+//                 }
+
+//                 // Construct the row with customized column headers
+//                 var row = '<tr>' +                    
+//                           '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + blob.name + '"></td>' +
+//                           '<td>' + blob.name + '</td>' +
+//                           '<td>';
+
+//                 // Check the file type and provide appropriate action
+//                 if (isExcel(name)) {
+//                     // If it's an Excel file, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
+//                 }else if (isPDF(name)) {
+//                     // If it's a PDF, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
+//                 } else if (isWord(name)) {
+//                     // If it's a Word document, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
+//                 } else if (isPowerPoint(name)) {
+//                     // If it's a PowerPoint presentation, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
+//                 } else {
+//                     // If it's none of the above, open it directly in the browser
+//                     row += '<a href="' + blob.url + '" target="_blank">View</a>';
+//                 }
+
+//                 row += '</td>' +
+//                     '<td class="action-links">' +
+//                     //'<a href="' + blob.url + '" target="_blank" download>Download</a> </td>' +
+//                     '<a href="' + blob.url + '" download="' + name + '">Download</a> </td>' +
+//                     '<td>'+blob.status +'</td>' +
+//                     '</tr>';
+//                 $('#table-body').append(row);
+//             });
+//         },
+//         error: function(xhr, status, error) {
+//             console.error('Error updating table:', error);
+//         }
+//     });
+// }
+
 function updateTable(searchTerm) {
     $.ajax({
         url: '/table_update',
@@ -492,30 +556,39 @@ function updateTable(searchTerm) {
                           '<td>' + blob.name + '</td>' +
                           '<td>';
 
-                // Check the file type and provide appropriate action
-                if (isExcel(name)) {
-                    // If it's an Excel file, open it in a new tab
-                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
-                }else if (isPDF(name)) {
-                    // If it's a PDF, open it in a new tab
-                    row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
-                } else if (isWord(name)) {
-                    // If it's a Word document, open it in a new tab
-                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
-                } else if (isPowerPoint(name)) {
-                    // If it's a PowerPoint presentation, open it in a new tab
-                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
+                // Check if the name is "Source_Website"
+                if (blob.name === "Source_Website") {
+                    row += 'N/A';
                 } else {
-                    // If it's none of the above, open it directly in the browser
-                    row += '<a href="' + blob.url + '" target="_blank">View</a>';
+                    // Check the file type and provide appropriate action
+                    if (isExcel(name)) {
+                        // If it's an Excel file, open it in a new tab
+                        row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
+                    } else if (isPDF(name)) {
+                        // If it's a PDF, open it in a new tab
+                        row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
+                    } else if (isWord(name)) {
+                        // If it's a Word document, open it in a new tab
+                        row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
+                    } else if (isPowerPoint(name)) {
+                        // If it's a PowerPoint presentation, open it in a new tab
+                        row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
+                    } else {
+                        // If it's none of the above, open it directly in the browser
+                        row += '<a href="' + blob.url + '" target="_blank">View</a>';
+                    }
                 }
 
-                row += '</td>' +
-                    '<td class="action-links">' +
-                    //'<a href="' + blob.url + '" target="_blank" download>Download</a> </td>' +
-                    '<a href="' + blob.url + '" download="' + name + '">Download</a> </td>' +
-                    '<td>'+blob.status +'</td>' +
-                    '</tr>';
+                row += '</td><td class="action-links">';
+                
+                // Check if the name is "Source_Website" for download link
+                if (blob.name === "Source_Website") {
+                    row += 'N/A';
+                } else {
+                    row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';
+                }
+
+                row += '</td><td>' + blob.status + '</td></tr>';
                 $('#table-body').append(row);
             });
         },
@@ -525,8 +598,9 @@ function updateTable(searchTerm) {
     });
 }
 
+
 // Set interval to check session status
-setInterval(updateTable, 5000); // Check every 2 seconds
+setInterval(updateTable, 15000); // Check every 14 seconds
 
 // Function to set all checkboxes to the same state as the "Select All" checkbox
 function toggleSelectAll(selectAllCheckbox) {
@@ -606,9 +680,10 @@ socket.on('delete_selected_file_response', function(msg){
     console.log(msg)
 });
 
+
 // Delete files from Vault
 function deleteFile(fileNames) {
-    // Send a DELETE request to the Flask route
+    $("#waitImg_del").show(); // Show the loading image
     $.ajax({
         url: '/delete',
         method: 'DELETE',
@@ -619,12 +694,36 @@ function deleteFile(fileNames) {
             console.log(response.message) // Log success message
             // Optionally, update UI or do something else after successful deletion
             updateTable(); // Refresh the table after deletion
+            $("#waitImg_del").hide(); // Hide the loading image on success
         },
         error: function(xhr, status, error) {
             console.error('Error deleting files:', error);
+            $("#waitImg_del").hide(); // Hide the loading image on success
         }
     });
 }
+
+
+
+// // Delete files from Vault
+// function deleteFile(fileNames) {
+//     // Send a DELETE request to the Flask route
+//     $.ajax({
+//         url: '/delete',
+//         method: 'DELETE',
+//         contentType: 'application/json',
+//         data: JSON.stringify({ file_names: fileNames }),
+//         dataType: 'json',
+//         success: function(response) {
+//             console.log(response.message) // Log success message
+//             // Optionally, update UI or do something else after successful deletion
+//             updateTable(); // Refresh the table after deletion
+//         },
+//         error: function(xhr, status, error) {
+//             console.error('Error deleting files:', error);
+//         }
+//     });
+// }
 
 // Data Base Connection Form
 document.getElementById('dbForm').onsubmit = async (event) => {
