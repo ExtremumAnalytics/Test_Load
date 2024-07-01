@@ -1693,9 +1693,23 @@ def handle_update_value(data):
 
 
 def extract_text_from_image(file_obj, language):
+    # Upload image to Azure Blob Storage
+    f_name = file_obj.filename
+    image_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}"
+    image_blob_client = blob_service_client.get_blob_client(container=container_name, blob=image_blob_name)
+
+    # Reset the file pointer and upload the image file with correct content type
+    file_obj.seek(0)
+    content_type = file_obj.mimetype or 'application/octet-stream'
+    image_blob_client.upload_blob(file_obj, blob_type="BlockBlob", overwrite=True,
+                                  content_settings=ContentSettings(content_type=content_type))
+
+    # Read the image file for OCR
+    file_obj.seek(0)  # Reset file pointer after upload
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_path = temp_file.name
         temp_file.write(file_obj.read())
+        temp_file.flush()  # Ensure all data is written to the temporary file
 
     with open(temp_path, "rb") as image_stream:
         # Initiate the OCR process using the read API
@@ -1720,22 +1734,18 @@ def extract_text_from_image(file_obj, language):
                     text += line.text + '\n'
 
         doc = docx.Document()
-        doc_para = doc.add_paragraph(text)
+        doc.add_paragraph(text)
 
         # Save DOCX to a BytesIO object
         doc_output = io.BytesIO()
         doc.save(doc_output)
         doc_output.seek(0)
-        # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
 
-        f_name = file_obj.filename
-        f_name = f_name.split('.')[0]
+        doc_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
+        doc_blob_client = blob_service_client.get_blob_client(container=container_name, blob=doc_blob_name)
+        doc_blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
 
-        # Upload the PDF file to Azure Blob Storage
-        blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
-        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-        # with open(pdf_file_path, "rb") as pdf_file:
-        blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
+    return doc_blob_name
 
 
 # def delete_source_url():
@@ -1802,7 +1812,8 @@ def popup_form():
                     lang = request.form.get('selected_language', '')
                     print("lang------>", lang)
                     extract_text_from_image(file, lang)
-                upload_to_blob(file, session, blob_service_client, container_name)
+                else:
+                    upload_to_blob(file, session, blob_service_client, container_name)
 
 
         # elif request.form.get('dbURL', ''):
