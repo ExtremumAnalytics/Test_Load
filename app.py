@@ -269,17 +269,20 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
 
         # Clean the file name
         cleaned_filename = clean_filename(file_content.filename)
-
         blob_name = f"{folder_name}/{cleaned_filename}"
         blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
 
         # Read the content of file_content
         content = file_content.read()
 
-        # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
+        # Determine if the file is an image based on its extension
+        file_extension = cleaned_filename.split('.')[-1].lower()
+        file_content_type = file_content.content_type
+        if file_extension in ['jpg', 'jpeg', 'png']:
+            file_content_type = file_content.mimetype or 'application/octet-stream'
         blob_client.upload_blob(content, blob_type="BlockBlob",
-                                content_settings=ContentSettings(content_type=file_content.content_type),
-                                overwrite=True)
+                                    content_settings=ContentSettings(content_type=file_content_type),
+                                    overwrite=True)
 
         g.flag = 1  # Set flag to 1 on success
         logger.info("Function upload_to_blob successfully uploaded the blob")
@@ -1698,12 +1701,6 @@ def extract_text_from_image(file_obj, language):
     image_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}"
     image_blob_client = blob_service_client.get_blob_client(container=container_name, blob=image_blob_name)
 
-    # Reset the file pointer and upload the image file with correct content type
-    file_obj.seek(0)
-    content_type = file_obj.mimetype or 'application/octet-stream'
-    image_blob_client.upload_blob(file_obj, blob_type="BlockBlob", overwrite=True,
-                                  content_settings=ContentSettings(content_type=content_type))
-
     # Read the image file for OCR
     file_obj.seek(0)  # Reset file pointer after upload
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
@@ -1747,7 +1744,69 @@ def extract_text_from_image(file_obj, language):
 
     return doc_blob_name
 
+def extract_text_from_pdf(file_obj):
+    try:
 
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_path = temp_file.name
+            temp_file.write(file_obj.read())
+
+        # Read the file from the local path
+        with open(temp_path, "rb") as pdf_file:
+            read_operation = computervision_client.read_in_stream(pdf_file, language="en", raw=True)
+
+        # Check if the operation was successful
+        if not read_operation or not read_operation.headers:
+            raise Exception("Failed to initiate read operation.")
+
+        # Get the operation location (URL with an ID at the end) from the response
+        read_operation_location = read_operation.headers["Operation-Location"]
+        if not read_operation_location:
+            raise Exception("Failed to get operation location.")
+
+        # Grab the ID from the URL
+        operation_id = read_operation_location.split("/")[-1]
+
+        # Wait for the operation to complete
+        while True:
+            result = computervision_client.get_read_result(operation_id)
+            if result.status not in [OperationStatusCodes.not_started, OperationStatusCodes.running]:
+                break
+            time.sleep(1)
+
+        # Print the detected text from each page
+        text = ''
+        if result.status == OperationStatusCodes.succeeded:
+            read_results = result.analyze_result.read_results
+            for page in read_results:
+                for line in page.lines:
+                    print(line.text)
+                    text += line.text + '\n'
+
+            # save the text of scand pdf in container
+            doc = docx.Document()
+            doc_para = doc.add_paragraph(text)
+
+            # Save DOCX to a BytesIO object
+            doc_output = io.BytesIO()
+            doc.save(doc_output)
+            doc_output.seek(0)
+            # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
+
+            f_name = file_obj.filename
+            f_name = f_name.split('.')[0]
+
+            # Upload the PDF file to Azure Blob Storage
+            blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            # with open(pdf_file_path, "rb") as pdf_file:
+            blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
+
+        else:
+            print("The operation did not succeed.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
 # def delete_source_url():
 #
 #     f_name_url = ["Source_Website"]
@@ -1808,11 +1867,16 @@ def popup_form():
             #     upload_to_blob(file, session, blob_service_client, container_name)
 
             for file in files:
-                if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg']):
+                scan_source = False
+                if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg', '.pdf', '.PDF']):
                     lang = request.form.get('selected_language', '')
                     print("lang------>", lang)
-                    extract_text_from_image(file, lang)
-                else:
+                    if lang and '.pdf' in file.filename:
+                        extract_text_from_pdf(file)
+                        scan_source = True
+                    else:
+                        extract_text_from_image(file, lang)
+                if not scan_source:
                     upload_to_blob(file, session, blob_service_client, container_name)
 
 
