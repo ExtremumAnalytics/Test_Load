@@ -64,10 +64,10 @@
                 </a>
                 <ul class="navbar-nav">
                     <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-database"></i>Data Source</a></li>
-                    <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-question-circle"></i>Ask Question</a></li>
-                    <li><a href="{{url_for('summary')}}" class="nav-link"><i class="fa fa-list-alt"></i>Summary</a></li>
-                    <li><a href="{{url_for('eda_analysis')}}" class="nav-link"><i class="fa fa-chart-bar"></i>Virtual Analyst</a></li>
-                    <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-chart-pie"></i>Virtual Data Scientist</a></li>
+                    <li><a href="{{url_for('ask')}}" class="nav-link disabled-div"><i class="fa fa-question-circle"></i>Ask Question</a></li>
+                    <li><a href="{{url_for('summary')}}" class="nav-link disabled-div"><i class="fa fa-list-alt"></i>Summary</a></li>
+                    <li><a href="{{url_for('eda_analysis')}}" class="nav-link disabled-div"><i class="fa fa-chart-bar"></i>Virtual Analyst</a></li>
+                    <li><a href="{{url_for('data_source')}}" class="nav-link disabled-div"><i class="fa fa-chart-pie"></i>Virtual Data Scientist</a></li>
                 </ul>
             </nav>
         </div>
@@ -214,7 +214,7 @@
             <div class="tri-button-container d-flex flex-row justify-content-center align-items-center m-4">
                 <div class="tri-button d-flex flex-column">
                     <button type="button" id="linkData" class="btn btn-primary m-2 p-2" style="font-size: 14px;" onclick="linkSelectedDataSource()">Link Data Source</button>
-                    <button type="button" id="loadCogniLink" class="btn btn-primary m-2 p-2" style="font-size: 14px;">Load Cogni Link</button>
+                    <button type="button" id="loadCogniLink" class="btn btn-primary m-2 p-2 disabled-div" style="font-size: 14px;">Load Cogni Link</button>
                     <button type="button" class="btn btn-primary m-2 p-2" style="font-size: 14px;" onclick="scrollToVault()">Explore Digital Vault</button>
                     <div class="d-flex align-content-center justify-content-center">
                         <i id="waitImg" class="fa fa-spinner fa-spin" style="display: none; color: var(--primary); font-size: 64px;"></i>

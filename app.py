@@ -97,25 +97,25 @@ from pymongo import MongoClient
 import traceback
 import io
 
-# for default Azure account use only
-vectorsecret = "vectordatabsekey"
-computer_vision = "computer-vision-key-v1"
-openapi_key = "OPENAI-API-KEY"
-KVUri = f"https://eavault.vault.azure.net/"
-credential = DefaultAzureCredential()
-client = SecretClient(vault_url=KVUri, credential=credential)
-retrieved_secret = client.get_secret(openapi_key)
-main_key = retrieved_secret.value
-retrieved = client.get_secret(vectorsecret)
-vector_store = retrieved.value
-retrieved_com = client.get_secret(computer_vision)
-computer_vision_key = retrieved_com.value
+# # for default Azure account use only
+# vectorsecret = "vectordatabsekey"
+# computer_vision = "computer-vision-key-v1"
+# openapi_key = "OPENAI-API-KEY"
+# KVUri = f"https://eavault.vault.azure.net/"
+# credential = DefaultAzureCredential()
+# client = SecretClient(vault_url=KVUri, credential=credential)
+# retrieved_secret = client.get_secret(openapi_key)
+# main_key = retrieved_secret.value
+# retrieved = client.get_secret(vectorsecret)
+# vector_store = retrieved.value
+# retrieved_com = client.get_secret(computer_vision)
+# computer_vision_key = retrieved_com.value
 
-# # for local use only
-# load_dotenv()
-# main_key = os.environ["Main_key"]
-# vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
-# computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
+# for local use only
+load_dotenv()
+main_key = os.environ["Main_key"]
+vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
+computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
 
 os.environ["OPENAI_API_TYPE"] = "azure"
 os.environ["OPENAI_API_KEY"] = main_key
@@ -164,23 +164,23 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# # blob storage use locally.
-# account_name = os.environ['account_name']
-# account_key = os.environ['account_key']
-# container_name = os.environ['container_name']
-# # Create a BlobServiceClient object
-# connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-# blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-# container_client = blob_service_client.get_container_client(container_name)
-
-
-# for Azure server use only
-account_name = "testcongnilink"
-container_name = "congnilink-container"
-account_url = "https://testcongnilink.blob.core.windows.net"
-default_credential = DefaultAzureCredential()
-blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+# blob storage use locally.
+account_name = os.environ['account_name']
+account_key = os.environ['account_key']
+container_name = os.environ['container_name']
+# Create a BlobServiceClient object
+connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 container_client = blob_service_client.get_container_client(container_name)
+
+
+# # for Azure server use only
+# account_name = "testcongnilink"
+# container_name = "congnilink-container"
+# account_url = "https://testcongnilink.blob.core.windows.net"
+# default_credential = DefaultAzureCredential()
+# blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+# container_client = blob_service_client.get_container_client(container_name)
 
 def set_model():
     model = session.get('engine', 'gpt-4-0125-preview')  # Default to 'gpt-4-0125-preview'
@@ -265,7 +265,7 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
         return "Error: 'login_pin' not found in session."
 
     try:
-        folder_name = "cognilink-dev/" + str(session['login_pin'])
+        folder_name = "cognilink-dev-ocr/" + str(session['login_pin'])
 
         # Clean the file name
         cleaned_filename = clean_filename(file_content.filename)
@@ -367,7 +367,7 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
     try:
         # Get a list of blobs in the specified folder
         blob_list = blob_service_client.get_container_client(container_name).list_blobs(
-            name_starts_with=f"cognilink-dev/{str(session['login_pin'])}")
+            name_starts_with=f"cognilink-dev-ocr/{str(session['login_pin'])}")
         # print("blob_list------?", blob_list)
 
         # Iterate through each blob in the folder
@@ -454,7 +454,7 @@ def update_when_file_delete():
     folder_name = os.path.join('static', 'login', folder_name_azure)
     file_path = os.path.join(folder_name, 'summary_chunk.pkl')
     all_blobs = blob_service_client.get_container_client(container_name).list_blobs(
-        name_starts_with='cognilink-dev/' + folder_name_azure)
+        name_starts_with='cognilink-dev-ocr/' + folder_name_azure)
     all_blobs_list = list(all_blobs)  # Convert to list to enable filtering
 
     # for blob in all_blobs_list:
@@ -621,7 +621,7 @@ def update_when_file_delete():
                     with open(temp_pdf_path, "rb") as file:
                         content = file.read()
 
-                    blob_name = f"cognilink-dev/{folder_name_azure}/{file_name}"
+                    blob_name = f"cognilink-dev-ocr/{folder_name_azure}/{file_name}"
                     blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
                     blob_client.upload_blob(content, blob_type="BlockBlob",
                                             content_settings=ContentSettings(content_type="application/pdf"),
@@ -1702,7 +1702,7 @@ def handle_update_value(data):
 def extract_text_from_image(file_obj, language):
     # Upload image to Azure Blob Storage
     f_name = file_obj.filename
-    image_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}"
+    image_blob_name = f"cognilink-dev-ocr/{str(session['login_pin'])}/{f_name}"
     image_blob_client = blob_service_client.get_blob_client(container=container_name, blob=image_blob_name)
 
     # Read the image file for OCR
@@ -1743,7 +1743,7 @@ def extract_text_from_image(file_obj, language):
         doc_output.seek(0)
         f_name_parts = f_name.split('.')  # Split the filename
         base_name = f_name_parts[0]  # Take the base name (first part)
-        doc_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{base_name}.docx"
+        doc_blob_name = f"cognilink-dev-ocr/{str(session['login_pin'])}/{base_name}.docx"
         doc_blob_client = blob_service_client.get_blob_client(container=container_name, blob=doc_blob_name)
         doc_blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
 
@@ -1802,7 +1802,7 @@ def extract_text_from_pdf(file_obj):
             f_name = f_name.split('.')[0]
 
             # Upload the PDF file to Azure Blob Storage
-            blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
+            blob_name = f"cognilink-dev-ocr/{str(session['login_pin'])}/{f_name}.docx"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             # with open(pdf_file_path, "rb") as pdf_file:
             blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
@@ -1897,7 +1897,7 @@ def popup_form():
             Source_URL = request.form.get('Source_URL', '')
             f_name_url = "Source_Website"
             # Upload the PDF file to Azure Blob Storage
-            blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name_url}"
+            blob_name = f"cognilink-dev-ocr/{str(session['login_pin'])}/{f_name_url}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             # with open(pdf_file_path, "rb") as pdf_file:
             blob_client.upload_blob(f_name_url, blob_type="BlockBlob", overwrite=True)
@@ -1922,7 +1922,7 @@ def run_query(data):
     query = data['query']
     database = 'master'
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    folder_name_azure = 'cognilink-dev/' + str(session['login_pin'])
+    folder_name_azure = 'cognilink-dev-ocr/' + str(session['login_pin'])
     file_name = f"query_results_{timestamp}.csv"
 
     try:
@@ -1945,7 +1945,7 @@ def run_query(data):
             df.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
 
-            blob_name = f"cognilink-dev/{folder_name_azure}/{file_name}"
+            blob_name = f"cognilink-dev-ocr/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             blob_client.upload_blob(
                 csv_buffer.getvalue(),
@@ -1980,7 +1980,7 @@ def run_query(data):
             df.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
 
-            blob_name = f"cognilink-dev/{folder_name_azure}/{file_name}"
+            blob_name = f"cognilink-dev-ocr/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             blob_client.upload_blob(
                 csv_buffer.getvalue(),
@@ -2605,7 +2605,7 @@ def delete_files():
         # folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
         deleted_files = []
         for file_name in file_names:
-            blobs = container_client.list_blobs(name_starts_with="cognilink-dev/" + login_pin_folder)
+            blobs = container_client.list_blobs(name_starts_with="cognilink-dev-ocr/" + login_pin_folder)
 
             # Find the blob with the matching file name
             target_blob = next((blob for blob in blobs if blob.name.split('/')[-1] == file_name), None)
@@ -2871,10 +2871,10 @@ def get_data_source():
                 VecTor_liSt.append(document)
                 unique_documents.add(document)
 
-        blobs = container_client.list_blobs(name_starts_with="cognilink-dev/" + index_name)
+        blobs = container_client.list_blobs(name_starts_with="cognilink-dev-ocr/" + index_name)
 
         # Exclude files from blobs_chart based on criteria
-        blobs_chart = container_client.list_blobs(name_starts_with="cognilink-dev/" + index_name)
+        blobs_chart = container_client.list_blobs(name_starts_with="cognilink-dev-ocr/" + index_name)
         blob_list = [blob for blob in blobs_chart if not (blob.name.lower().endswith('.csv'))]
         mp3_files = {blob.name[:-4] for blob in blob_list if blob.name.endswith('.mp3')}
         new_blob_list = [blob for blob in blob_list if not (blob.name.endswith('.pdf') and blob.name[:-4] in mp3_files)]
@@ -2883,7 +2883,7 @@ def get_data_source():
 
         # Initialize the deleted files list
         deleted_files_list = []
-        delete_file = container_client.list_blobs(name_starts_with="cognilink-dev/" + index_name)
+        delete_file = container_client.list_blobs(name_starts_with="cognilink-dev-ocr/" + index_name)
 
         # Extract names from delete_file
         delete_file_names = {blob.name.split('/')[-1] for blob in delete_file}
@@ -3256,7 +3256,7 @@ def delete_pdf_file(data):
                 return socketio.emit('delete_response', {'message': 'Failed To Delete'})
         else:
             # Assuming you have the folder name for Azure stored in `folder_name_azure`
-            blob_name = f"cognilink-dev/{folder_name_azure}/{file_name}"
+            blob_name = f"cognilink-dev-ocr/{folder_name_azure}/{file_name}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
 
             file_path = os.path.join("static/files", login_pin, file_name)
@@ -3299,7 +3299,7 @@ def handle_eda_process(data):
             g.flag = 1
             logger.info("SocketIO Eda_Process File name received")
             blob_list_eda = blob_service_client.get_container_client(container_name).list_blobs(
-                name_starts_with='cognilink-dev/' + folder_name)
+                name_starts_with='cognilink-dev-ocr/' + folder_name)
             for blob in blob_list_eda:
                 if blob.name in file_url:
                     blob_client = container_client.get_blob_client(blob)
