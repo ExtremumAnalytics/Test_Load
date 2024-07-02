@@ -410,7 +410,6 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
     return blob_list
 
 
-
 # # Normalize the filenames
 # def normalize_filename(name):
 #     return re.sub(r'\s+', ' ', name).strip()
