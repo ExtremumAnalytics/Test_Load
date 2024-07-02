@@ -2856,7 +2856,7 @@ def get_data_source():
         index_name = str(session['login_pin'])
         search_client = SearchClient(
             endpoint=vector_store_address,
-            index_name="cognilink-dev-ocr" + index_name,
+            index_name="cognilink-dev-" + index_name,
             credential=AzureKeyCredential(vector_store_password)
         )
         results = search_client.search(search_text="*", select="*", include_total_count=True)
