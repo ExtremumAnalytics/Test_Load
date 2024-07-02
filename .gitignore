@@ -21,3 +21,5 @@ Thumbs.db
 # IntelliJ IDEA project files
 .idea/
 
+/static/files
+/static/login
