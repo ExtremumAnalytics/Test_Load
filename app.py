@@ -277,11 +277,16 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
 
         # Determine if the file is an image based on its extension
         file_extension = cleaned_filename.split('.')[-1].lower()
-        file_content_type = file_content.content_type
         if file_extension in ['jpg', 'jpeg', 'png']:
-            file_content_type = file_content.mimetype or 'application/octet-stream'
-        blob_client.upload_blob(content, blob_type="BlockBlob",
-                                    content_settings=ContentSettings(content_type=file_content_type),
+            # Reset the file pointer for the image
+            file_content.seek(0)
+            content_type = file_content.mimetype or 'application/octet-stream'
+            blob_client.upload_blob(file_content, blob_type="BlockBlob", overwrite=True,
+                                    content_settings=ContentSettings(content_type=content_type))
+        else:
+            # Upload the non-image content to Azure Blob Storage
+            blob_client.upload_blob(content, blob_type="BlockBlob",
+                                    content_settings=ContentSettings(content_type=file_content.content_type),
                                     overwrite=True)
 
         g.flag = 1  # Set flag to 1 on success
@@ -1736,8 +1741,9 @@ def extract_text_from_image(file_obj, language):
         doc_output = io.BytesIO()
         doc.save(doc_output)
         doc_output.seek(0)
-
-        doc_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
+        f_name_parts = f_name.split('.')  # Split the filename
+        base_name = f_name_parts[0]  # Take the base name (first part)
+        doc_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{base_name}.docx"
         doc_blob_client = blob_service_client.get_blob_client(container=container_name, blob=doc_blob_name)
         doc_blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
 
