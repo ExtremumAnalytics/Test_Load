@@ -15,7 +15,7 @@ function validateForm() {
 
 
 // web crawling code with files and all source with if conditions without select deselect features.
-function submitForm() {
+function submitForm(input_prm) {
     var webCrawlingForm = document.getElementById('Web_Crawling');
 
     if (webCrawlingForm.style.display === 'block') {
@@ -23,7 +23,7 @@ function submitForm() {
         executeNewProgram();
     } else {
         // Execute default program
-        runDefaultProgram();
+        runDefaultProgram(input_prm);
     }
 }
 
@@ -300,7 +300,7 @@ function toggleAllCheckboxes() {
 
 
 // this is default program
-function runDefaultProgram() {
+function runDefaultProgram(called_from) {
     var fileInput = document.getElementById('fileInput');
     var mp3Input = document.getElementById('mp3Input');
     var Image_input = document.getElementById('input_image');
@@ -318,11 +318,15 @@ function runDefaultProgram() {
     }
 
     var formData = new FormData();
-
+ 
     for (var i = 0; i < files.length; i++) {
         formData.append('myFile', files[i]);
     }
-    formData.append('selected_language', lang);
+
+    if(called_from =='image_file'){
+        formData.append('selected_language', lang);
+    }
+    
     
     var Source_URL = document.getElementsByName('Source_URL')[0].value;
     
@@ -341,6 +345,7 @@ function runDefaultProgram() {
             $("#waitImg").hide(); // Hide the loading image on success
             linkDataPopup();
             updateTable();
+            
             // document.getElementById('popupForm').reset();
         } else {
             document.getElementById('message').innerHTML = '<p>Failed to upload files. Please try again later.</p>';
@@ -353,6 +358,9 @@ function runDefaultProgram() {
     };
 
     xhr.send(formData);
+    document.getElementById('fileInput').value='';
+    document.getElementById('mp3Input').value = '';
+    document.getElementById('input_image').value = '';
     // closePopup();
 }
 
