@@ -1796,12 +1796,12 @@ def popup_form():
             for file in files:
                 scan_source = False
                 if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg', '.pdf']):
-                    lang = request.form.get('selected_language', '')
+                    lang = request.form.get('selected_language', False) 
                     print("lang------>", lang)
                     if lang and '.pdf' in file.filename:
                         extract_text_from_pdf(file)
                         scan_source = True
-                    else:
+                    elif lang:
                         extract_text_from_image(file, lang)
 
                 if not scan_source:
