@@ -1996,7 +1996,7 @@ def extract_text_from_pdf(file_obj):
             read_results = result.analyze_result.read_results
             for page in read_results:
                 for line in page.lines:
-                    print(line.text)
+                    # print(line.text)
                     text += line.text + '\n'
 
             # save the text of scand pdf in container
