@@ -15,7 +15,7 @@ function validateForm() {
 
 
 // web crawling code with files and all source with if conditions without select deselect features.
-function submitForm() {
+function submitForm(input_prm) {
     var webCrawlingForm = document.getElementById('Web_Crawling');
 
     if (webCrawlingForm.style.display === 'block') {
@@ -23,7 +23,7 @@ function submitForm() {
         executeNewProgram();
     } else {
         // Execute default program
-        runDefaultProgram();
+        runDefaultProgram(input_prm);
     }
 }
 
@@ -244,8 +244,6 @@ function uploadSelectedFiles() {
             fileName: fileName,
             login_pin: pin
         });     
-        updateTable(); // Refresh the table after deletion
-        runDefaultProgram();
         socket.on('delete_response', function(data) {
             $('#messagedelopload').text(data.message);
             setTimeout(function() {
@@ -301,7 +299,7 @@ function toggleAllCheckboxes() {
 
 
 // this is default program
-function runDefaultProgram() {
+function runDefaultProgram(called_from) {
     var fileInput = document.getElementById('fileInput');
     var mp3Input = document.getElementById('mp3Input');
     var Image_input = document.getElementById('input_image');
@@ -323,7 +321,9 @@ function runDefaultProgram() {
     for (var i = 0; i < files.length; i++) {
         formData.append('myFile', files[i]);
     }
-    formData.append('selected_language', lang);
+    if(called_from=='image_file'){
+        formData.append('selected_language', lang);
+    }
     
     var Source_URL = document.getElementsByName('Source_URL')[0].value;
     
@@ -343,9 +343,9 @@ function runDefaultProgram() {
             linkDataPopup();
             updateTable();
             // Reset the input fields
-            fileInput.value = '';
-            mp3Input.value = '';
-            Image_input.value = '';
+            // fileInput.value = '';
+            // mp3Input.value = '';
+            // Image_input.value = '';
             // lang.value = '';
             document.getElementsByName('Source_URL')[0].value = '';
             // document.getElementById('popupForm').reset();
@@ -360,6 +360,9 @@ function runDefaultProgram() {
     };
 
     xhr.send(formData);
+    document.getElementById('fileInput').value='';
+    document.getElementById('mp3Input').value = '';
+    document.getElementById('input_image').value = '';
     // closePopup();
 }
 
@@ -604,7 +607,7 @@ function updateTable(searchTerm) {
                 } else if (isPowerPoint(name)) {
                     // If it's a PowerPoint presentation, open it in a new tab
                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
-                } else if (url_blob) {
+                } else if (blob.name === "https:") {
                     row += '<a href="' + url_blob + '" target="_blank">View Website</a>';
                 } else {
                     // If it's none of the above, open it directly in the browser

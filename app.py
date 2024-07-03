@@ -6,6 +6,7 @@ import json
 from io import BytesIO
 import re
 import docx
+import asyncio
 
 # Assuming Document is a custom class or namedtuple
 from collections import namedtuple
@@ -97,25 +98,25 @@ from pymongo import MongoClient
 import traceback
 import io
 
-# for default Azure account use only
-vectorsecret = "vectordatabsekey"
-computer_vision = "computer-vision-key-v1"
-openapi_key = "OPENAI-API-KEY"
-KVUri = f"https://eavault.vault.azure.net/"
-credential = DefaultAzureCredential()
-client = SecretClient(vault_url=KVUri, credential=credential)
-retrieved_secret = client.get_secret(openapi_key)
-main_key = retrieved_secret.value
-retrieved = client.get_secret(vectorsecret)
-vector_store = retrieved.value
-retrieved_com = client.get_secret(computer_vision)
-computer_vision_key = retrieved_com.value
+# # for default Azure account use only
+# vectorsecret = "vectordatabsekey"
+# computer_vision = "computer-vision-key-v1"
+# openapi_key = "OPENAI-API-KEY"
+# KVUri = f"https://eavault.vault.azure.net/"
+# credential = DefaultAzureCredential()
+# client = SecretClient(vault_url=KVUri, credential=credential)
+# retrieved_secret = client.get_secret(openapi_key)
+# main_key = retrieved_secret.value
+# retrieved = client.get_secret(vectorsecret)
+# vector_store = retrieved.value
+# retrieved_com = client.get_secret(computer_vision)
+# computer_vision_key = retrieved_com.value
 
-# # for local use only
-# load_dotenv()
-# main_key = os.environ["Main_key"]
-# vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
-# computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
+# for local use only
+load_dotenv()
+main_key = os.environ["Main_key"]
+vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
+computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
 
 os.environ["OPENAI_API_TYPE"] = "azure"
 os.environ["OPENAI_API_KEY"] = main_key
@@ -164,23 +165,24 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# # blob storage use locally.
-# account_name = os.environ['account_name']
-# account_key = os.environ['account_key']
-# container_name = os.environ['container_name']
-# # Create a BlobServiceClient object
-# connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-# blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+# blob storage use locally.
+account_name = os.environ['account_name']
+account_key = os.environ['account_key']
+container_name = os.environ['container_name']
+# Create a BlobServiceClient object
+connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+container_client = blob_service_client.get_container_client(container_name)
+
+
+# # for Azure server use only
+# account_name = "testcongnilink"
+# container_name = "congnilink-container"
+# account_url = "https://testcongnilink.blob.core.windows.net"
+# default_credential = DefaultAzureCredential()
+# blob_service_client = BlobServiceClient(account_url, credential=default_credential)
 # container_client = blob_service_client.get_container_client(container_name)
 
-
-# for Azure server use only
-account_name = "testcongnilink"
-container_name = "congnilink-container"
-account_url = "https://testcongnilink.blob.core.windows.net"
-default_credential = DefaultAzureCredential()
-blob_service_client = BlobServiceClient(account_url, credential=default_credential)
-container_client = blob_service_client.get_container_client(container_name)
 
 def set_model():
     model = session.get('engine', 'gpt-4-0125-preview')  # Default to 'gpt-4-0125-preview'
@@ -484,18 +486,23 @@ def update_when_file_delete():
     # Step 2: Filter the blob_list to exclude .pdf files that have a corresponding .mp3 file
     new_blob_list = [blob for blob in blob_list if
                      not (blob['name'].endswith('.pdf') and blob['name'][:-4] in mp3_files)]
+
     blob_list_jpg = [blob for blob in new_blob_list if not (
             blob.name.endswith('.jpg') or blob.name.endswith('.JPG') or blob.name.endswith(
         '.PNG') or blob.name.endswith('.png') or blob.name.endswith(
         '.jpeg') or blob.name.endswith('.JPEG'))]
 
-    # Extracting url_part for blobs with 'https://' or 'http://' in their name
-    url_list = []
-    for blob in blob_list_jpg:
-        if 'https://' in blob.name or 'http://' in blob.name:
-            # Assuming session['login_pin'] is defined somewhere in your session
-            url_part = blob.name.split(str(session['login_pin']) + '/')[1]
-            url_list.append(url_part)
+
+    # # Extracting url_part for blobs with 'https://' or 'http://' in their name
+    # url_list = []
+    # for blob in blob_list_jpg:
+    #     if 'https://' in blob.name or 'http://' in blob.name:
+    #         # Assuming session['login_pin'] is defined somewhere in your session
+    #         url_part = blob.name.split(str(session['login_pin']) + '/')[1]
+    #         url_list.append(url_part)
+
+
+
     # Initialize SearchClient
     search_client = SearchClient(
         endpoint=vector_store_address,
@@ -525,18 +532,26 @@ def update_when_file_delete():
     #         url_part = blob.name.split(str(session['login_pin']) + '/')[1]
     #         if url_part not in VecTor_liSt:
     #             result_loop.append(blob)
+    # print("blob_list_jpg-------->", blob_list_jpg)
 
     # Filtering out blobs whose names are in VecTor_liSt
     result_loop = [blob for blob in blob_list_jpg if
                    not any(blob['name'].endswith(item) for item in VecTor_liSt)]
 
-    for blob in blob_list_jpg:
+    # Further filtering based on VecTor_liSt
+    result_loop1 = []
+    for blob in result_loop:
+        # Extract the URL part for comparison
         if 'https://' in blob['name'] or 'http://' in blob['name']:
             url_part = blob['name'].split(f"{session['login_pin']}/")[1]
-            if url_part not in VecTor_liSt:
-                result_loop.append(blob)
+        else:
+            url_part = blob['name']
 
-    print("result_loop----->", result_loop)
+        # Append to result_loop if the URL part is not in VecTor_liSt
+        if url_part not in VecTor_liSt:
+            result_loop1.append(blob)
+
+    # print("result_loop----->", result_loop)
 
     # # Result computation
     # # Adjusted list to handle inclusion based on VecTor_liSt
@@ -546,7 +561,7 @@ def update_when_file_delete():
     #        ('https://' in blob['name'] or 'http://' in blob['name'] and
     #         any(blob['name'].split(f"{session['login_pin']}/")[1].endswith(item) for item in VecTor_liSt))
     # ]
-    blob_list_length = len(result_loop)
+    blob_list_length = len(result_loop1)
     if blob_list_length == 0 and Source_URL == "":
         session['bar_chart_ss'] = {}
         session['over_all_readiness'] = 0
@@ -561,7 +576,7 @@ def update_when_file_delete():
     socketio.emit('progress', {'percentage': 20, 'pin': session['login_pin']})
     try:
         if blob_list_length != 0:
-            for blob in result_loop:
+            for blob in result_loop1:
                 if check_stop_flag():
                     # write_stop_flag_to_csv(session['login_pin'], 'False')
                     print("Data Load Cancelled")
@@ -1784,18 +1799,124 @@ def handle_update_value(data):
     emit('size_value_updated', {'value': Limit_By_Size, 'message': 'Value updated successfully'})
 
 
-def extract_text_from_image(file_obj, language):
-    # Upload image to Azure Blob Storage
-    f_name = file_obj.filename
-    image_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}"
-    image_blob_client = blob_service_client.get_blob_client(container=container_name, blob=image_blob_name)
+# def extract_text_from_image(file_obj, language):
+#     # Upload image to Azure Blob Storage
+#     f_name = file_obj.filename
+#     image_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}"
+#     image_blob_client = blob_service_client.get_blob_client(container=container_name, blob=image_blob_name)
+#
+#     # Read the image file for OCR
+#     file_obj.seek(0)  # Reset file pointer after upload
+#     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+#         temp_path = temp_file.name
+#         temp_file.write(file_obj.read())
+#         temp_file.flush()  # Ensure all data is written to the temporary file
+#
+#     with open(temp_path, "rb") as image_stream:
+#         # Initiate the OCR process using the read API
+#         ocr_result = computervision_client.read_in_stream(image_stream, language=language, raw=True)
+#
+#         # Extract the operation ID from the response
+#         operation_location = ocr_result.headers["Operation-Location"]
+#         operation_id = operation_location.split("/")[-1]
+#
+#         # Poll for the result
+#         while True:
+#             result = computervision_client.get_read_result(operation_id)
+#             if result.status not in ['notStarted', 'running']:
+#                 break
+#             time.sleep(1)
+#
+#         # Extract text from the result
+#         text = ""
+#         if result.status == OperationStatusCodes.succeeded:
+#             for page in result.analyze_result.read_results:
+#                 for line in page.lines:
+#                     text += line.text + '\n'
+#
+#         doc = docx.Document()
+#         doc.add_paragraph(text)
+#
+#         # Save DOCX to a BytesIO object
+#         doc_output = io.BytesIO()
+#         doc.save(doc_output)
+#         doc_output.seek(0)
+#         f_name_parts = f_name.split('.')  # Split the filename
+#         base_name = f_name_parts[0]  # Take the base name (first part)
+#         doc_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{base_name}.docx"
+#         doc_blob_client = blob_service_client.get_blob_client(container=container_name, blob=doc_blob_name)
+#         doc_blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
+#
+#     return doc_blob_name
 
-    # Read the image file for OCR
-    file_obj.seek(0)  # Reset file pointer after upload
+# def extract_text_from_pdf(file_obj):
+#     try:
+#
+#         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+#             temp_path = temp_file.name
+#             temp_file.write(file_obj.read())
+#
+#         # Read the file from the local path
+#         with open(temp_path, "rb") as pdf_file:
+#             read_operation = computervision_client.read_in_stream(pdf_file, language="en", raw=True)
+#
+#         # Check if the operation was successful
+#         if not read_operation or not read_operation.headers:
+#             raise Exception("Failed to initiate read operation.")
+#
+#         # Get the operation location (URL with an ID at the end) from the response
+#         read_operation_location = read_operation.headers["Operation-Location"]
+#         if not read_operation_location:
+#             raise Exception("Failed to get operation location.")
+#
+#         # Grab the ID from the URL
+#         operation_id = read_operation_location.split("/")[-1]
+#
+#         # Wait for the operation to complete
+#         while True:
+#             result = computervision_client.get_read_result(operation_id)
+#             if result.status not in [OperationStatusCodes.not_started, OperationStatusCodes.running]:
+#                 break
+#             time.sleep(1)
+#
+#         # Print the detected text from each page
+#         text = ''
+#         if result.status == OperationStatusCodes.succeeded:
+#             read_results = result.analyze_result.read_results
+#             for page in read_results:
+#                 for line in page.lines:
+#                     print(line.text)
+#                     text += line.text + '\n'
+#
+#             # save the text of scand pdf in container
+#             doc = docx.Document()
+#             doc_para = doc.add_paragraph(text)
+#
+#             # Save DOCX to a BytesIO object
+#             doc_output = io.BytesIO()
+#             doc.save(doc_output)
+#             doc_output.seek(0)
+#             # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
+#
+#             f_name = file_obj.filename
+#             f_name = f_name.split('.')[0]
+#
+#             # Upload the PDF file to Azure Blob Storage
+#             blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
+#             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+#             # with open(pdf_file_path, "rb") as pdf_file:
+#             blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
+#
+#         else:
+#             print("The operation did not succeed.")
+#
+#     except Exception as e:
+#         print(f"An error occurred: {e}")
+
+def extract_text_from_image(file_obj, language):
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_path = temp_file.name
         temp_file.write(file_obj.read())
-        temp_file.flush()  # Ensure all data is written to the temporary file
 
     with open(temp_path, "rb") as image_stream:
         # Initiate the OCR process using the read API
@@ -1820,20 +1941,25 @@ def extract_text_from_image(file_obj, language):
                     text += line.text + '\n'
 
         doc = docx.Document()
-        doc.add_paragraph(text)
+        doc_para = doc.add_paragraph(text)
 
         # Save DOCX to a BytesIO object
         doc_output = io.BytesIO()
         doc.save(doc_output)
         doc_output.seek(0)
-        f_name_parts = f_name.split('.')  # Split the filename
-        base_name = f_name_parts[0]  # Take the base name (first part)
-        doc_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{base_name}.docx"
-        doc_blob_client = blob_service_client.get_blob_client(container=container_name, blob=doc_blob_name)
-        doc_blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
+        # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
 
-    return doc_blob_name
+        f_name = file_obj.filename
+        f_name = f_name.split('.')[0]
 
+        # Upload the PDF file to Azure Blob Storage
+        blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
+        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+        # with open(pdf_file_path, "rb") as pdf_file:
+        blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
+
+
+# dev-code start
 def extract_text_from_pdf(file_obj):
     try:
 
@@ -1899,30 +2025,69 @@ def extract_text_from_pdf(file_obj):
         print(f"An error occurred: {e}")
 
 
-# def delete_source_url():
+# def extract_text_from_pdf(file_obj):
+#     try:
 #
-#     f_name_url = ["Source_Website"]
-#     delete_documents_from_vectordb(f_name_url)
-#     login_pin_folder = str(session['login_pin'])
-#     folder_name = os.path.join('static', 'login', login_pin_folder)
-#     file_path = os.path.join(folder_name, 'summary_chunk.pkl')
-#     # Load existing data if the file exists
-#     if (file_exists := os.path.exists(file_path)):
-#         with open(file_path, 'rb') as f:
-#             try:
-#                 existing_data = pickle.load(f)
-#             except EOFError:
-#                 existing_data = []
-#         # print("Existing data loaded:", existing_data)
-#     else:
-#         existing_data = []
+#         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+#             temp_path = temp_file.name
+#             temp_file.write(file_obj.read())
 #
-#     # Remove the entries with specified file names
-#     updated_data = [entry for entry in existing_data if not any(file_name in entry for file_name in f_name_url)]
+#         # Read the file from the local path
+#         with open(temp_path, "rb") as pdf_file:
+#             read_operation = computervision_client.read_in_stream(pdf_file, language="en", raw=True)
 #
-#     # Save the updated list back to the file
-#     with open(file_path, 'wb') as f:
-#         pickle.dump(updated_data, f)
+#         # Check if the operation was successful
+#         if not read_operation or not read_operation.headers:
+#             raise Exception("Failed to initiate read operation.")
+#
+#         # Get the operation location (URL with an ID at the end) from the response
+#         read_operation_location = read_operation.headers["Operation-Location"]
+#         if not read_operation_location:
+#             raise Exception("Failed to get operation location.")
+#
+#         # Grab the ID from the URL
+#         operation_id = read_operation_location.split("/")[-1]
+#
+#         # Wait for the operation to complete
+#         while True:
+#             result = computervision_client.get_read_result(operation_id)
+#             if result.status not in [OperationStatusCodes.not_started, OperationStatusCodes.running]:
+#                 break
+#             time.sleep(1)
+#
+#         # Print the detected text from each page
+#         text = ''
+#         if result.status == OperationStatusCodes.succeeded:
+#             read_results = result.analyze_result.read_results
+#             for page in read_results:
+#                 for line in page.lines:
+#                     print(line.text)
+#                     text += line.text + '\n'
+#
+#             # save the text of scand pdf in container
+#             doc = docx.Document()
+#             doc_para = doc.add_paragraph(text)
+#
+#             # Save DOCX to a BytesIO object
+#             doc_output = io.BytesIO()
+#             doc.save(doc_output)
+#             doc_output.seek(0)
+#             # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
+#
+#             f_name = file_obj.filename
+#             f_name = f_name.split('.')[0]
+#
+#             # Upload the PDF file to Azure Blob Storage
+#             blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
+#             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+#             # with open(pdf_file_path, "rb") as pdf_file:
+#             blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
+#
+#         else:
+#             print("The operation did not succeed.")
+#
+#     except Exception as e:
+#         print(f"An error occurred: {e}")
 
 
 # Function to check if a URL is valid
@@ -1973,14 +2138,15 @@ def popup_form():
 
             for file in files:
                 scan_source = False
-                if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg', '.pdf', '.PDF']):
-                    lang = request.form.get('selected_language', '')
+                if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg', '.pdf']):
+                    lang = request.form.get('selected_language', False)
                     print("lang------>", lang)
                     if lang and '.pdf' in file.filename:
                         extract_text_from_pdf(file)
                         scan_source = True
-                    else:
+                    elif lang:
                         extract_text_from_image(file, lang)
+
                 if not scan_source:
                     upload_to_blob(file, session, blob_service_client, container_name)
         else:
@@ -1993,12 +2159,11 @@ def popup_form():
             if not is_url_valid(Source_URL):
                 return jsonify({'message': 'Source URL not valid'}), 400
 
-            # f_name_url = "Source_Website"
-            # Upload the PDF file to Azure Blob Storage
             blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{Source_URL}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             blob_client.upload_blob(Source_URL, blob_type="BlockBlob", overwrite=True)
-            # print("Source_URL Fond---->", Source_URL)
+
+
         update_bar_chart_from_blob(session, blob_service_client, container_name)
         g.flag = 1
         logger.info('Data Uploaded Successfully')
@@ -2595,161 +2760,131 @@ def handle_clear_chat():
         emit('chat_cleared', {'message': str(e)})
 
 
-@app.route("/delete", methods=["DELETE"])
-def delete_files():
+async def delete_blob_async(blob_name, container_client):
     try:
-        # emit('progress_del', {'percentage': 15, 'pin': session['login_pin']})
-        # time.sleep(0.1)
+        blob_client = container_client.get_blob_client(blob_name)
+        await blob_client.delete_blob()
+        logger.info(f"Successfully deleted blob: {blob_name}")
+    except Exception as e:
+        logger.error(f"Error deleting blob: {blob_name}, {str(e)}")
 
+@app.route("/delete", methods=["DELETE"])
+async def delete_files():
+    try:
         data = request.get_json()
         file_names = data.get('file_names', [])
-        print("delete file_names-->", file_names)
+        if not file_names:
+            return jsonify({'message': 'No files specified for deletion'}), 400
+
         login_pin_folder = str(session['login_pin'])
         folder_name = os.path.join('static', 'login', login_pin_folder)
         file_path = os.path.join(folder_name, 'summary_chunk.pkl')
 
-        # Load existing data if the file exists
-        if (file_exists := os.path.exists(file_path)):
+        if os.path.exists(file_path):
             with open(file_path, 'rb') as f:
                 try:
                     existing_data = pickle.load(f)
                 except EOFError:
                     existing_data = []
-            # print("Existing data loaded:", existing_data)
         else:
             existing_data = []
 
-        # Remove the entries with specified file names
         updated_data = [entry for entry in existing_data if not any(file_name in entry for file_name in file_names)]
 
-        # Save the updated list back to the file
         with open(file_path, 'wb') as f:
             pickle.dump(updated_data, f)
 
-        if not file_names:
-            return jsonify({'message': 'No files specified for deletion'}), 400
-
-        # # Update progress to 75%
-        # emit('progress_del', {'percentage': 30, 'pin': session['login_pin']})
-        # time.sleep(0.1)
         delete_documents_from_vectordb(file_names)
-        # folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
-        deleted_files = []
-        for file_name in file_names:
-            blobs = container_client.list_blobs(
-                name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
 
-            # Find the blob with the matching file name
-            target_blob = next(
-                (blob for blob in blobs if blob.name.split('/')[-1] or 'https://' or 'http://' == file_name), None)
-            if target_blob:
-                blob_client = container_client.get_blob_client(target_blob.name)
-                blob_client.delete_blob()
-                deleted_files.append(file_name)
-                socketio.emit('delete_selected_file_response', {'message': 'Successfully File Deleted'})
+        container_client = blob_service_client.get_container_client(container_name)
+        blobs = container_client.list_blobs(
+            name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
 
-            else:
-                g.flag = 0
-                logger.error(f"delete for delete route: {file_name} not found", exc_info=True)
-                return jsonify({'error': f'File {file_name} not found'}), 404
+        blob_names_to_delete = [blob.name for blob in blobs if any(file_name in blob.name for file_name in file_names)]
+
+        if not blob_names_to_delete:
+            return jsonify({'error': 'None of the specified files were found in blob storage'}), 404
+
+        await asyncio.gather(*(delete_blob_async(blob_name, container_client) for blob_name in blob_names_to_delete))
+
         update_bar_chart_from_blob(session, blob_service_client, container_name)
-        g.flag = 1  # Set flag to 1 on success
-        logger.info(f"Selected vault files deleted successfully")
-        return jsonify({'message': f'Files {deleted_files} deleted successfully'})
+
+        logger.info("Selected vault files deleted successfully")
+        return jsonify({'message': f'Files {file_names} deleted successfully'})
     except Exception as e:
-        g.flag = 0  # Set flag to 0 on error
-        logger.error(f"delete for delete route error", exc_info=True)
+        g.flag = 0
+        logger.error("Error in delete route", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
-# @socketio.on('delete_files')
-# def handle_delete_files(json):
+
+# @app.route("/delete", methods=["DELETE"])
+# def delete_files():
 #     try:
-#         data = json
+#         # emit('progress_del', {'percentage': 15, 'pin': session['login_pin']})
+#         # time.sleep(0.1)
+#
+#         data = request.get_json()
 #         file_names = data.get('file_names', [])
+#         print("delete file_names-->", file_names)
+#         login_pin_folder = str(session['login_pin'])
+#         folder_name = os.path.join('static', 'login', login_pin_folder)
+#         file_path = os.path.join(folder_name, 'summary_chunk.pkl')
 #
-# login_pin_folder = str(session['login_pin'])
-# folder_name = os.path.join('static', 'login', login_pin_folder)
-# file_path = os.path.join(folder_name, 'summary_chunk.pkl')
-#
-# # Load existing data if the file exists
-# if (file_exists := os.path.exists(file_path)):
-#     with open(file_path, 'rb') as f:
-#         try:
-#             existing_data = pickle.load(f)
-#         except EOFError:
+#         # Load existing data if the file exists
+#         if (file_exists := os.path.exists(file_path)):
+#             with open(file_path, 'rb') as f:
+#                 try:
+#                     existing_data = pickle.load(f)
+#                 except EOFError:
+#                     existing_data = []
+#             # print("Existing data loaded:", existing_data)
+#         else:
 #             existing_data = []
-#     print("Existing data loaded:", existing_data)
-# else:
-#     existing_data = []
-#
-# # Remove the entries with specified file names
-# updated_data = [entry for entry in existing_data if not any(file_name in entry for file_name in file_names)]
-#
-# # Save the updated list back to the file
-# with open(file_path, 'wb') as f:
-#     pickle.dump(updated_data, f)
-# login_pin_folder = str(session['login_pin'])
-# folder_name = os.path.join('static', 'login', login_pin_folder)
-# file_path = os.path.join(folder_name, 'summary_chunk.pkl')
-#
-# # Load existing data if the file exists
-# if os.path.exists(file_path):
-#     with open(file_path, 'rb+') as f:
-#         try:
-#             existing_data = pickle.load(f)
-#             print("Existing data loaded:", existing_data)
-#         except EOFError:
-#             existing_data = []
-#         file_names_set = set(file_names)
 #
 #         # Remove the entries with specified file names
-#         updated_data = [entry for entry in existing_data if
-#                         not any(file_name in entry for file_name in file_names_set)]
-#
-#         # Move the file pointer to the beginning and truncate the file
-#         f.seek(0)
-#         f.truncate()
+#         updated_data = [entry for entry in existing_data if not any(file_name in entry for file_name in file_names)]
 #
 #         # Save the updated list back to the file
-#         pickle.dump(updated_data, f)
-# else:
-#     print("No existing data to modify.")
+#         with open(file_path, 'wb') as f:
+#             pickle.dump(updated_data, f)
 #
 #         if not file_names:
-#             emit('delete_files_response', {'message': 'No files specified for deletion'}, 400)
-#             return
+#             return jsonify({'message': 'No files specified for deletion'}), 400
 #
-#         folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
+#         # # Update progress to 75%
+#         # emit('progress_del', {'percentage': 30, 'pin': session['login_pin']})
+#         # time.sleep(0.1)
+#         delete_documents_from_vectordb(file_names)
+#         # folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
 #         deleted_files = []
-#
 #         for file_name in file_names:
-#             blobs = container_client.list_blobs(name_starts_with="cognilink/" + folder_name)
+#             blobs = container_client.list_blobs(
+#                 name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
 #
 #             # Find the blob with the matching file name
-#             target_blob = next((blob for blob in blobs if blob.name.split('/')[-1] == file_name), None)
+#             target_blob = next(
+#                 (blob for blob in blobs if blob.name.split('/')[-1] or 'https://' or 'http://' == file_name), None)
 #             if target_blob:
 #                 blob_client = container_client.get_blob_client(target_blob.name)
 #                 blob_client.delete_blob()
 #                 deleted_files.append(file_name)
-#                 emit('delete_selected_file_response', {'message': 'Successfully File Deleted'})
+#                 socketio.emit('delete_selected_file_response', {'message': 'Successfully File Deleted'})
 #
 #             else:
 #                 g.flag = 0
 #                 logger.error(f"delete for delete route: {file_name} not found", exc_info=True)
-#                 emit('delete_files_response', {'error': f'File {file_name} not found'}, 404)
-#                 return
-#
-#         delete_documents_from_vectordb(file_names)
+#                 return jsonify({'error': f'File {file_name} not found'}), 404
 #         update_bar_chart_from_blob(session, blob_service_client, container_name)
 #         g.flag = 1  # Set flag to 1 on success
 #         logger.info(f"Selected vault files deleted successfully")
-#         emit('delete_files_response', {'message': f'Files {deleted_files} deleted successfully'})
-#
+#         return jsonify({'message': f'Files {deleted_files} deleted successfully'})
 #     except Exception as e:
 #         g.flag = 0  # Set flag to 0 on error
 #         logger.error(f"delete for delete route error", exc_info=True)
-#         emit('delete_files_response', {'error': str(e)}, 500)
+#         return jsonify({'error': str(e)}), 500
+
+
 
 
 # @app.route("/delete", methods=["DELETE"])
@@ -2804,83 +2939,6 @@ def delete_files():
 #         return jsonify({'error': str(e)}), 500
 
 
-# @app.route("/table_update", methods=['GET'])
-# def get_data_source():
-#     try:
-#         # Initialize SearchClient
-#         index_name: str = str(session['login_pin'])
-#         search_client = SearchClient(
-#             endpoint=vector_store_address,
-#             index_name="cognilink-" + index_name,
-#             credential=AzureKeyCredential(vector_store_password)
-#         )
-#         results = search_client.search(search_text="*", select="*", include_total_count=True)
-#         VecTor_liSt = []
-#
-#         unique_documents = set()
-#
-#         for result in results:
-#             embeddings_dict = json.loads(result['metadata'])
-#             # print(embeddings_dict)  # This prints the embeddings_dict for each result
-#             document = embeddings_dict.get('documents')
-#             if document and document not in unique_documents:
-#                 VecTor_liSt.append(document)
-#                 unique_documents.add(document)
-#         blobs = container_client.list_blobs(name_starts_with="cognilink/" + index_name)
-#         failed_files = session.get('failed_files', [])
-#         embedding_not_created = session.get('embedding_not_created', [])
-#         # Construct the data with status based on lists
-#         data = []
-#         for blob in blobs:
-#             if blob.name.split('/')[2] != 'draft':
-#                 file_name = blob.name.split('/')[2]
-#                 if file_name in VecTor_liSt:
-#                     status = 'U | EC'
-#                 elif file_name in failed_files:
-#                     status = 'U | F'
-#                 elif file_name in embedding_not_created:
-#                     status = 'U | ENC'
-#                 else:
-#                     status = 'U | ENC'
-#                 data.append({
-#                     'name': file_name,
-#                     'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
-#                     'status': status
-#                 })
-#         g.flag = 1  # Set flag to 1 on success
-#         logger.info(f"table_update route successfully send data")
-#         # Emit the data to the socket channel 'updateTable'
-#         socketio.emit('updateTable', data)
-#         # Retrieve the blobs from the container
-#
-#         blobs_chart = container_client.list_blobs(name_starts_with="cognilink/" + index_name)
-#
-#         # Convert the iterator to a list to access the blob properties
-#         blob_list = [blob for blob in blobs_chart if not (blob.name.endswith('.csv') or blob.name.endswith('.CSV'))]
-#
-#         # print("Filtered Blob List:", blob_list)
-#
-#         # Step 1: Create a set of .mp3 file names without extensions
-#         mp3_files = {blob.name[:-4] for blob in blob_list if blob.name.endswith('.mp3')}
-#         # print("MP3 Files Set:", mp3_files)
-#
-#         # Step 2: Filter the blob_list to exclude .pdf files that have a corresponding .mp3 file
-#         new_blob_list = [blob for blob in blob_list if not (blob.name.endswith('.pdf') and blob.name[:-4] in mp3_files)]
-#         # print("New Blob List:", new_blob_list)
-#
-#         Tot_Suc = len(VecTor_liSt)
-#         blob_lent = len(new_blob_list)
-#         session['over_all_readiness'] = blob_lent
-#         session['total_success_rate'] = Tot_Suc
-#         gauge_source_chart_data = gauge_chart_auth()
-#         socketio.emit('update_gauge_chart', gauge_source_chart_data)
-#         update_bar_chart_from_blob(session, blob_service_client, container_name)
-#         return jsonify(data)
-#     except Exception as e:
-#         g.flag = 0  # Set flag to 1 on success
-#         logger.error(f"table_update route error", exc_info=True)
-#         print(f"Exceptions is{e}")
-#         return jsonify({'error': str(e)}), 500
 
 @app.route("/table_update", methods=['GET'])
 def get_data_source():
@@ -2932,10 +2990,10 @@ def get_data_source():
         embedding_not_created = session.get('embedding_not_created', [])
         # Prepare data with updated statuses
         data = []
-        print("deleted_files_list---->", len(deleted_files_list))
+        # print("deleted_files_list---->", len(deleted_files_list))
         for blob in blobs:
             if 'https://' or 'http://' in blob.name:
-                print("name------>URL", blob.name)
+                # print("name------>URL", blob.name)
                 name_source = blob.name.split(str(session['login_pin']) + '/')[1]
                 # print("name_source--->", name_source)
             if blob.name.split('/')[2] != 'draft':
@@ -2961,10 +3019,10 @@ def get_data_source():
         # Calculate overall readiness count
         blob_lent = len(new_blob_list_jpg)
         session['over_all_readiness'] = blob_lent
-        print("blob_lent---->", blob_lent)
+        # print("blob_lent---->", blob_lent)
 
         Tot_Suc = len(VecTor_liSt)
-        print("Tot_Suc---->", Tot_Suc)
+        # print("Tot_Suc---->", Tot_Suc)
         if Tot_Suc > blob_lent:
             Tot_Suc = blob_lent
 
