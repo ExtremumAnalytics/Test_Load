@@ -1635,8 +1635,8 @@ def setup_csv_logger(user_id):
     return CustomLoggerAdapter(logger, {'user_id': user_id})
 
 
-env_mapping_dict = {"https://cognilink-prod.azurewebsites.net": "prod",
-                    "https://cognilink-dev.azurewebsites.net": "dev", "http://127.0.0.1:5000/": "dev"}
+env_mapping_dict = {"https://cognilink-prod.azurewebsites.net/": "prod",
+                    "https://cognilink-dev.azurewebsites.net/": "dev", "http://127.0.0.1:5000/": "dev"}
 
 
 @app.route("/", methods=["GET", "POST"])
