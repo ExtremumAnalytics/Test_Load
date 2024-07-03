@@ -1642,6 +1642,7 @@ env_mapping_dict = {"https://cognilink-prod.azurewebsites.net/": "prod",
 @app.route("/", methods=["GET", "POST"])
 def home():
     global logger
+    print("request.url------>", request.base_url)
     role_names = UserRole.query.with_entities(UserRole.name.distinct()).all()
 
     if request.method == "POST":
