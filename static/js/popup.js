@@ -15,7 +15,7 @@ function validateForm() {
 
 
 // web crawling code with files and all source with if conditions without select deselect features.
-function submitForm() {
+function submitForm(input_prm) {
     var webCrawlingForm = document.getElementById('Web_Crawling');
 
     if (webCrawlingForm.style.display === 'block') {
@@ -23,7 +23,7 @@ function submitForm() {
         executeNewProgram();
     } else {
         // Execute default program
-        runDefaultProgram();
+        runDefaultProgram(input_prm);
     }
 }
 
@@ -243,8 +243,7 @@ function uploadSelectedFiles() {
         socket.emit('delete_pdf_file', {
             fileName: fileName,
             login_pin: pin
-        });
-
+        });     
         socket.on('delete_response', function(data) {
             $('#messagedelopload').text(data.message);
             setTimeout(function() {
@@ -300,7 +299,7 @@ function toggleAllCheckboxes() {
 
 
 // this is default program
-function runDefaultProgram() {
+function runDefaultProgram(called_from) {
     var fileInput = document.getElementById('fileInput');
     var mp3Input = document.getElementById('mp3Input');
     var Image_input = document.getElementById('input_image');
@@ -322,7 +321,9 @@ function runDefaultProgram() {
     for (var i = 0; i < files.length; i++) {
         formData.append('myFile', files[i]);
     }
-    formData.append('selected_language', lang);
+    if(called_from=='image_file'){
+        formData.append('selected_language', lang);
+    }
     
     var Source_URL = document.getElementsByName('Source_URL')[0].value;
     
@@ -342,11 +343,11 @@ function runDefaultProgram() {
             linkDataPopup();
             updateTable();
             // Reset the input fields
-            fileInput.value = '';
-            mp3Input.value = '';
-            Image_input.value = '';
+            // fileInput.value = '';
+            // mp3Input.value = '';
+            // Image_input.value = '';
+            // lang.value = '';
             document.getElementsByName('Source_URL')[0].value = '';
-            // document.getElementById('popupForm').reset();
             // document.getElementById('popupForm').reset();
         } else {
             document.getElementById('message').innerHTML = '<p>Failed to upload files. Please try again later.</p>';
@@ -359,6 +360,9 @@ function runDefaultProgram() {
     };
 
     xhr.send(formData);
+    document.getElementById('fileInput').value='';
+    document.getElementById('mp3Input').value = '';
+    document.getElementById('input_image').value = '';
     // closePopup();
 }
 
@@ -468,11 +472,15 @@ function isPowerPoint(filename) {
         filename.toLowerCase().endsWith('.pptx')
     );
 }
-// Checking and returning the different file types END
 
 
+function isImage(filename) {
+    return filename.toLowerCase().endsWith('.jpeg') ||
+           filename.toLowerCase().endsWith('.jpg') ||
+           filename.toLowerCase().endsWith('.png');
+}
 
-// Updating Digital Vault
+
 // function updateTable(searchTerm) {
 //     $.ajax({
 //         url: '/table_update',
@@ -485,6 +493,7 @@ function isPowerPoint(filename) {
 //             // Populate the table with new data
 //             response.forEach(function(blob) {
 //                 // Extract the name from the URL
+//                 var url_blob = blob.source_url;
 //                 var name = blob.name.split('/').pop();
                 
 //                 // If search term is provided and the filename doesn't match, skip
@@ -493,35 +502,51 @@ function isPowerPoint(filename) {
 //                 }
 
 //                 // Construct the row with customized column headers
-//                 var row = '<tr>' +                    
-//                           '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + blob.name + '"></td>' +
-//                           '<td>' + blob.name + '</td>' +
+//                 var checkboxValue, nameDisplay;
+
+//                 if (url_blob) {
+//                     checkboxValue = url_blob;
+//                     nameDisplay = url_blob.replace("https://", "");
+//                 } else {
+//                     checkboxValue = blob.name;
+//                     nameDisplay = blob.name;
+//                 }
+//                 var row = '<tr>' +
+//                           '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + checkboxValue + '"></td>' +
+//                           '<td>' + nameDisplay + '</td>' +
 //                           '<td>';
 
-//                 // Check the file type and provide appropriate action
 //                 if (isExcel(name)) {
 //                     // If it's an Excel file, open it in a new tab
 //                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
-//                 }else if (isPDF(name)) {
+//                 } else if (isPDF(name)) {
 //                     // If it's a PDF, open it in a new tab
 //                     row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
 //                 } else if (isWord(name)) {
 //                     // If it's a Word document, open it in a new tab
 //                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
+//                 } else if (isImage(name)) {
+//                     // If it's an image, open it directly in the browser
+//                     row += '<a href="' + blob.url + '" target="_blank">View Image</a>';
 //                 } else if (isPowerPoint(name)) {
 //                     // If it's a PowerPoint presentation, open it in a new tab
 //                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
+//                 } else if (url_blob) {
+//                     row += '<a href="' + url_blob + '" target="_blank">View Website</a>';
 //                 } else {
 //                     // If it's none of the above, open it directly in the browser
 //                     row += '<a href="' + blob.url + '" target="_blank">View</a>';
 //                 }
 
-//                 row += '</td>' +
-//                     '<td class="action-links">' +
-//                     //'<a href="' + blob.url + '" target="_blank" download>Download</a> </td>' +
-//                     '<a href="' + blob.url + '" download="' + name + '">Download</a> </td>' +
-//                     '<td>'+blob.status +'</td>' +
-//                     '</tr>';
+//                 row += '</td><td class="action-links">';
+                
+//                 if (url_blob) {
+//                     row += 'N/A';
+//                 } else {
+//                     row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';
+//                 }
+
+//                 row += '</td><td>' + blob.status + '</td></tr>';
 //                 $('#table-body').append(row);
 //             });
 //         },
@@ -543,6 +568,7 @@ function updateTable(searchTerm) {
             // Populate the table with new data
             response.forEach(function(blob) {
                 // Extract the name from the URL
+                var url_blob = blob.source_url;
                 var name = blob.name.split('/').pop();
                 
                 // If search term is provided and the filename doesn't match, skip
@@ -551,41 +577,49 @@ function updateTable(searchTerm) {
                 }
 
                 // Construct the row with customized column headers
-                var row = '<tr>' +                    
-                          '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + blob.name + '"></td>' +
-                          '<td>' + blob.name + '</td>' +
+                var checkboxValue, nameDisplay;
+
+                if (url_blob) {
+                    checkboxValue = url_blob;
+                    nameDisplay = url_blob.replace("https://", "");
+                } else {
+                    checkboxValue = blob.name;
+                    nameDisplay = blob.name;
+                }
+
+                var row = '<tr>' +
+                          '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + checkboxValue + '"></td>' +
+                          '<td>' + nameDisplay + '</td>' +
                           '<td>';
 
-                // Check if the name is "Source_Website"
-                if (blob.name === "Source_Website") {
-                    row += 'N/A';
+                if (isExcel(name)) {
+                    // If it's an Excel file, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
+                } else if (isPDF(name)) {
+                    // If it's a PDF, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
+                } else if (isWord(name)) {
+                    // If it's a Word document, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
+                } else if (isImage(name)) {
+                    // If it's an image, open it directly in the browser
+                    row += '<a href="' + blob.url + '" target="_blank">View Image</a>';
+                } else if (isPowerPoint(name)) {
+                    // If it's a PowerPoint presentation, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
+                } else if (blob.name === "https:") {
+                    row += '<a href="' + url_blob + '" target="_blank">View Website</a>';
                 } else {
-                    // Check the file type and provide appropriate action
-                    if (isExcel(name)) {
-                        // If it's an Excel file, open it in a new tab
-                        row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
-                    } else if (isPDF(name)) {
-                        // If it's a PDF, open it in a new tab
-                        row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
-                    } else if (isWord(name)) {
-                        // If it's a Word document, open it in a new tab
-                        row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
-                    } else if (isPowerPoint(name)) {
-                        // If it's a PowerPoint presentation, open it in a new tab
-                        row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
-                    } else {
-                        // If it's none of the above, open it directly in the browser
-                        row += '<a href="' + blob.url + '" target="_blank">View</a>';
-                    }
+                    // If it's none of the above, open it directly in the browser
+                    row += '<a href="' + blob.url + '" target="_blank">View</a>';
                 }
 
                 row += '</td><td class="action-links">';
                 
-                // Check if the name is "Source_Website" for download link
-                if (blob.name === "Source_Website") {
-                    row += 'N/A';
+                if (blob.name === "https:") {
+                    row += 'N/A';  // Display 'N/A' if url_blob exists
                 } else {
-                    row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';
+                    row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';  // Provide download link if url_blob doesn't exist
                 }
 
                 row += '</td><td>' + blob.status + '</td></tr>';
@@ -599,8 +633,11 @@ function updateTable(searchTerm) {
 }
 
 
+
+
+
 // Set interval to check session status
-setInterval(updateTable, 15000); // Check every 14 seconds
+// setInterval(updateTable, 15000); // Check every 2 seconds
 
 // Function to set all checkboxes to the same state as the "Select All" checkbox
 function toggleSelectAll(selectAllCheckbox) {
@@ -676,8 +713,19 @@ function deleteSelectedFiles() {
 }
 
 socket.on('delete_selected_file_response', function(msg){
+    console.log('Received delete_selected_file_response event:', msg);
     updateTable();
-    console.log(msg)
+    // setTimeout(function() {
+    //     console.log('5 seconds passed. Updating table now...');
+    //     updateTable();
+    //     console.log('Table updated.');
+    //     console.log('Message:', msg);
+    // }, 5000); // 5000 milliseconds = 5 seconds
+});
+
+socket.on('update_table_vault', function(msg){
+    console.log('Received delete_selected_file_response event:', msg);
+    updateTable();
 });
 
 

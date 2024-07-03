@@ -358,12 +358,12 @@
                     <div id="image_file" class="Image-container p-2" style="display: none;">
                         <label class="mb-2" style="color:#000000;" for="mp3File">Please Upload OCR Files:</label>
                         <input type="file" id="input_image" name="file" class="form-control mb-2" accept=".jpg, .JPG, .png, .PNG, JPEG, .jpeg, .pdf, .PDF" multiple>
-                        <select class="dropdown form-control" style"width:auto;" id ="lang"><option value = "en">English</option><option value = "hi">Hindi</option></select>         
+                        <select class="dropdown form-control" id ="lang"><option value = "en">English</option><option value = "hi">Hindi</option></select>
                         <!-- Button Group-->
                         <div class="row mt-4">
                                 <div class="col-lg-12 d-flex justify-content-center">
                                     <div class="button-group">
-                                        <button type="button" class="btn btn-primary m-2" onclick="submitForm()" style="font-size: 14px;">Submit</button>
+                                        <button type="button" class="btn btn-primary m-2" onclick="submitForm('image_file')" style="font-size: 14px;">Submit</button>
                                         <button type="button" class="btn btn-secondary m-2" onclick="pdfclosePopup()" style="font-size: 14px;">Close</button>
                                     </div>
                                 </div>

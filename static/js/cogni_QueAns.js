@@ -13,12 +13,6 @@ function updateProgressBar(percentage) {
     progressBar.setAttribute('width', percent);
     progressBar.innerText = percentage + '% ';
 }
-    
-
-
-
-
-
 function sendQuestion() {
     const socket = io();
     var question = document.getElementById("question").value.trim(); // Trim the question
