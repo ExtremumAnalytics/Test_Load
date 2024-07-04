@@ -564,29 +564,29 @@ function updateTable(searchTerm) {
         success: function(response) {
             // Clear existing table rows
             $('#table-body').empty();
-            
+           
             // Populate the table with new data
             response.forEach(function(blob) {
                 // Extract the name from the URL
                 var url_blob = blob.source_url;
                 var name = blob.name.split('/').pop();
-                
+               
                 // If search term is provided and the filename doesn't match, skip
                 if (searchTerm && name.toLowerCase().indexOf(searchTerm.toLowerCase()) === -1) {
                     return;
                 }
-
+ 
                 // Construct the row with customized column headers
                 var checkboxValue, nameDisplay;
 
-                if (blob.name === "https:") {
+              if (blob.name === "https:") {
                     // Split the URL by slashes
                     const parts = url_blob.split('/');
                     
                     // Extract the specific parts
                     const domain = parts[2]; // "flask-socketio.readthedocs.io"
                     lastPart = parts[parts.length - 1]; // "flask_socketio.SocketIOTestClient.get_received"
-                    
+
                     checkboxValue = url_blob;
                     nameDisplay = domain +'/' + lastPart; // Extracted domain
                 } else {
@@ -639,9 +639,6 @@ function updateTable(searchTerm) {
         }
     });
 }
-
-
-
 
 
 // Set interval to check session status

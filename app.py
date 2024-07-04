@@ -18,6 +18,11 @@ from flask_sqlalchemy import SQLAlchemy
 import tempfile
 import pickle
 
+# For Virtual Analyst DB integration
+from langchain.agents import create_sql_agent
+from langchain.agents.agent_toolkits import SQLDatabaseToolkit
+from langchain.sql_database import SQLDatabase
+
 # sentiment and word cloud use only
 import nltk
 from langchain_core.retrievers import BaseRetriever
@@ -117,6 +122,7 @@ computer_vision_key = retrieved_com.value
 # main_key = os.environ["Main_key"]
 # vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
 # computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
+
 
 os.environ["OPENAI_API_TYPE"] = "azure"
 os.environ["OPENAI_API_KEY"] = main_key
@@ -304,7 +310,7 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
         g.flag = 0  # Set flag to 0 on error
         logger.error("Function upload_to_blob error", exc_info=True)
         return f"Error: {str(e)}"
-
+ 
 
 # def upload_to_blob(file_content, session, blob_service_client, container_name):
 #     """Uploads a file to Azure Blob Storage with enhanced security and error handling.
@@ -2818,7 +2824,6 @@ async def delete_files():
         return jsonify({'error': str(e)}), 500
 
 
-
 # @app.route("/delete", methods=["DELETE"])
 # def delete_files():
 #     try:
@@ -3486,6 +3491,193 @@ def handle_eda_process(data):
         logger.error(f"Error in Eda_Process: {e}", exc_info=True)
         emit('eda_response', {'message': f'Error occurred while EDA process: {str(e)}', 'success': False})
 
+
+# db_user = "extremumadmin"
+# db_password = "Welcome!#34"
+# db_host = "extremum-mysql-db.mysql.database.azure.com"
+# db_name = "extremum-db"
+# conn_string = f"mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}"
+
+@socketio.on('eda_db_process')
+def question_answer_on_structure_data(data):
+    db_user = "extremumadmin"
+    db_password = "Welcome!#34"
+    db_host = "extremum-mysql-db.mysql.database.azure.com"
+    db_name = "extremum-db"
+    conn_string = f"mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}"
+
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
+    file_name = f"query_results_{timestamp}.csv"
+
+    try:
+        db = SQLDatabase.from_uri(conn_string)
+    except Exception as ex:
+        print(ex)
+        g.flag = 0
+        logger.error(f"Error in connecting with database: {ex}", exc_info=True)
+        emit('eda_db_response', {'message': "Database connection issue. Error in db connection no sql query generated!!"})
+        # return "Database connection issue.", "Error in db connection no sql query generated!!"
+
+    try:
+        query_input = data.get('query_input')
+        template_text = """
+                Activity Table:
+                    - Call_ID(Integer): Unique identifier for each call.
+                    - Rep_ID(Integer): Identifier for the representative making the call.
+                    - Doc_ID(Integer): Identifier for the doctor receiving the call.
+                    - Date(Date): The date of the call.
+                    - Product_ID(Integer): Identifier for the product discussed.
+                    - Call_Duration_min(Integer): Duration of the call in minutes.
+                    - Outcome(Text): Description of the call outcome.
+
+                Rep Table:
+                    - Rep_ID(Integer): Unique identifier for each representative.
+                    - Rep_Name(Text): Name of the representative.
+
+                Doctors Table:
+                    - Doc_ID(Integer): Unique identifier for each doctor.
+                    - Doc_Name(Text): Name of the doctor.
+                    - Specialty(Text): Medical specialty of the doctor.
+
+                Sales Table:
+                    - Sales_ID(Integer): Unique identifier for each sales transaction.
+                    - Doc_ID(Integer): Identifier for the doctor associated with the sales transaction.
+                    - Date(Date): The date of the sales transaction.
+                    - Product_ID(Integer): Identifier for the product sold.
+                    - Sales(Integer): Amount of sales.
+
+                Natural Language Query Example: "Show me the total sales amount for each product discussed by Rep ID 1 in the last year."
+
+                Generated SQL Query Example:
+                    SELECT a.Product_ID, SUM(s.Sales) AS Total_Sales FROM Activity a JOIN Sales s ON a.Doc_ID = s.Doc_ID AND a.Date = s.Date AND a.Product_ID = s.Product_ID WHERE a.Rep_ID = 1 AND a.Date >= DATEADD(year, -1, GETDATE()) GROUP BY a.Product_ID;
+
+                Instructions for the LLM:
+                    Given the above database schema, convert the following natural language query into an SQL query:
+                        Answer the following questions as best you can. You have access to the following tools:
+                        {tools}
+                        Question: the input question you must answer
+                        Thought: you should always think about what to do
+                        Action: the action to take, should be one of [{tool_names}]
+                        Action Input: the input to the action
+                        Observation: the result of the action
+                        ... (this Thought/Action/Action Input/Observation can repeat N times)
+                        Thought: I now know the final answer
+                        Final Answer: the final answer to the original input question
+                        
+                        Begin!
+                        
+                        Question: {input}
+                        Thought:{agent_scratchpad}
+
+        """
+
+        template = PromptTemplate(
+            input_variables=["query_input"],
+            template=template_text,
+            # tool_names = ,
+            # tools =
+        )
+
+        llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-35-turbo", temperature=0.50)
+
+        toolkit = SQLDatabaseToolkit(db=db, llm=llm, )
+        agent_executor = create_sql_agent(
+            llm=llm,
+            toolkit=toolkit,
+            verbose=True,
+            # prompt = template,
+            agent_executor_kwargs={"return_intermediate_steps": True, "handle_parsing_errors": True},
+        )
+
+        response = agent_executor.invoke(query_input, max_iterations=50, timeout=120)
+        print(response['output'])
+        queries = []
+        for (log, output) in response["intermediate_steps"]:
+            if log.tool == 'sql_db_query':
+                queries.append(log.tool_input)
+        print(queries)
+
+        conn = mysql.connector.connect(
+                host=db_host,
+                user=db_user,
+                password=db_password,
+                database=db_name,
+                # port=port
+            )
+
+        cursor = conn.cursor()
+        cursor.execute(queries[-1])
+        columns = [desc[0] for desc in cursor.description]
+        results = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        df = pd.DataFrame(results, columns=columns)
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        csv_buffer.seek(0)
+
+        blob_name = f"{folder_name_azure}/{file_name}"
+        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+        blob_client.upload_blob(
+            csv_buffer.getvalue(),
+            blob_type="BlockBlob",
+            content_settings=ContentSettings(content_type="text/csv"),
+            overwrite=True
+        )
+
+        container_client = blob_service_client.get_container_client(container_name)
+        blob_list = container_client.list_blobs()
+        for blob in blob_list:
+            if file_name in blob.name:
+                csv_file_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
+                g.flag = 1
+                logger.info(f'CSV File URL: {csv_file_url}')  # Log the draft URL
+                # emit('draft_response', {'url': csv_file_url})
+            else:
+                g.flag = 0
+                logger.error('CSV file URL not found!')
+        g.flag = 1
+        logger.info('Fetched MySQL Data')
+        if queries[-1]:
+            emit('eda_query_success', {'message': 'Data fetched and uploaded successfully.'})
+            emit('eda_db_response', {'output': response['output'], 'query': queries[-1], 'url': csv_file_url})
+        else:
+            emit('eda_db_response',{'message': "Error in db connection no sql query generated!!"})
+        # return response['output'], queries[-1]
+    except Exception as ex:
+        print(ex)
+        emit('eda_db_response', {'message': "Database connection issue. Error in db connection no sql query generated!!"})
+
+
+@app.route('/query_table_update', methods=['GET'])
+def query_table_update():
+    try:
+        # Your code to fetch draft data from storage
+        container_client = blob_service_client.get_container_client(container_name)
+        blob_list = container_client.list_blobs(name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
+
+        blobs = []
+        for blob in blob_list:
+            if blob.name.split('/')[2].endswith('.csv'):
+                # Fetch draftType from metadata
+                # blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
+                # draft_type = blob_client.get_blob_properties().metadata.get('draftType', 'Unknown')
+                blobs.append({
+                    'name': blob.name.split('/')[-1],
+                    'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
+                    # 'draftType': draft_type,
+                    'status': 'Uploaded'  # or other status based on your logic
+                })
+            g.flag = 1  # Set flag to 1 on success
+            logger.info(f"query_table_update route successfully sent data")
+        socketio.emit('updateTable', blobs)
+        return jsonify(blobs)
+    except Exception as e:
+        g.flag = 0  # Set flag to 0 on error
+        logger.error(f"query_table_update route error", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/blank')
 def blank():
