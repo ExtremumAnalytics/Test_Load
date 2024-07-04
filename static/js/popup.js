@@ -579,12 +579,20 @@ function updateTable(searchTerm) {
                 // Construct the row with customized column headers
                 var checkboxValue, nameDisplay;
 
-                if (url_blob) {
+                if (blob.name === "https:") {
+                    // Split the URL by slashes
+                    const parts = url_blob.split('/');
+                    
+                    // Extract the specific parts
+                    const domain = parts[2]; // "flask-socketio.readthedocs.io"
+                    lastPart = parts[parts.length - 1]; // "flask_socketio.SocketIOTestClient.get_received"
+                    
                     checkboxValue = url_blob;
-                    nameDisplay = url_blob.replace("https://", "");
+                    nameDisplay = domain +'/' + lastPart; // Extracted domain
                 } else {
                     checkboxValue = blob.name;
                     nameDisplay = blob.name;
+                    lastPart = ""; // No last part to display when blob.name is not "https:"
                 }
 
                 var row = '<tr>' +
