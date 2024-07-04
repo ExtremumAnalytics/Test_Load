@@ -481,6 +481,81 @@ function isImage(filename) {
 }
 
 
+// function updateTable(searchTerm) {
+//     $.ajax({
+//         url: '/table_update',
+//         method: 'GET',
+//         dataType: 'json',
+//         success: function(response) {
+//             // Clear existing table rows
+//             $('#table-body').empty();
+            
+//             // Populate the table with new data
+//             response.forEach(function(blob) {
+//                 // Extract the name from the URL
+//                 var url_blob = blob.source_url;
+//                 var name = blob.name.split('/').pop();
+                
+//                 // If search term is provided and the filename doesn't match, skip
+//                 if (searchTerm && name.toLowerCase().indexOf(searchTerm.toLowerCase()) === -1) {
+//                     return;
+//                 }
+
+//                 // Construct the row with customized column headers
+//                 var checkboxValue, nameDisplay;
+
+//                 if (url_blob) {
+//                     checkboxValue = url_blob;
+//                     nameDisplay = url_blob.replace("https://", "");
+//                 } else {
+//                     checkboxValue = blob.name;
+//                     nameDisplay = blob.name;
+//                 }
+//                 var row = '<tr>' +
+//                           '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + checkboxValue + '"></td>' +
+//                           '<td>' + nameDisplay + '</td>' +
+//                           '<td>';
+
+//                 if (isExcel(name)) {
+//                     // If it's an Excel file, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
+//                 } else if (isPDF(name)) {
+//                     // If it's a PDF, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
+//                 } else if (isWord(name)) {
+//                     // If it's a Word document, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
+//                 } else if (isImage(name)) {
+//                     // If it's an image, open it directly in the browser
+//                     row += '<a href="' + blob.url + '" target="_blank">View Image</a>';
+//                 } else if (isPowerPoint(name)) {
+//                     // If it's a PowerPoint presentation, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
+//                 } else if (url_blob) {
+//                     row += '<a href="' + url_blob + '" target="_blank">View Website</a>';
+//                 } else {
+//                     // If it's none of the above, open it directly in the browser
+//                     row += '<a href="' + blob.url + '" target="_blank">View</a>';
+//                 }
+
+//                 row += '</td><td class="action-links">';
+                
+//                 if (url_blob) {
+//                     row += 'N/A';
+//                 } else {
+//                     row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';
+//                 }
+
+//                 row += '</td><td>' + blob.status + '</td></tr>';
+//                 $('#table-body').append(row);
+//             });
+//         },
+//         error: function(xhr, status, error) {
+//             console.error('Error updating table:', error);
+//         }
+//     });
+// }
+
 function updateTable(searchTerm) {
     $.ajax({
         url: '/table_update',
@@ -503,15 +578,15 @@ function updateTable(searchTerm) {
  
                 // Construct the row with customized column headers
                 var checkboxValue, nameDisplay;
- 
-                if (blob.name === "https:") {
+
+              if (blob.name === "https:") {
                     // Split the URL by slashes
                     const parts = url_blob.split('/');
-                   
+                    
                     // Extract the specific parts
                     const domain = parts[2]; // "flask-socketio.readthedocs.io"
                     lastPart = parts[parts.length - 1]; // "flask_socketio.SocketIOTestClient.get_received"
-                   
+
                     checkboxValue = url_blob;
                     nameDisplay = domain +'/' + lastPart; // Extracted domain
                 } else {
@@ -519,12 +594,12 @@ function updateTable(searchTerm) {
                     nameDisplay = blob.name;
                     lastPart = ""; // No last part to display when blob.name is not "https:"
                 }
- 
+
                 var row = '<tr>' +
                           '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + checkboxValue + '"></td>' +
                           '<td>' + nameDisplay + '</td>' +
                           '<td>';
- 
+
                 if (isExcel(name)) {
                     // If it's an Excel file, open it in a new tab
                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
@@ -546,15 +621,15 @@ function updateTable(searchTerm) {
                     // If it's none of the above, open it directly in the browser
                     row += '<a href="' + blob.url + '" target="_blank">View</a>';
                 }
- 
+
                 row += '</td><td class="action-links">';
-               
+                
                 if (blob.name === "https:") {
                     row += 'N/A';  // Display 'N/A' if url_blob exists
                 } else {
                     row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';  // Provide download link if url_blob doesn't exist
                 }
- 
+
                 row += '</td><td>' + blob.status + '</td></tr>';
                 $('#table-body').append(row);
             });
@@ -564,6 +639,7 @@ function updateTable(searchTerm) {
         }
     });
 }
+
 
 // Set interval to check session status
 // setInterval(updateTable, 15000); // Check every 2 seconds

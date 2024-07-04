@@ -2,12 +2,12 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Build and deploy Python app to Azure Web App - ea-resource
+name: Build and deploy Python app to Azure Web App - cognilink-dev
 
 on:
   push:
     branches:
-      - main
+      - dev
   workflow_dispatch:
 
 jobs:
@@ -65,14 +65,14 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_99A2E65FC68E400499815D9163687981 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2FB5E5674C874B3B8F753264E2830C56 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1AF4900D10C444818D3B01864D03C9BD }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_9B29F61497A141138D64EFAC7BBCCDCE }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_89AE18CC15FD490BBA55499A8DE194E5 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_7290F4549B7D4F378BFA8A8474D268BF }}
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
         with:
-          app-name: 'ea-resource'
+          app-name: 'cognilink-dev'
           slot-name: 'Production'
           
