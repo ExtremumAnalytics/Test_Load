@@ -1009,39 +1009,100 @@ def delete_documents_from_vectordb(documents_to_delete):
         print({'message': str(e)})
 
 
-def get_conversation_chain(vectorstore):
+# def get_conversation_chain(vectorstore):
+#     """
+#     Retrieves a conversation chain for conversational retrieval using Azure models.
+#
+#     Args:
+#         vectorstore: The AzureSearch vector store instance.
+#
+#     Returns:
+#         function: A function to handle question answering with context check.
+#     """
+#     deployment_name = set_model()
+#     llm = AzureChatOpenAI(azure_deployment=deployment_name)
+#
+#     template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
+#                 just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
+#                 If no information is available to answer the question, respond with: 'No information available to answer the question.'
+#                 {context}
+#                 Question: {question}
+#                 Helpful Answer:
+#                 """
+#     # template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
+#     #             just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
+#     #             If no information is available to answer the question, respond with: 'No information available to answer the question.'
+#     #             {context}
+#     #             Question: {question}
+#     #             Helpful Answer:
+#     #             """
+#
+#     # template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
+#     # just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
+#     # {context}
+#     # Question: {question}
+#     # Helpful Answer:"""
+#     CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
+#
+#     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
+#                                       output_key="answer")
+#
+#     conversation_chain = ConversationalRetrievalChain.from_llm(
+#         llm=llm,
+#         retriever=vectorstore.as_retriever(),
+#         memory=memory,
+#         return_source_documents=True,
+#         combine_docs_chain_kwargs={"prompt": CUSTOM_QUESTION_PROMPT}
+#     )
+#
+#     return conversation_chain
+
+
+def get_conversation_chain(vectorstore, source):
     """
     Retrieves a conversation chain for conversational retrieval using Azure models.
 
     Args:
         vectorstore: The AzureSearch vector store instance.
+        source (str): The source of the context ('myFiles' or 'webInternet').
 
     Returns:
         function: A function to handle question answering with context check.
     """
+
+    if source == 'myFiles':
+        context = "Answer only from the files uploaded by the user. Don't use any web/Internet.ALso return all the sources from where you fetched data"
+        template = """
+                        Answer only from the files uploaded by the user. Don't use any web/Internet.Also
+                        If you don't know the answer,just say that you don't know, don't try to make up an answer. 
+                        Use three sentences maximum. Keep the answer as concise as possible.
+                        {context}
+                        Question: {question}
+                        Helpful Answer: 
+                        """
+    elif source == 'webInternet':
+        context = "Search the Web for the answer.ALso return only Web in source instead of returning reference from files"
+        template = """
+                        If you don't know the answer,just say that you don't know, don't try to make up an answer. 
+                        Use three sentences maximum. Keep the answer as concise as possible.
+                        {context}
+                        Question: {question}
+                        Helpful Answer: 
+                        """
+    elif source == 'all':
+        context = "Use both the content from the uploaded files also as well as search internet also and then combine or return the best possible answer.ALso list web in the sources if you have used web"
+        template = """
+                    If you don't know the answer,just say that you don't know, don't try to make up an answer. 
+                    Use three sentences maximum. Keep the answer as concise as possible.
+                    {context}
+                    Question: {question}
+                    Helpful Answer: 
+                    """
+
     deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name)
 
-    template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
-                just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
-                If no information is available to answer the question, respond with: 'No information available to answer the question.'
-                {context}
-                Question: {question}
-                Helpful Answer:
-                """
-    # template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
-    #             just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
-    #             If no information is available to answer the question, respond with: 'No information available to answer the question.'
-    #             {context}
-    #             Question: {question}
-    #             Helpful Answer:
-    #             """
 
-    # template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
-    # just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
-    # {context}
-    # Question: {question}
-    # Helpful Answer:"""
     CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
 
     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
@@ -1056,40 +1117,6 @@ def get_conversation_chain(vectorstore):
     )
 
     return conversation_chain
-
-
-# def get_conversation_chain(vectorstore):
-#     """
-#     Retrieves a conversation chain for conversational retrieval using Azure models.
-#
-#     Args:
-#         vectorstore: The AzureSearch vector store instance.
-#
-#     Returns:
-#         function: A function to handle question answering with context check.
-#     """
-#     deployment_name = set_model()
-#     llm = AzureChatOpenAI(azure_deployment=deployment_name)
-#     template = """Use the following pieces of context to answer the question at the end.
-#     If you don't know the answer, just say that you don't know, don't try to make up an answer.
-#     Use three sentences maximum. Keep the answer as concise as possible.
-#     {context}
-#     Question: {question}
-#     Helpful Answer:"""
-#
-#     CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
-#
-#     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
-#                                       output_key="answer")
-#
-#     conversation_chain = ConversationalRetrievalChain.from_llm(
-#         llm=llm,
-#         retriever=vectorstore.as_retriever(),
-#         memory=memory,
-#         return_source_documents=True
-#     )
-#
-#     return conversation_chain
 
 
 def custom_summary(docs, custom_prompt, chain_type):
@@ -1960,14 +1987,14 @@ def extract_text_from_image(file_obj, language):
         f_name = f_name.split('.')[0]
 
         # Upload the PDF file to Azure Blob Storage
-        blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
+        blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{f_name}.docx"
         blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
         # with open(pdf_file_path, "rb") as pdf_file:
         blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
 
 
 # dev-code start
-def extract_text_from_pdf(file_obj):
+def extract_text_from_pdf(file_obj, language):
     try:
 
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
@@ -1976,7 +2003,7 @@ def extract_text_from_pdf(file_obj):
 
         # Read the file from the local path
         with open(temp_path, "rb") as pdf_file:
-            read_operation = computervision_client.read_in_stream(pdf_file, language="en", raw=True)
+            read_operation = computervision_client.read_in_stream(pdf_file, language=language, raw=True)
 
         # Check if the operation was successful
         if not read_operation or not read_operation.headers:
@@ -2020,7 +2047,7 @@ def extract_text_from_pdf(file_obj):
             f_name = f_name.split('.')[0]
 
             # Upload the PDF file to Azure Blob Storage
-            blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
+            blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{f_name}.docx"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             # with open(pdf_file_path, "rb") as pdf_file:
             blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
@@ -2653,7 +2680,7 @@ def handle_ask_question(data):
     start_time = time.time()
     try:
         question = data['question']
-
+        Source = data['source']
         # faiss_index_path = os.path.join(folder_name, 'faiss_index')
         vector_store: AzureSearch = AzureSearch(
             azure_search_endpoint=vector_store_address,
@@ -2667,12 +2694,13 @@ def handle_ask_question(data):
         # new_db = FAISS.load_local(faiss_index_path, embeddings, allow_dangerous_deserialization=True)
 
         # Create the conversation chain handler
-        conversation_chain_handler = get_conversation_chain(vector_store)
+        conversation_chain_handler = get_conversation_chain(vector_store, Source)
         response = conversation_chain_handler(question)
         # Update progress to 50%
         emit('progress', {'percentage': 50, 'pin': session['login_pin']})
         time.sleep(0.01)
         sorry_phrases = ['No information available to answer the question.']
+
         # Check if the response starts with any sorry phrases or has no source documents or if the first source
         # document is empty
         if (
@@ -2706,6 +2734,12 @@ def handle_ask_question(data):
                     seen_pages.add(page_str)
                     doc_source.append(source)
                     doc_page_num.append(page_str)
+                if Source == "all":
+                    doc_source.append("Web|Internet")
+                    doc_page_num.append("N|A")
+        if Source == "webInternet":
+            doc_source = ["Web|Internet"]
+            doc_page_num = ["N|A"]
 
         # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
         final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
@@ -3579,7 +3613,7 @@ def question_answer_on_structure_data(data):
             # tools =
         )
 
-        llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-35-turbo", temperature=0.50)
+        llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
 
         toolkit = SQLDatabaseToolkit(db=db, llm=llm, )
         agent_executor = create_sql_agent(
@@ -3587,10 +3621,10 @@ def question_answer_on_structure_data(data):
             toolkit=toolkit,
             verbose=True,
             # prompt = template,
-            agent_executor_kwargs={"return_intermediate_steps": True, "handle_parsing_errors": True},
+            agent_executor_kwargs={"return_intermediate_steps": True, "handle_parsing_errors": True}
         )
 
-        response = agent_executor.invoke(query_input, max_iterations=50, timeout=120)
+        response = agent_executor.invoke(query_input)
         print(response['output'])
         queries = []
         for (log, output) in response["intermediate_steps"]:
@@ -3598,7 +3632,9 @@ def question_answer_on_structure_data(data):
                 queries.append(log.tool_input)
         print(queries)
 
-        conn = mysql.connector.connect(
+
+        if queries[-1] and queries[-1] != response['output']:
+            conn = mysql.connector.connect(
                 host=db_host,
                 user=db_user,
                 password=db_password,
@@ -3606,43 +3642,44 @@ def question_answer_on_structure_data(data):
                 # port=port
             )
 
-        cursor = conn.cursor()
-        cursor.execute(queries[-1])
-        columns = [desc[0] for desc in cursor.description]
-        results = cursor.fetchall()
-        cursor.close()
-        conn.close()
+            cursor = conn.cursor()
+            cursor.execute(queries[-1])
+            columns = [desc[0] for desc in cursor.description]
+            results = cursor.fetchall()
+            cursor.close()
+            conn.close()
 
-        df = pd.DataFrame(results, columns=columns)
-        csv_buffer = io.StringIO()
-        df.to_csv(csv_buffer, index=False)
-        csv_buffer.seek(0)
+            df = pd.DataFrame(results, columns=columns)
+            csv_buffer = io.StringIO()
+            df.to_csv(csv_buffer, index=False)
+            csv_buffer.seek(0)
 
-        blob_name = f"{folder_name_azure}/{file_name}"
-        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-        blob_client.upload_blob(
-            csv_buffer.getvalue(),
-            blob_type="BlockBlob",
-            content_settings=ContentSettings(content_type="text/csv"),
-            overwrite=True
-        )
+            blob_name = f"{folder_name_azure}/{file_name}"
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            blob_client.upload_blob(
+                csv_buffer.getvalue(),
+                blob_type="BlockBlob",
+                content_settings=ContentSettings(content_type="text/csv"),
+                overwrite=True
+            )
 
-        container_client = blob_service_client.get_container_client(container_name)
-        blob_list = container_client.list_blobs()
-        for blob in blob_list:
-            if file_name in blob.name:
-                csv_file_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
-                g.flag = 1
-                logger.info(f'CSV File URL: {csv_file_url}')  # Log the draft URL
-                # emit('draft_response', {'url': csv_file_url})
-            else:
-                g.flag = 0
-                logger.error('CSV file URL not found!')
-        g.flag = 1
-        logger.info('Fetched MySQL Data')
-        if queries[-1]:
+            container_client = blob_service_client.get_container_client(container_name)
+            blob_list = container_client.list_blobs()
+            for blob in blob_list:
+                if file_name in blob.name:
+                    csv_file_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
+                    g.flag = 1
+                    logger.info(f'CSV File URL: {csv_file_url}')  # Log the draft URL
+                    # emit('draft_response', {'url': csv_file_url})
+                else:
+                    g.flag = 0
+                    logger.error('CSV file URL not found!')
+            g.flag = 1
+            logger.info('Fetched MySQL Data')
+
             emit('eda_query_success', {'message': 'Data fetched and uploaded successfully.'})
             emit('eda_db_response', {'output': response['output'], 'query': queries[-1], 'url': csv_file_url})
+
         else:
             emit('eda_db_response',{'message': "Error in db connection no sql query generated!!"})
         # return response['output'], queries[-1]
