@@ -97,13 +97,6 @@
                 <div class="navbar-nav align-items-center ms-auto">
                     <div class="nav-item dropdown">
                         <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fa fa-envelope me-lg-2"></i>
-                            <!-- <span class="d-none d-lg-inline-flex">Message</span> -->
-                            <span class="d-none d-lg-inline-flex"></span>
-                        </a>
-                    </div>
-                    <div class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
                             <img class="rounded-2 me-lg-2" src="static/img/ea_symbol.png" alt="" style="width: 40px; height: 30px;">
                             <span id="userName" class="d-none d-lg-inline-flex">
                                 <!-- User Name  -->
@@ -138,8 +131,6 @@
                 </div>
             </div>
 
-
-
             <!-- Message Alerts -->
             <div class="flash_msg">
                 <div id="message" style="text-align: center;"></div>
@@ -147,13 +138,13 @@
             </div>
 
             <!-- Ask Form Start -->
-            <div class="container-fluid d-flex flex-row mx-n2">
+            <div class="container-fluid d-flex flex-row">
                 <div class="container-fluid d-flex flex-column px-2">
                     <div class="col-lg-12 bg-light rounded p-4 mb-2">
                         <h6 class="mb-2">Explore Your Data with CogniLink</h6>
                         <div class="d-flex flex-row mb-2">
                             <input type="text" class="question form-control" id="question_eda" placeholder="Type your question here!">
-                            <button id="recordButton" class="btn1 rounded mx-2"><i class="fa fa-microphone p-1"></i></button>
+                            <button id="recordButton" class="btn1 rounded m-2"><i class="fa fa-microphone p-1"></i></button>
                         </div>
                         <div class="col-lg-12 d-flex justify-content-center">
                             <div class="button-group mt-2">
@@ -164,11 +155,12 @@
                                     <div class="modal-content">
                                     <span class="close">&times;</span>
                                     <h2>Select File to Load</h2>
-                                    <select id="fileList"></select>
+                                    <select id="fileList">
+                                        <!-- To be updated dynamically -->
+                                    </select>
                                     <button onclick="loadData()">Load</button>
                                 </div>
                             </div>
-  
                                 <button type="button" id="eda_generate" class="btn btn-primary m-2" onclick="sendQuestion()" style="font-size: 14px;">Generate</button>
                                 <button type="button" id="clarCcvchat" onclick="clearChat()" class="btn btn-primary m-2" style="font-size: 14px;">Clear Chat</button>
                             </div>
@@ -186,24 +178,66 @@
                         <div id="dataContainer"></div>
                         <div id="eda_graph" style="width:100%;height:500px;"></div>
                     </div>
-                </div>
-            </div>        
 
-            <!-- Footer Start -->
-            <div class="container-fluid pt-4 px-4">
-                <div class="bg-light rounded-top p-4">
-                    <div class="row">
-                        <div class="col-12 col-sm-6 text-center text-sm-start">
-                            &copy; <a href="{{url_for('data_source')}}">Cogni Link</a>, All Right Reserved. 
-                        </div>
-                        <div class="col-12 col-sm-6 text-center text-sm-end">
-                            Designed By <a href="www.extremumanalytics.com">Extremum Analytics</a>
+                    <!-- Query Results vault -->
+                    <div id="query_container" class="col-lg-12 bg-light rounded mb-2">
+                        <div class="bg-light justify-content-center rounded p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-4">
+                                <h6 class="mb-0">Query Results</h6>
+                                <div class="col-md-3"> <!-- Column for the search bar -->
+                                    <div class="input-group">
+                                        <input type="text" class="rounded mx-2 form-control" id="searchInput" placeholder="Search Files">
+                                        <button class="btn btn-primary rounded btn-outline-secondary" id="searchButton" type="button">Search</button>
+                                    </div>
+                                </div>
+                                <!-- <a href="">Show All</a> -->
+                            </div>
+                            <div id="table-container" class="table-responsive d-flex flex-column bg-white rounded-2" >
+                                <table id="query-table" class="table text-start align-middle table-bordered table-hover m-0">
+                                    <thead class="table-header">
+                                        <tr class="text-dark">
+                                            <th scope="col" ><input type="checkbox" id="select-checkbox" onclick="toggleSelectAll(this)"></th>
+                                            <th scope="col" >Name</th>
+                                            <!-- <th scope="col" >Draft Type</th> -->
+                                            <!-- <th scope="col">View File</th> -->
+                                            <th scope="col">Download</th>
+                                            <th scope="col">Status</th>                                  
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-body">
+                                        <!-- Updated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-center">
+                                <button class="btn btn-primary m-2" onclick="deleteVaultFiles()">Delete Files</button>
+                            </div>
+                            <div class="d-flex align-content-center justify-content-center">
+                                <i id="waitImg_del" class="fa fa-spinner fa-spin" style="display: none; color: var(--primary); font-size: 64px;"></i>
+                            </div>
+                            <!-- <div class="p-2">
+                                <label>Status Abbreviations:</label>
+                                <p>U : Uploaded, F : Fail, EC : Embeddings Created, ENC : Embeddings Not Created</p>
+                            </div> -->
                         </div>
                     </div>
+
+                    <!-- Footer Start -->
+                    <div class="container-fluid col-lg-12 bg-light rounded">
+                        <div class="bg-light rounded-top p-4">
+                            <div class="row">
+                                <div class="col-12 col-sm-6 text-center text-sm-start">
+                                    &copy; <a href="{{url_for('data_source')}}">Cogni Link</a>, All Right Reserved. 
+                                </div>
+                                <div class="col-12 col-sm-6 text-center text-sm-end">
+                                    Designed By <a href="www.extremumanalytics.com">Extremum Analytics</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Footer End -->
                 </div>
             </div>
-            <!-- Footer End -->
-
         </div>
         <!-- Content End -->
 

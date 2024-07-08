@@ -243,8 +243,7 @@ function uploadSelectedFiles() {
         socket.emit('delete_pdf_file', {
             fileName: fileName,
             login_pin: pin
-        });
-
+        });     
         socket.on('delete_response', function(data) {
             $('#messagedelopload').text(data.message);
             setTimeout(function() {
@@ -322,11 +321,9 @@ function runDefaultProgram(called_from) {
     for (var i = 0; i < files.length; i++) {
         formData.append('myFile', files[i]);
     }
-
-    if(called_from =='image_file'){
+    if(called_from=='image_file'){
         formData.append('selected_language', lang);
     }
-    
     
     var Source_URL = document.getElementsByName('Source_URL')[0].value;
     
@@ -345,7 +342,12 @@ function runDefaultProgram(called_from) {
             $("#waitImg").hide(); // Hide the loading image on success
             linkDataPopup();
             updateTable();
-            
+            // Reset the input fields
+            // fileInput.value = '';
+            // mp3Input.value = '';
+            // Image_input.value = '';
+            // lang.value = '';
+            document.getElementsByName('Source_URL')[0].value = '';
             // document.getElementById('popupForm').reset();
         } else {
             document.getElementById('message').innerHTML = '<p>Failed to upload files. Please try again later.</p>';
@@ -470,11 +472,90 @@ function isPowerPoint(filename) {
         filename.toLowerCase().endsWith('.pptx')
     );
 }
-// Checking and returning the different file types END
 
 
+function isImage(filename) {
+    return filename.toLowerCase().endsWith('.jpeg') ||
+           filename.toLowerCase().endsWith('.jpg') ||
+           filename.toLowerCase().endsWith('.png');
+}
 
-// Updating Digital Vault
+
+// function updateTable(searchTerm) {
+//     $.ajax({
+//         url: '/table_update',
+//         method: 'GET',
+//         dataType: 'json',
+//         success: function(response) {
+//             // Clear existing table rows
+//             $('#table-body').empty();
+            
+//             // Populate the table with new data
+//             response.forEach(function(blob) {
+//                 // Extract the name from the URL
+//                 var url_blob = blob.source_url;
+//                 var name = blob.name.split('/').pop();
+                
+//                 // If search term is provided and the filename doesn't match, skip
+//                 if (searchTerm && name.toLowerCase().indexOf(searchTerm.toLowerCase()) === -1) {
+//                     return;
+//                 }
+
+//                 // Construct the row with customized column headers
+//                 var checkboxValue, nameDisplay;
+
+//                 if (url_blob) {
+//                     checkboxValue = url_blob;
+//                     nameDisplay = url_blob.replace("https://", "");
+//                 } else {
+//                     checkboxValue = blob.name;
+//                     nameDisplay = blob.name;
+//                 }
+//                 var row = '<tr>' +
+//                           '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + checkboxValue + '"></td>' +
+//                           '<td>' + nameDisplay + '</td>' +
+//                           '<td>';
+
+//                 if (isExcel(name)) {
+//                     // If it's an Excel file, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
+//                 } else if (isPDF(name)) {
+//                     // If it's a PDF, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
+//                 } else if (isWord(name)) {
+//                     // If it's a Word document, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
+//                 } else if (isImage(name)) {
+//                     // If it's an image, open it directly in the browser
+//                     row += '<a href="' + blob.url + '" target="_blank">View Image</a>';
+//                 } else if (isPowerPoint(name)) {
+//                     // If it's a PowerPoint presentation, open it in a new tab
+//                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
+//                 } else if (url_blob) {
+//                     row += '<a href="' + url_blob + '" target="_blank">View Website</a>';
+//                 } else {
+//                     // If it's none of the above, open it directly in the browser
+//                     row += '<a href="' + blob.url + '" target="_blank">View</a>';
+//                 }
+
+//                 row += '</td><td class="action-links">';
+                
+//                 if (url_blob) {
+//                     row += 'N/A';
+//                 } else {
+//                     row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';
+//                 }
+
+//                 row += '</td><td>' + blob.status + '</td></tr>';
+//                 $('#table-body').append(row);
+//             });
+//         },
+//         error: function(xhr, status, error) {
+//             console.error('Error updating table:', error);
+//         }
+//     });
+// }
+
 function updateTable(searchTerm) {
     $.ajax({
         url: '/table_update',
@@ -483,47 +564,73 @@ function updateTable(searchTerm) {
         success: function(response) {
             // Clear existing table rows
             $('#table-body').empty();
-            
+           
             // Populate the table with new data
             response.forEach(function(blob) {
                 // Extract the name from the URL
+                var url_blob = blob.source_url;
                 var name = blob.name.split('/').pop();
-                
+               
                 // If search term is provided and the filename doesn't match, skip
                 if (searchTerm && name.toLowerCase().indexOf(searchTerm.toLowerCase()) === -1) {
                     return;
                 }
-
+ 
                 // Construct the row with customized column headers
-                var row = '<tr>' +                    
-                          '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + blob.name + '"></td>' +
-                          '<td>' + blob.name + '</td>' +
+                var checkboxValue, nameDisplay;
+
+              if (blob.name === "https:") {
+                    // Split the URL by slashes
+                    const parts = url_blob.split('/');
+                    
+                    // Extract the specific parts
+                    const domain = parts[2]; // "flask-socketio.readthedocs.io"
+                    lastPart = parts[parts.length - 1]; // "flask_socketio.SocketIOTestClient.get_received"
+
+                    checkboxValue = url_blob;
+                    nameDisplay = domain +'/' + lastPart; // Extracted domain
+                } else {
+                    checkboxValue = blob.name;
+                    nameDisplay = blob.name;
+                    lastPart = ""; // No last part to display when blob.name is not "https:"
+                }
+
+                var row = '<tr>' +
+                          '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + checkboxValue + '"></td>' +
+                          '<td>' + nameDisplay + '</td>' +
                           '<td>';
 
-                // Check the file type and provide appropriate action
                 if (isExcel(name)) {
                     // If it's an Excel file, open it in a new tab
                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
-                }else if (isPDF(name)) {
+                } else if (isPDF(name)) {
                     // If it's a PDF, open it in a new tab
                     row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
                 } else if (isWord(name)) {
                     // If it's a Word document, open it in a new tab
                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
+                } else if (isImage(name)) {
+                    // If it's an image, open it directly in the browser
+                    row += '<a href="' + blob.url + '" target="_blank">View Image</a>';
                 } else if (isPowerPoint(name)) {
                     // If it's a PowerPoint presentation, open it in a new tab
                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
+                } else if (blob.name === "https:") {
+                    row += '<a href="' + url_blob + '" target="_blank">View Website</a>';
                 } else {
                     // If it's none of the above, open it directly in the browser
                     row += '<a href="' + blob.url + '" target="_blank">View</a>';
                 }
 
-                row += '</td>' +
-                    '<td class="action-links">' +
-                    //'<a href="' + blob.url + '" target="_blank" download>Download</a> </td>' +
-                    '<a href="' + blob.url + '" download="' + name + '">Download</a> </td>' +
-                    '<td>'+blob.status +'</td>' +
-                    '</tr>';
+                row += '</td><td class="action-links">';
+                
+                if (blob.name === "https:") {
+                    row += 'N/A';  // Display 'N/A' if url_blob exists
+                } else {
+                    row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';  // Provide download link if url_blob doesn't exist
+                }
+
+                row += '</td><td>' + blob.status + '</td></tr>';
                 $('#table-body').append(row);
             });
         },
@@ -533,8 +640,9 @@ function updateTable(searchTerm) {
     });
 }
 
+
 // Set interval to check session status
-setInterval(updateTable, 5000); // Check every 2 seconds
+// setInterval(updateTable, 15000); // Check every 2 seconds
 
 // Function to set all checkboxes to the same state as the "Select All" checkbox
 function toggleSelectAll(selectAllCheckbox) {
@@ -610,13 +718,25 @@ function deleteSelectedFiles() {
 }
 
 socket.on('delete_selected_file_response', function(msg){
+    console.log('Received delete_selected_file_response event:', msg);
     updateTable();
-    console.log(msg)
+    // setTimeout(function() {
+    //     console.log('5 seconds passed. Updating table now...');
+    //     updateTable();
+    //     console.log('Table updated.');
+    //     console.log('Message:', msg);
+    // }, 5000); // 5000 milliseconds = 5 seconds
 });
+
+socket.on('update_table_vault', function(msg){
+    console.log('Received delete_selected_file_response event:', msg);
+    updateTable();
+});
+
 
 // Delete files from Vault
 function deleteFile(fileNames) {
-    // Send a DELETE request to the Flask route
+    $("#waitImg_del").show(); // Show the loading image
     $.ajax({
         url: '/delete',
         method: 'DELETE',
@@ -627,12 +747,36 @@ function deleteFile(fileNames) {
             console.log(response.message) // Log success message
             // Optionally, update UI or do something else after successful deletion
             updateTable(); // Refresh the table after deletion
+            $("#waitImg_del").hide(); // Hide the loading image on success
         },
         error: function(xhr, status, error) {
             console.error('Error deleting files:', error);
+            $("#waitImg_del").hide(); // Hide the loading image on success
         }
     });
 }
+
+
+
+// // Delete files from Vault
+// function deleteFile(fileNames) {
+//     // Send a DELETE request to the Flask route
+//     $.ajax({
+//         url: '/delete',
+//         method: 'DELETE',
+//         contentType: 'application/json',
+//         data: JSON.stringify({ file_names: fileNames }),
+//         dataType: 'json',
+//         success: function(response) {
+//             console.log(response.message) // Log success message
+//             // Optionally, update UI or do something else after successful deletion
+//             updateTable(); // Refresh the table after deletion
+//         },
+//         error: function(xhr, status, error) {
+//             console.error('Error deleting files:', error);
+//         }
+//     });
+// }
 
 // Data Base Connection Form
 document.getElementById('dbForm').onsubmit = async (event) => {
