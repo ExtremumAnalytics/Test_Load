@@ -1965,6 +1965,69 @@ def extract_text_from_image(file_obj, language):
         # with open(pdf_file_path, "rb") as pdf_file:
         blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
 
+def extract_text_from_pdf(file_obj):
+    try:
+
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_path = temp_file.name
+            temp_file.write(file_obj.read())
+
+        # Read the file from the local path
+        with open(temp_path, "rb") as pdf_file:
+            read_operation = computervision_client.read_in_stream(pdf_file, language="en", raw=True)
+
+        # Check if the operation was successful
+        if not read_operation or not read_operation.headers:
+            raise Exception("Failed to initiate read operation.")
+
+        # Get the operation location (URL with an ID at the end) from the response
+        read_operation_location = read_operation.headers["Operation-Location"]
+        if not read_operation_location:
+            raise Exception("Failed to get operation location.")
+
+        # Grab the ID from the URL
+        operation_id = read_operation_location.split("/")[-1]
+
+        # Wait for the operation to complete
+        while True:
+            result = computervision_client.get_read_result(operation_id)
+            if result.status not in [OperationStatusCodes.not_started, OperationStatusCodes.running]:
+                break
+            time.sleep(1)
+
+        # Print the detected text from each page
+        text = ''
+        if result.status == OperationStatusCodes.succeeded:
+            read_results = result.analyze_result.read_results
+            for page in read_results:
+                for line in page.lines:
+                    print(line.text)
+                    text += line.text + '\n'
+            
+            # save the text of scand pdf in container
+            doc = docx.Document()
+            doc_para = doc.add_paragraph(text)
+
+            # Save DOCX to a BytesIO object
+            doc_output = io.BytesIO()
+            doc.save(doc_output)
+            doc_output.seek(0)
+            # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
+
+            f_name = file_obj.filename
+            f_name = f_name.split('.')[0]
+
+            # Upload the PDF file to Azure Blob Storage
+            blob_name = f"cognilink/{str(session['login_pin'])}/{f_name}.docx"
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            # with open(pdf_file_path, "rb") as pdf_file:
+            blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
+
+        else:
+            print("The operation did not succeed.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 # dev-code start
 def extract_text_from_pdf(file_obj):

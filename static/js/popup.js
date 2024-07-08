@@ -317,7 +317,7 @@ function runDefaultProgram(called_from) {
     }
 
     var formData = new FormData();
-
+ 
     for (var i = 0; i < files.length; i++) {
         formData.append('myFile', files[i]);
     }
