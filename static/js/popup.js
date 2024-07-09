@@ -304,6 +304,8 @@ function runDefaultProgram(called_from) {
     var mp3Input = document.getElementById('mp3Input');
     var Image_input = document.getElementById('input_image');
     var lang = document.getElementById('lang').value;
+    const slider = document.getElementById("mySlider");
+
     var files;
 
     if (fileInput && fileInput.files.length > 0) {
@@ -318,6 +320,7 @@ function runDefaultProgram(called_from) {
 
     var formData = new FormData();
 
+    formData.append('sizeValue',slider.value);
     for (var i = 0; i < files.length; i++) {
         formData.append('myFile', files[i]);
     }
@@ -350,7 +353,9 @@ function runDefaultProgram(called_from) {
             document.getElementsByName('Source_URL')[0].value = '';
             // document.getElementById('popupForm').reset();
         } else {
-            document.getElementById('message').innerHTML = '<p>Failed to upload files. Please try again later.</p>';
+            var response = JSON.parse(xhr.responseText);
+
+            document.getElementById('message').innerHTML = response.message;
             setTimeout(function () {
                 document.getElementById('message').innerHTML = '';
             }, 8000);

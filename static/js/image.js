@@ -1,15 +1,15 @@
 var pin = localStorage.getItem('pin');
 
-// Updating Wordcloud Image FUnction
-function updateImage() {
-    var image = document.getElementById('wordcloud-image');
-    var timestamp = new Date().getTime(); // Generate timestamp to ensure the image is not cached
-    //image.src = "../static/images/wordcloud.png?t=" + timestamp;
-    image.src = "../static/login/"+ pin +"/wordcloud.png?t=" + timestamp;
-}
+// // Updating Wordcloud Image FUnction
+// function updateImage() {
+//     var image = document.getElementById('wordcloud-image');
+//     var timestamp = new Date().getTime(); // Generate timestamp to ensure the image is not cached
+//     //image.src = "../static/images/wordcloud.png?t=" + timestamp;
+//     image.src = "../static/login/"+ pin +"/wordcloud.png?t=" + timestamp;
+// }
 
-// Call updateImage function every 5 seconds
-setInterval(updateImage, 5000);
+// // Call updateImage function every 5 seconds
+// setInterval(updateImage, 5000);
 
 // Loading Updated wordcloud image
 document.addEventListener('DOMContentLoaded', function() {
