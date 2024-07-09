@@ -60,12 +60,21 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             summary.appendChild(list); // Append the list to the container
+            updateImage();
         } else {
             // Handle the case where summaries is not an array (e.g., log an error)
             console.error('Invalid data format. Expected an array.');
         }
     }
 });
+
+// Updating Wordcloud Image FUnction
+function updateImage() {
+    var image = document.getElementById('wordcloud-image');
+    var timestamp = new Date().getTime(); // Generate timestamp to ensure the image is not cached
+    //image.src = "../static/images/wordcloud.png?t=" + timestamp;
+    image.src = "../static/login/"+ pin +"/wordcloud.png?t=" + timestamp;
+}
 
 // Function to clear the chat summary using Socket.IO
 function clear_summ_Chat() {

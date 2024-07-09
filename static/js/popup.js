@@ -182,8 +182,8 @@ function displayPDFFiles(pdfFiles) {
         const row = document.createElement('tr');
         const checkboxCell = document.createElement('td');
         const nameCell = document.createElement('td');
-        const sizeCell = document.createElement('td');
-        const dateCell = document.createElement('td');
+        // const sizeCell = document.createElement('td');
+        // const dateCell = document.createElement('td');
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
@@ -202,12 +202,12 @@ function displayPDFFiles(pdfFiles) {
         row.dataset.fileName = pdfFile;
 
         nameCell.textContent = pdfFile;
-        sizeCell.textContent = 'Size'; // You may replace 'Size' with actual file size if available
-        dateCell.textContent = 'Date'; // You may replace 'Date' with actual last modified date if available
+        // sizeCell.textContent = 'Size'; // You may replace 'Size' with actual file size if available
+        // dateCell.textContent = 'Date'; // You may replace 'Date' with actual last modified date if available
 
         row.appendChild(nameCell);
-        row.appendChild(sizeCell);
-        row.appendChild(dateCell);
+        // row.appendChild(sizeCell);
+        // row.appendChild(dateCell);
 
         tableBody.appendChild(row);
     });
@@ -304,6 +304,7 @@ function runDefaultProgram(called_from) {
     var mp3Input = document.getElementById('mp3Input');
     var Image_input = document.getElementById('input_image');
     var lang = document.getElementById('lang').value;
+    const slider = document.getElementById("mySlider");
     var files;
 
     if (fileInput && fileInput.files.length > 0) {
@@ -317,7 +318,7 @@ function runDefaultProgram(called_from) {
     }
 
     var formData = new FormData();
-
+    formData.append('sizeValue',slider.value);
     for (var i = 0; i < files.length; i++) {
         formData.append('myFile', files[i]);
     }
@@ -342,20 +343,22 @@ function runDefaultProgram(called_from) {
             $("#waitImg").hide(); // Hide the loading image on success
             linkDataPopup();
             updateTable();
-            // Reset the input fields
-            // fileInput.value = '';
-            // mp3Input.value = '';
-            // Image_input.value = '';
-            // lang.value = '';
             document.getElementsByName('Source_URL')[0].value = '';
-            // document.getElementById('popupForm').reset();
         } else {
-            document.getElementById('message').innerHTML = '<p>Failed to upload files. Please try again later.</p>';
+            // document.getElementById('message').innerHTML = '<p>Failed to upload files. Please try again later.</p>';
+            // setTimeout(function () {
+            //     document.getElementById('message').innerHTML = '';
+            // }, 8000);
+            // updateTable();
+            // $("#waitImg").hide(); // Hide the loading image on success
+            var response = JSON.parse(xhr.responseText);
+            document.getElementById('message').innerHTML = '<p>' + response.message + '</p>';
             setTimeout(function () {
                 document.getElementById('message').innerHTML = '';
             }, 8000);
             updateTable();
-            $("#waitImg").hide(); // Hide the loading image on success
+            $("#waitImg").hide(); // Hide the loading image on failure
+            document.getElementsByName('Source_URL')[0].value = '';
         }
     };
 
@@ -586,7 +589,8 @@ function updateTable(searchTerm) {
                 
                 // Extract the last modified date and format it as needed
                 // var lastModifiedDate = new Date(blob.last_modified).toLocaleDateString();
-                var Date = blob.date
+                // Replace 'T' with a space and remove the timezone part
+                var Date = blob.date.replace("T", " ").split("+")[0];
 
                 // Construct the row with customized column headers
                 var checkboxValue, nameDisplay;
