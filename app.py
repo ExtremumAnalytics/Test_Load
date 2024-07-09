@@ -310,7 +310,7 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
         g.flag = 0  # Set flag to 0 on error
         logger.error("Function upload_to_blob error", exc_info=True)
         return f"Error: {str(e)}"
- 
+
 
 # def upload_to_blob(file_content, session, blob_service_client, container_name):
 #     """Uploads a file to Azure Blob Storage with enhanced security and error handling.
@@ -2176,7 +2176,7 @@ def popup_form():
                     lang = request.form.get('selected_language', False)
                     print("lang------>", lang)
                     if lang and '.pdf' in file.filename:
-                        extract_text_from_pdf(file)
+                        extract_text_from_pdf(file, lang)
                         scan_source = True
                     elif lang:
                         extract_text_from_image(file, lang)
@@ -2981,7 +2981,7 @@ async def delete_files():
 
 
 @app.route("/table_update", methods=['GET'])
-def get_data_source():
+def table_update():
     try:
         # Initialize SearchClient
         search_client = SearchClient(
@@ -3035,7 +3035,10 @@ def get_data_source():
             if 'https://' or 'http://' in blob.name:
                 # print("name------>URL", blob.name)
                 name_source = blob.name.split(str(session['login_pin']) + '/')[1]
-                # print("name_source--->", name_source)
+                # Extract the last_modified date
+                date = blob['last_modified'].date()
+                date_str = date.isoformat()  # Convert the date object to an ISO 8601 string
+                # print("date--------->", date_str)
             if blob.name.split('/')[2] != 'draft':
                 file_name = blob.name.split('/')[2]
                 if file_name and name_source in VecTor_liSt:
@@ -3051,6 +3054,7 @@ def get_data_source():
 
                 data.append({
                     'name': file_name,
+                    'date': date_str,
                     'source_url': name_source,
                     'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
                     'status': status

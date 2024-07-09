@@ -480,7 +480,6 @@ function isImage(filename) {
            filename.toLowerCase().endsWith('.png');
 }
 
-
 // function updateTable(searchTerm) {
 //     $.ajax({
 //         url: '/table_update',
@@ -489,28 +488,37 @@ function isImage(filename) {
 //         success: function(response) {
 //             // Clear existing table rows
 //             $('#table-body').empty();
-            
+           
 //             // Populate the table with new data
 //             response.forEach(function(blob) {
 //                 // Extract the name from the URL
 //                 var url_blob = blob.source_url;
 //                 var name = blob.name.split('/').pop();
-                
+               
 //                 // If search term is provided and the filename doesn't match, skip
 //                 if (searchTerm && name.toLowerCase().indexOf(searchTerm.toLowerCase()) === -1) {
 //                     return;
 //                 }
-
+ 
 //                 // Construct the row with customized column headers
 //                 var checkboxValue, nameDisplay;
 
-//                 if (url_blob) {
+//               if (blob.name === "https:") {
+//                     // Split the URL by slashes
+//                     const parts = url_blob.split('/');
+                    
+//                     // Extract the specific parts
+//                     const domain = parts[2]; // "flask-socketio.readthedocs.io"
+//                     lastPart = parts[parts.length - 1]; // "flask_socketio.SocketIOTestClient.get_received"
+
 //                     checkboxValue = url_blob;
-//                     nameDisplay = url_blob.replace("https://", "");
+//                     nameDisplay = domain +'/' + lastPart; // Extracted domain
 //                 } else {
 //                     checkboxValue = blob.name;
 //                     nameDisplay = blob.name;
+//                     lastPart = ""; // No last part to display when blob.name is not "https:"
 //                 }
+
 //                 var row = '<tr>' +
 //                           '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + checkboxValue + '"></td>' +
 //                           '<td>' + nameDisplay + '</td>' +
@@ -531,7 +539,7 @@ function isImage(filename) {
 //                 } else if (isPowerPoint(name)) {
 //                     // If it's a PowerPoint presentation, open it in a new tab
 //                     row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
-//                 } else if (url_blob) {
+//                 } else if (blob.name === "https:") {
 //                     row += '<a href="' + url_blob + '" target="_blank">View Website</a>';
 //                 } else {
 //                     // If it's none of the above, open it directly in the browser
@@ -540,10 +548,10 @@ function isImage(filename) {
 
 //                 row += '</td><td class="action-links">';
                 
-//                 if (url_blob) {
-//                     row += 'N/A';
+//                 if (blob.name === "https:") {
+//                     row += 'N/A';  // Display 'N/A' if url_blob exists
 //                 } else {
-//                     row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';
+//                     row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';  // Provide download link if url_blob doesn't exist
 //                 }
 
 //                 row += '</td><td>' + blob.status + '</td></tr>';
@@ -564,22 +572,26 @@ function updateTable(searchTerm) {
         success: function(response) {
             // Clear existing table rows
             $('#table-body').empty();
-           
+            
             // Populate the table with new data
             response.forEach(function(blob) {
                 // Extract the name from the URL
                 var url_blob = blob.source_url;
                 var name = blob.name.split('/').pop();
-               
+                
                 // If search term is provided and the filename doesn't match, skip
                 if (searchTerm && name.toLowerCase().indexOf(searchTerm.toLowerCase()) === -1) {
                     return;
                 }
- 
+                
+                // Extract the last modified date and format it as needed
+                // var lastModifiedDate = new Date(blob.last_modified).toLocaleDateString();
+                var Date = blob.date
+
                 // Construct the row with customized column headers
                 var checkboxValue, nameDisplay;
 
-              if (blob.name === "https:") {
+                if (blob.name === "https:") {
                     // Split the URL by slashes
                     const parts = url_blob.split('/');
                     
@@ -588,7 +600,7 @@ function updateTable(searchTerm) {
                     lastPart = parts[parts.length - 1]; // "flask_socketio.SocketIOTestClient.get_received"
 
                     checkboxValue = url_blob;
-                    nameDisplay = domain +'/' + lastPart; // Extracted domain
+                    nameDisplay = domain + '/' + lastPart; // Extracted domain
                 } else {
                     checkboxValue = blob.name;
                     nameDisplay = blob.name;
@@ -630,7 +642,9 @@ function updateTable(searchTerm) {
                     row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';  // Provide download link if url_blob doesn't exist
                 }
 
-                row += '</td><td>' + blob.status + '</td></tr>';
+                row += '</td><td>' + blob.status + '</td>' +
+                       '<td>' + Date + '</td>' + // Add the date column
+                       '</tr>';
                 $('#table-body').append(row);
             });
         },
@@ -640,9 +654,6 @@ function updateTable(searchTerm) {
     });
 }
 
-
-// Set interval to check session status
-// setInterval(updateTable, 15000); // Check every 2 seconds
 
 // Function to set all checkboxes to the same state as the "Select All" checkbox
 function toggleSelectAll(selectAllCheckbox) {
