@@ -580,7 +580,7 @@ def update_when_file_delete():
         if blob_list_length != 0:
             for blob in result_loop1:
                 if check_stop_flag():
-                    # write_stop_flag_to_csv(session['login_pin'], 'False')
+                    write_stop_flag_to_csv(session['login_pin'], 'False')
                     print("Data Load Cancelled")
                     break
                 if 'https://' or 'http://' in blob.name:
@@ -632,7 +632,7 @@ def update_when_file_delete():
                     session['embedding_not_created'].append(file_name)
                     socketio.emit('pending', session['embedding_not_created'])
                 if check_stop_flag():
-                    # write_stop_flag_to_csv(session['login_pin'], 'False')
+                    write_stop_flag_to_csv(session['login_pin'], 'False')
                     print("Data Load Cancelled")
                     break
 
@@ -779,7 +779,7 @@ def update_when_file_delete():
                 socketio.emit('success', session['progress_files'])
 
                 if check_stop_flag():
-                    # write_stop_flag_to_csv(session['login_pin'], 'False')
+                    write_stop_flag_to_csv(session['login_pin'], 'False')
                     print("Data Load Cancelled")
                     break
 
@@ -888,6 +888,10 @@ def generate_word_cloud(text_word_cloud):
     """
     # Tokenize karein
     tokens = word_tokenize(text_word_cloud)
+
+    # # Generate WordCloud with specified width and height
+    # font_path = os.path.abspath(os.path.join('static', 'images', 'NotoSans-Regular.ttf'))
+    # font_path = font_path,
 
     # Generate WordCloud with specified width and height
     wordcloud = WordCloud(width=1200, height=800,
@@ -2815,7 +2819,7 @@ def ask():
 
 @socketio.on('ask_question')
 def handle_ask_question(data):
-    # Update progress to 0%
+    # Update progress to 10%
     emit('progress', {'percentage': 10, 'pin': session['login_pin']})
     global senti_text_Q_A
     start_time = time.time()
@@ -2837,13 +2841,14 @@ def handle_ask_question(data):
         # Create the conversation chain handler
         conversation_chain_handler = get_conversation_chain(vector_store, Source)
         response = conversation_chain_handler(question)
+
+        # print(response)
+
         # Update progress to 50%
         emit('progress', {'percentage': 50, 'pin': session['login_pin']})
-        time.sleep(0.01)
         sorry_phrases = ['No information available to answer the question.']
 
-        # Check if the response starts with any sorry phrases or has no source documents or if the first source
-        # document is empty
+        # Check if the response starts with any sorry phrases or has no source documents or if the first source document is empty
         if (
                 any(response["answer"].startswith(phrase) for phrase in sorry_phrases) or
                 not response.get("source_documents") or
@@ -2856,11 +2861,19 @@ def handle_ask_question(data):
             seen_pages = set()
             doc_source = []
             doc_page_num = []
+            docx_sources = []
+            docx_page = []
 
             # Iterate over source documents in the response
             for doc in response["source_documents"]:
-                source = doc.metadata.get("source", "N/A")
-                page = doc.metadata.get("page", "N/A")
+                source = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/" + doc.metadata.get(
+                    "source", "N/A")
+                page = doc.metadata.get("page", "N|A")
+
+                # Add the source to the set of sources
+                if source.endswith('.docx'):
+                    docx_sources.append(source)
+                    docx_page.append(page)
 
                 # Adjust the page number to start from 1 if it starts from 0
                 if isinstance(page, int) and page == 0:
@@ -2871,16 +2884,24 @@ def handle_ask_question(data):
                 page_str = str(page)
 
                 # Add source and page to the lists if the page has not been seen before
-                if page_str not in seen_pages:
+                # if page_str == "N|A" or page_str not in seen_pages:
+                if page_str not in seen_pages and page_str != 'N|A':
                     seen_pages.add(page_str)
                     doc_source.append(source)
                     doc_page_num.append(page_str)
-                if Source == "all":
-                    doc_source.append("Web|Internet")
-                    doc_page_num.append("N|A")
+
+                    # if source.endswith('.docx'):
+                    #     doc_source = docx_sources
+                    #     doc_page_num.append(page_str)
+            doc_source.extend(list(set(docx_sources)))
+            doc_page_num.extend(docx_page)
         if Source == "webInternet":
             doc_source = ["Web|Internet"]
             doc_page_num = ["N|A"]
+
+        if Source == "all":
+            doc_source.append("Web|Internet")
+            doc_page_num.append("N|A")
 
         # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
         final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
@@ -2899,7 +2920,6 @@ def handle_ask_question(data):
 
         # Update progress to 75%
         emit('progress', {'percentage': 75, 'pin': session['login_pin']})
-        time.sleep(0.5)
 
         analyze_sentiment_Q_A(senti_text_Q_A)
         perform_lda___Q_A(senti_text_Q_A)
@@ -2917,7 +2937,7 @@ def handle_ask_question(data):
         g.flag = 0
         logger.error('Ask CogniLink answer generation error', exc_info=True)
         print("Exception of ask_question:", str(e))
-        emit('response', {'message': 'No data Load'})
+        emit('response', {'message': 'No response generated'})
 
 
 @socketio.on('clear_chat')
@@ -3345,7 +3365,7 @@ def extract_pdf_info_from_table(html_content):
     # Iterate over each row
     for row in rows:
         if check_stop_flag():
-            # write_stop_flag_to_csv(session['login_pin'], 'False')
+            write_stop_flag_to_csv(session['login_pin'], 'False')
             print("Web Crawling Cancelled")
             break
         # Extract data from each row
