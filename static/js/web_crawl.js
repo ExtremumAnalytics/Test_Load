@@ -24,53 +24,53 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // displayPDFFiles(data.pdf_files);
 });
 
-// Display PDF files in the table
-function displayPDFFiles(pdfFiles) {
-    const tableBody = document.querySelector('#pdfTable tbody');
+// // Display PDF files in the table
+// function displayPDFFiles(pdfFiles) {
+//     const tableBody = document.querySelector('#pdfTable tbody');
 
-    // Clear existing table rows
-    // tableBody.innerHTML = '';
+//     // Clear existing table rows
+//     // tableBody.innerHTML = '';
 
-    // Display PDF file details in table
-    pdfFiles.forEach(pdfFile => {
-        const row = document.createElement('tr');
-        const checkboxCell = document.createElement('td');
-        const nameCell = document.createElement('td');
-        const sizeCell = document.createElement('td');
-        const dateCell = document.createElement('td');
+//     // Display PDF file details in table
+//     pdfFiles.forEach(pdfFile => {
+//         const row = document.createElement('tr');
+//         const checkboxCell = document.createElement('td');
+//         const nameCell = document.createElement('td');
+//         const sizeCell = document.createElement('td');
+//         const dateCell = document.createElement('td');
 
-        const checkbox = document.createElement('input');
-        checkbox.id = 'select-checkbox';
-        checkbox.type = 'checkbox';
-        checkbox.onclick = function() { updateHeaderCheckbox(); }
-        // checkbox.addEventListener('change', function() {
-        //     if (this.checked) {
-        //         row.classList.add('selected');
-        //     } else {
-        //         row.classList.remove('selected');
-        //     }
-        // });
+//         const checkbox = document.createElement('input');
+//         checkbox.id = 'select-checkbox';
+//         checkbox.type = 'checkbox';
+//         checkbox.onclick = function() { updateHeaderCheckbox(); }
+//         // checkbox.addEventListener('change', function() {
+//         //     if (this.checked) {
+//         //         row.classList.add('selected');
+//         //     } else {
+//         //         row.classList.remove('selected');
+//         //     }
+//         // });
 
-        checkboxCell.appendChild(checkbox);
-        row.appendChild(checkboxCell);
+//         checkboxCell.appendChild(checkbox);
+//         row.appendChild(checkboxCell);
 
-        // Set the file name in the data-file-name attribute
-        row.dataset.fileName = pdfFile;
+//         // Set the file name in the data-file-name attribute
+//         row.dataset.fileName = pdfFile;
 
-        nameCell.textContent = pdfFile;
-        sizeCell.textContent = 'Size'; // You may replace 'Size' with actual file size if available
-        dateCell.textContent = 'Date'; // You may replace 'Date' with actual last modified date if available
+//         nameCell.textContent = pdfFile;
+//         sizeCell.textContent = 'Size'; // You may replace 'Size' with actual file size if available
+//         dateCell.textContent = 'Date'; // You may replace 'Date' with actual last modified date if available
 
-        row.appendChild(nameCell);
-        row.appendChild(sizeCell);
-        row.appendChild(dateCell);
+//         row.appendChild(nameCell);
+//         row.appendChild(sizeCell);
+//         row.appendChild(dateCell);
 
-        tableBody.appendChild(row);
-    });
+//         tableBody.appendChild(row);
+//     });
 
-    // Display count of PDF files
-    displayStats(pdfFiles.length);
-}
+//     // Display count of PDF files
+//     displayStats(pdfFiles.length);
+// }
 
 // Function to display statistics including total scraped files and count of PDF files
 function displayStats(totalScrapedFiles) {

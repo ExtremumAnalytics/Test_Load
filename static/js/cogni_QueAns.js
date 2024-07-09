@@ -22,6 +22,12 @@ function updateProgressBar(percentage) {
 function sendQuestion() {
     const socket = io();
     var question = document.getElementById("question").value.trim(); // Trim the question
+    var source = document.getElementById("selectSource").value; 
+
+    if (source==='default'){
+        alert('Please select a source!')
+        return;
+    }
 
     if (question === "") {
         alert("Ask Question!");
@@ -29,7 +35,7 @@ function sendQuestion() {
     }
     document.getElementById("waitImg").style.display = 'block'; // Show the loading image
 
-    socket.emit('ask_question', { question: question });
+    socket.emit('ask_question', { question: question, source: source });
 
     socket.on('progress', function(data) {
         if (data.pin === pin) {
