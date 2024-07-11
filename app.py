@@ -1104,7 +1104,6 @@ def get_conversation_chain(vectorstore, source):
     deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name)
 
-
     CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
 
     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
@@ -1233,6 +1232,17 @@ class UserDetails(db.Model):
     modified_date = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     status = db.Column(db.String(20), nullable=False)
     login_pin = db.Column(db.String(20), nullable=False)
+
+
+# Define ChatHistory table
+class ChatHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    login_pin = db.Column(db.String(20), nullable=False)
+    question = db.Column(db.Text, nullable=False)
+    answer = db.Column(db.Text, nullable=False)
+    source = db.Column(db.Text, nullable=False)
+    page_number = db.Column(db.Text, nullable=False)
+    created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 
 def analyze_sentiment_summ(senti_text_summ):
@@ -1593,6 +1603,9 @@ def log_out_forall():
         # faiss_path = os.path.join(folder_name, 'faiss_index')
         wordcloud_image = os.path.join(folder_name, 'wordcloud.png')
 
+        # Clear the ChatHistory table
+        db.session.query(ChatHistory).delete()
+        db.session.commit()
         # # # Remove 'final_chunks.pkl' if it exists within the session folder
         # if os.path.exists(pickle_file_path):
         #     os.remove(pickle_file_path)
@@ -1713,7 +1726,7 @@ env_mapping_dict = {"http://cognilink-prod.azurewebsites.net/": "prod",
 @app.route("/", methods=["GET", "POST"])
 def home():
     global logger
-    print("request.url------>", request.base_url)
+    # print("request.url------>", request.base_url)
     role_names = UserRole.query.with_entities(UserRole.name.distinct()).all()
 
     if request.method == "POST":
@@ -1732,9 +1745,9 @@ def home():
             session.modified = True
             session['logged_in'] = True
             # taking base url
-            print("request.url------>", request.base_url)
+            # print("request.url------>", request.base_url)
             session['env_map'] = env_mapping_dict.get(request.base_url)
-            print("session['env_map']------>", session['env_map'])
+            # print("session['env_map']------>", session['env_map'])
             session['login_pin'] = user.login_pin
             session['user_name'] = f"{user.first_name.title()} {user.last_name.title()}"
             session['engine'] = engine
@@ -1789,7 +1802,7 @@ def home():
             g.flag = 1
             logger.info(f"User {str(session['login_pin'])} logged in successfully")
             update_bar_chart_from_blob(session, blob_service_client, container_name)
-            print(session['user_name'])
+            # print(session['user_name'])
             vector_store: AzureSearch = AzureSearch(
                 azure_search_endpoint=vector_store_address,
                 azure_search_key=vector_store_password,
@@ -2105,7 +2118,7 @@ def extract_text_from_pdf(file_obj, language):
             logger.info(f"Extracted text from pdf in {elapsed_time} seconds")
         else:
             g.flag = 0
-            logger.error(f"Text not extracted from pdf", exc_info = True)
+            logger.error(f"Text not extracted from pdf", exc_info=True)
             print("The operation did not succeed.")
 
     except Exception as e:
@@ -2335,6 +2348,7 @@ def popup_form():
         g.flag = 0
         logger.error('Invalid request method')
         return jsonify({'message': 'Invalid request method'}), 405
+
 
 @socketio.on('run_query')
 def run_query(data):
@@ -2924,7 +2938,17 @@ def handle_ask_question(data):
         analyze_sentiment_Q_A(senti_text_Q_A)
         perform_lda___Q_A(senti_text_Q_A)
 
-        session['chat_history_qa'].extend(chat_history_list)
+        # Save chat history to the database
+        for entry in chat_history_list:
+            new_chat = ChatHistory(
+                login_pin=session['login_pin'],
+                question=entry['question'],
+                answer=entry['answer'],
+                source=entry['source'],
+                page_number=entry['page_number']
+            )
+            db.session.add(new_chat)
+        db.session.commit()
 
         # Update progress to 100%
         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
@@ -2932,7 +2956,15 @@ def handle_ask_question(data):
         g.flag = 1
         logger.info(f'Answer Generated in {elapsed_time} seconds')
 
-        emit('response', {'chat_history': session['chat_history_qa'][::-1]})
+        # Retrieve chat history from the database
+        chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+        chat_history = [{"question": chat.question,
+                         "answer": chat.answer,
+                         "source": chat.source,
+                         "page_number": chat.page_number}
+                        for chat in chat_history_from_db]
+
+        emit('response', {'chat_history': chat_history[::-1]})
     except Exception as e:
         g.flag = 0
         logger.error('Ask CogniLink answer generation error', exc_info=True)
@@ -2943,6 +2975,9 @@ def handle_ask_question(data):
 @socketio.on('clear_chat')
 def handle_clear_chat():
     try:
+        # Clear the ChatHistory table
+        db.session.query(ChatHistory).delete()
+        db.session.commit()
         # sentiment variable for Q_A
         session['lda_topics_Q_A'] = {}
         session['senti_Positive_Q_A'] = 0
