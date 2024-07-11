@@ -603,6 +603,61 @@ function isImage(filename) {
 //         }
 //     });
 // }
+async function downloadImage(blobUrl, filename) {
+    try {
+        // Fetch the blob from the URL with no-cors mode
+        const response = await fetch(blobUrl, { mode: 'no-cors' });
+
+        // Create a temporary URL for the blob
+        const url = URL.createObjectURL(new Blob([response.body], { type: 'image/jpeg' }));
+
+        // Create a temporary anchor element
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+
+        // Append the anchor to the document
+        document.body.appendChild(a);
+
+        // Simulate a click on the anchor
+        a.click();
+
+        // Clean up by revoking the object URL and removing the anchor
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('Error downloading the image:', error);
+    }
+}
+
+// Function to download PDF from a blob URL
+async function downloadPDF(blobUrl, filename) {
+    try {
+        // Fetch the blob from the URL with no-cors mode
+        const response = await fetch(blobUrl, { mode: 'no-cors' });
+
+        // Create a temporary URL for the blob
+        const url = URL.createObjectURL(new Blob([response.body], { type: 'application/pdf' }));
+
+        // Create a temporary anchor element
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+
+        // Append the anchor to the document
+        document.body.appendChild(a);
+
+        // Simulate a click on the anchor
+        a.click();
+
+        // Clean up by revoking the object URL and removing the anchor
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('Error downloading the PDF:', error);
+    }
+}
+
 
 function updateTable(searchTerm) {
     $.ajax({
@@ -677,10 +732,16 @@ function updateTable(searchTerm) {
 
                 row += '</td><td class="action-links">';
                 
-                if (blob.name === "https:") {
+                if (isPDF(name)) {
+                    // Provide download link specifically for PDFs
+                    row += '<a href="javascript:void(0);" onclick="downloadPDF(\'' + blob.url + '\', \'' + name + '\')">Download</a>';
+                } else if (isImage(name)) {
+                    // Provide download link specifically for Images
+                    row += '<a href="javascript:void(0);" onclick="downloadImage(\'' + blob.url + '\', \'' + name + '\')">Download</a>';
+                } else if (blob.name === "https:") {
                     row += 'N/A';  // Display 'N/A' if url_blob exists
                 } else {
-                    row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';  // Provide download link if url_blob doesn't exist
+                    row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';  // Provide download link for other types
                 }
 
                 row += '</td><td>' + blob.status + '</td>' +
