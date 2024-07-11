@@ -1,0 +1,150 @@
+timestamp,category,user_id,function,line_number,flag,message,exception
+2024-07-11 12:54:38,ERROR,asif24,create_or_pass_folder,232,0,Function create_or_pass_folder error,"Function create_or_pass_folder error
+Traceback (most recent call last):
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\app.py"", line 225, in create_or_pass_folder
+    container_client.get_blob_client(container_name, user_folder).upload_blob("""")
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\azure\core\tracing\decorator.py"", line 78, in wrapper_use_tracer
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\azure\storage\blob\_blob_client.py"", line 765, in upload_blob
+    return upload_block_blob(**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\azure\storage\blob\_upload_helpers.py"", line 195, in upload_block_blob
+    process_storage_error(error)
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\azure\storage\blob\_shared\response_handlers.py"", line 184, in process_storage_error
+    exec(""raise error from None"")   # pylint: disable=exec-used # nosec
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""<string>"", line 1, in <module>
+azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
+RequestId:f85a5136-b01e-0009-1963-d36f88000000
+Time:2024-07-11T07:24:38.4077512Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:f85a5136-b01e-0009-1963-d36f88000000
+Time:2024-07-11T07:24:38.4077512Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
+2024-07-11 12:54:38,ERROR,asif24,create_or_pass_folder,241,0,"Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:f85a5136-b01e-0009-1963-d36f88000000
+Time:2024-07-11T07:24:38.4077512Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:f85a5136-b01e-0009-1963-d36f88000000
+Time:2024-07-11T07:24:38.4077512Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> ","Function create_or_pass_folder Error creating folder'asif24': Value for one of the query parameters specified in the request URI is invalid.
+RequestId:f85a5136-b01e-0009-1963-d36f88000000
+Time:2024-07-11T07:24:38.4077512Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:f85a5136-b01e-0009-1963-d36f88000000
+Time:2024-07-11T07:24:38.4077512Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error> 
+Traceback (most recent call last):
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\app.py"", line 225, in create_or_pass_folder
+    container_client.get_blob_client(container_name, user_folder).upload_blob("""")
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\azure\core\tracing\decorator.py"", line 78, in wrapper_use_tracer
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\azure\storage\blob\_blob_client.py"", line 765, in upload_blob
+    return upload_block_blob(**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\azure\storage\blob\_upload_helpers.py"", line 195, in upload_block_blob
+    process_storage_error(error)
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\azure\storage\blob\_shared\response_handlers.py"", line 184, in process_storage_error
+    exec(""raise error from None"")   # pylint: disable=exec-used # nosec
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""<string>"", line 1, in <module>
+azure.core.exceptions.HttpResponseError: Value for one of the query parameters specified in the request URI is invalid.
+RequestId:f85a5136-b01e-0009-1963-d36f88000000
+Time:2024-07-11T07:24:38.4077512Z
+ErrorCode:InvalidQueryParameterValue
+queryparametername:snapshot
+queryparametervalue:asif24
+Content: <?xml version=""1.0"" encoding=""utf-8""?>
+<Error><Code>InvalidQueryParameterValue</Code><Message>Value for one of the query parameters specified in the request URI is invalid.
+RequestId:f85a5136-b01e-0009-1963-d36f88000000
+Time:2024-07-11T07:24:38.4077512Z</Message><QueryParameterName>snapshot</QueryParameterName><QueryParameterValue>asif24</QueryParameterValue></Error>"
+2024-07-11 12:54:38,INFO,asif24,home,1802,1,User asif24 logged in successfully,
+2024-07-11 12:54:38,INFO,asif24,update_bar_chart_from_blob,419,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-07-11 12:54:43,INFO,asif24,update_bar_chart_from_blob,419,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-07-11 12:54:49,INFO,asif24,update_bar_chart_from_blob,419,1,Function update_bar_chart_from_blob successfully Return blob_list,
+2024-07-11 12:54:49,INFO,asif24,table_update,3289,1,table_update route successfully sent data in 4.076963186264038 seconds,
+2024-07-11 12:55:11,INFO,asif24,get_conversation_chain,1122,1,Retrieval content from conversational chain,
+2024-07-11 12:55:15,INFO,asif24,analyze_sentiment_Q_A,1316,1,Ask QnA sentiments analyzed,
+2024-07-11 12:55:15,INFO,asif24,perform_lda___Q_A,1398,1,QnA topics generated.,
+2024-07-11 12:55:15,ERROR,asif24,handle_ask_question,2969,0,Ask CogniLink answer generation error,"Ask CogniLink answer generation error
+Traceback (most recent call last):
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\engine\base.py"", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\engine\default.py"", line 922, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: no such table: chat_history
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\app.py"", line 2950, in handle_ask_question
+    db.session.commit()
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\scoping.py"", line 598, in commit
+    return self._proxied.commit()
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\session.py"", line 1969, in commit
+    trans.commit(_to_root=True)
+  File ""<string>"", line 2, in commit
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\state_changes.py"", line 139, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\session.py"", line 1256, in commit
+    self._prepare_impl()
+  File ""<string>"", line 2, in _prepare_impl
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\state_changes.py"", line 139, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\session.py"", line 1231, in _prepare_impl
+    self.session.flush()
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\session.py"", line 4312, in flush
+    self._flush(objects)
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\session.py"", line 4447, in _flush
+    with util.safe_reraise():
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py"", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\session.py"", line 4408, in _flush
+    flush_context.execute()
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py"", line 466, in execute
+    rec.execute(self)
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py"", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py"", line 93, in save_obj
+    _emit_insert_statements(
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py"", line 1227, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\engine\base.py"", line 1416, in execute
+    return meth(
+           ^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\sql\elements.py"", line 517, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\engine\base.py"", line 1639, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\engine\base.py"", line 1848, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\engine\base.py"", line 1988, in _exec_single_context
+    self._handle_dbapi_exception(
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\engine\base.py"", line 2344, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\engine\base.py"", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File ""C:\Users\Asif Ansari.DESKTOP-TFHGSOM\Desktop\dev-letest-code\Test_Load\.venv\Lib\site-packages\sqlalchemy\engine\default.py"", line 922, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: chat_history
+[SQL: INSERT INTO chat_history (login_pin, question, answer, source, page_number, created_date) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) RETURNING id, created_date]
+[parameters: ('asif24', 'who is asif', 'Asif is a Data Scientist with experience in data engineering, machine learning, and debugging/firmware development. He has worked as an Associate Ana ... (56 characters truncated) ... ning Trainee at 83Incs Softech Pvt Ltd. Asif has a Master of Computer Applications and a Bachelor of Science degree in Electronics and Communication.', 'https://testcongnilink.blob.core.windows.net/congnilink-container/cognilink-dev/asif24/Mohd_Asif_Ansari.pdf', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)"
