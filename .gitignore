@@ -20,7 +20,3 @@ __pycache__/
 Thumbs.db
 # IntelliJ IDEA project files
 .idea/
-.yml
-.jpg
-.png
-.csv
