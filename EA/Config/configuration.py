@@ -65,4 +65,4 @@ container_client = blob_service_client.get_container_client(container_name)
 embeddings = AzureOpenAIEmbeddings(azure_deployment='text-embedding')
 
 # Print a message indicating the environment
-print("Running in production" if IS_PRODUCTION else "Running in development")
+# print("Running in production" if IS_PRODUCTION else "Running in development")
