@@ -7,6 +7,7 @@ import re
 import docx
 import asyncio
 import pytz
+from werkzeug.utils import secure_filename
 
 from azure.search.documents._generated.models import SearchMode
 from azure.search.documents.indexes._generated.models import SemanticConfiguration, SemanticPrioritizedFields, \
@@ -46,6 +47,9 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.llm import LLMChain
 from langchain.schema import Document
+from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+from langchain.tools import DuckDuckGoSearchRun
+from langchain.schema import AIMessage
 
 # for azure vector db index creation
 from azure.search.documents import SearchClient
@@ -370,9 +374,6 @@ def update_when_file_delete():
     session['embedding_not_created'] = []
     session['failed_files'] = []
     session['progress_files'] = []
-    folder_name_azure = str(session['login_pin'])
-    folder_name = os.path.join('static', 'login', folder_name_azure)
-    # file_path = os.path.join(folder_name, 'summary_chunk.pkl')
     all_blobs = blob_service_client.get_container_client(container_name).list_blobs(
         name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
     all_blobs_list = list(all_blobs)  # Convert to list to enable filtering
@@ -383,27 +384,17 @@ def update_when_file_delete():
             blob.name.endswith('.jpg') or
             blob.name.endswith('.png') or
             blob.name.endswith('.text') or
-            blob.name.endswith('.jpeg'))]
+            blob.name.endswith('.jpeg') or
+            blob.name.endswith('.mp3'))]
 
     # Update session counts for CSV files directly
     csv_files_count = len(all_blobs_list) - len(blob_list)
     tot_suc += csv_files_count
 
-    # Mark CSV files as successfully read
-    # Step 1: Create a set of .mp3 file names without extensions
-    mp3_files = {blob['name'][:-4] for blob in blob_list if blob['name'].endswith('.mp3')}
-
-    # Step 2: Filter the blob_list to exclude .pdf files that have a corresponding .mp3 file
-    new_blob_list = [blob for blob in blob_list if
-                     not (blob['name'].endswith('.pdf') and blob['name'][:-4] in mp3_files)]
-
-    blob_list_jpg = [blob for blob in new_blob_list if not (
-            blob.name.endswith('.jpg') or
-            blob.name.endswith('.JPG') or
-            blob.name.endswith('.PNG') or
-            blob.name.endswith('.png') or
-            blob.name.endswith('.jpeg') or
-            blob.name.endswith('.JPEG'))]
+    blob_list_jpg = [blob for blob in blob_list if not (
+            blob.name.endswith('.jpg') or blob.name.endswith('.JPG') or blob.name.endswith(
+        '.PNG') or blob.name.endswith('.png') or blob.name.endswith(
+        '.jpeg') or blob.name.endswith('.JPEG'))]
 
     # Initialize SearchClient
     search_client = SearchClient(
@@ -413,7 +404,7 @@ def update_when_file_delete():
     )
     results = search_client.search(search_text="*", select="*", include_total_count=True)
 
-    vector_list = []
+    VecTor_liSt = []
 
     unique_documents = set()
 
@@ -422,14 +413,14 @@ def update_when_file_delete():
         # print(embeddings_dict)  # This prints the embeddings_dict for each result
         document = embeddings_dict.get('documents')
         if document and document not in unique_documents:
-            vector_list.append(document)
+            VecTor_liSt.append(document)
             unique_documents.add(document)
 
     # Filtering out blobs whose names are in VecTor_liSt
     result_loop = [blob for blob in blob_list_jpg if
-                   not any(blob['name'].endswith(item) for item in vector_list)]
+                   not any(blob['name'].endswith(item) for item in VecTor_liSt)]
 
-    # Further filtering based on vector_list
+    # Further filtering based on VecTor_liSt
     result_loop1 = []
     for blob in result_loop:
         # Extract the URL part for comparison
@@ -439,7 +430,7 @@ def update_when_file_delete():
             url_part = blob['name']
 
         # Append to result_loop if the URL part is not in VecTor_liSt
-        if url_part not in vector_list:
+        if url_part not in VecTor_liSt:
             result_loop1.append(blob)
 
     blob_list_length = len(result_loop1)
@@ -472,15 +463,15 @@ def update_when_file_delete():
                     session['embedding_not_created'].append(url_part)
                     socketio.emit('pending', session['embedding_not_created'])
 
-                blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
+                blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
                 file_name = blob.name.split('/')[-1]  # Extract file name from blob path
                 if file_name.endswith('.pdf') or file_name.endswith('.PDF') or file_name.endswith('.mp3'):
-                    temp_path = blob_client_.url
+                    temp_path = blob_client.url
                 elif file_name.endswith('.xls') or file_name.endswith('.xlsx') or file_name.endswith(
                         '.docx') or file_name.endswith('.doc'):
                     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                         temp_path = temp_file.name
-                        blob_data = blob_client_.download_blob()
+                        blob_data = blob_client.download_blob()
                         blob_data.readinto(temp_file)
 
                 if '.pdf' in file_name or '.PDF' in file_name:
@@ -488,10 +479,10 @@ def update_when_file_delete():
                     session['embedding_not_created'].append(file_name)
                     socketio.emit('pending', session['embedding_not_created'])
 
-                elif '.mp3' in file_name:
-                    loader = AssemblyAIAudioTranscriptLoader(temp_path, api_key="5bbe5761b36b4ff885dbd18836c3c723")
-                    session['embedding_not_created'].append(file_name)
-                    socketio.emit('pending', session['embedding_not_created'])
+                # elif '.mp3' in file_name:
+                #     loader = AssemblyAIAudioTranscriptLoader(temp_path, api_key="5bbe5761b36b4ff885dbd18836c3c723")
+                #     session['embedding_not_created'].append(file_name)
+                #     socketio.emit('pending', session['embedding_not_created'])
 
                 elif '.docx' in file_name or '.doc' in file_name:
                     loader = Docx2txtLoader(temp_path)
@@ -528,44 +519,6 @@ def update_when_file_delete():
 
                 final_chunks.extend(chunks)
 
-                if '.mp3' in file_name and len(chunks) != 0:
-                    # file_name_without_extension = file_name.split('.')[0]
-                    file_name_without_extension = file_name.rsplit('.', 1)[0]
-                    temp_pdf_path = os.path.join(folder_name, f"{file_name_without_extension}.pdf")
-
-                    doc = SimpleDocTemplate(temp_pdf_path, pagesize=letter)
-                    styles = getSampleStyleSheet()
-                    flowables = []
-
-                    # Add a single heading for all chunks
-                    heading = "<font size=14><b>{}</b></font><br/><br/>".format(file_name_without_extension)
-                    flowables.append(Paragraph(heading, style=styles["Normal"]))
-
-                    # Combine all chunks' text into a single string
-                    combined_text = ""
-                    for i, chunk in enumerate(chunks):
-                        combined_text += chunk.page_content + "\n\n"
-
-                    # Add the combined text under the heading
-                    ptext = "<font size=12>{}</font>".format(combined_text)
-                    paragraph = Paragraph(ptext, style=styles["Normal"])
-                    flowables.append(paragraph)
-
-                    doc.build(flowables)
-                    session['progress_files'].append(file_name)
-                    file_name = os.path.basename(temp_pdf_path)
-
-                    with open(temp_pdf_path, "rb") as file:
-                        content = file.read()
-                    blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{file_name}"
-                    blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-                    blob_client_.upload_blob(content, blob_type="BlockBlob",
-                                             content_settings=ContentSettings(content_type="application/pdf"),
-                                             overwrite=True)
-                    session['progress_files'].append(file_name)
-
-                    os.remove(temp_pdf_path)
-
                 tot_suc += 1
                 if file_name not in session['failed_files']:
                     session['progress_files'].append(file_name)
@@ -594,24 +547,26 @@ def update_when_file_delete():
 
                 update_bar_chart_from_blob(session, blob_service_client, container_name)
                 socketio.emit('progress', {'percentage': 50, 'pin': session['login_pin']})
+                # gauge_source_chart_data = gauge_chart_auth()
+                # socketio.emit('update_gauge_chart', gauge_source_chart_data)
             socketio.emit('progress', {'percentage': 75, 'pin': session['login_pin']})
 
         if not check_stop_flag():
             print("Complete")
             elapsed_time = time.time() - start_time
-            g.flag = 1  # Set flag to 1 on success
+            g.flag = 1  # Set flag to 1 on success1
             logger.info(f"Function update_when_file_delete Data Loaded Successfully in {elapsed_time} seconds")
             return jsonify({"message": "Data loaded successfully"})
 
         else:
             print("Load Process Stopped")
             elapsed_time = time.time() - start_time
-            g.flag = 0  # Set flag to 1 on success
+            g.flag = 0  # Set flag to 1 on success1
             logger.info(f"Function update_when_file_delete Data Loaded unsuccessfully in {elapsed_time} seconds")
             return jsonify({"message": "Data loading cancelled!"})
 
     except Exception as e:
-        g.flag = 0  # Set flag to 1 on success
+        g.flag = 0  # Set flag to 1 on success1
         logger.error(f"Function update_when_file_delete error", exc_info=True)
         print("update_when_file_delete----->", str(e))
         return jsonify({'message': str(e)})
@@ -828,7 +783,6 @@ def get_conversation_chain(retriever, source):
                         """
     elif source == 'all':
         template = """Use both the content from the uploaded files also as well as search internet also and then combine or return the best possible answer.
-                    ALso list web in the sources if you have used web.
                     If you don't know the answer,just say that you don't know, don't try to make up an answer.
                     {context} 
                     Question: {question}
@@ -1399,6 +1353,7 @@ def handle_update_value(data):
     emit('size_value_updated', {'value': Limit_By_Size, 'message': 'Value updated successfully'})
 
 
+
 @app.route('/popup_form', methods=['POST'])
 def popup_form():
     global mb_pop, file_size_bytes
@@ -1445,6 +1400,63 @@ def popup_form():
                     elif lang:
                         extract_text_from_image(file, lang)
 
+                if file.filename.endswith('.mp3'):
+
+                    # print("mp3--------->file received", file.filename)
+                    folder_name = os.path.join('static', 'login', str(session['login_pin']))
+                    # Ensure the folder exists
+                    os.makedirs(folder_name, exist_ok=True)
+
+                    # Save the uploaded file to a temporary location
+                    filename = secure_filename(clean_filename(file.filename))
+                    temp_file_path = os.path.join(folder_name, filename)
+                    file.save(temp_file_path)
+
+                    # Upload the original MP3 file to blob storage
+                    blob_name_mp3 = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{filename}"
+                    blob_client_mp3 = blob_service_client.get_blob_client(container=container_name, blob=blob_name_mp3)
+                    with open(temp_file_path, "rb") as mp3_file:
+                        blob_client_mp3.upload_blob(mp3_file, blob_type="BlockBlob",
+                                                    content_settings=ContentSettings(content_type="audio/mpeg"),
+                                                    overwrite=True)
+
+                    loader = AssemblyAIAudioTranscriptLoader(temp_file_path, api_key="5bbe5761b36b4ff885dbd18836c3c723")
+                    chunks = loader.load_and_split()
+
+                    file_name_without_extension = filename.rsplit('.', 1)[0]  # Use filename instead of file.file_name
+                    temp_pdf_path = os.path.join(folder_name, f"{file_name_without_extension}.pdf")
+
+                    doc = SimpleDocTemplate(temp_pdf_path, pagesize=letter)
+                    styles = getSampleStyleSheet()
+                    flowables = []
+
+                    # Add a single heading for all chunks
+                    heading = "<font size=14><b>{}</b></font><br/><br/>".format(file_name_without_extension)
+                    flowables.append(Paragraph(heading, style=styles["Normal"]))
+
+                    # Combine all chunks' text into a single string
+                    combined_text = ""
+                    for i, chunk in enumerate(chunks):
+                        combined_text += chunk.page_content + "\n\n"
+
+                    # Add the combined text under the heading
+                    ptext = "<font size=12>{}</font>".format(combined_text)
+                    paragraph = Paragraph(ptext, style=styles["Normal"])
+                    flowables.append(paragraph)
+
+                    doc.build(flowables)
+                    file_name = os.path.basename(temp_pdf_path)
+
+                    with open(temp_pdf_path, "rb") as file:
+                        content = file.read()
+                    blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{file_name}"
+                    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+                    blob_client.upload_blob(content, blob_type="BlockBlob",
+                                            content_settings=ContentSettings(content_type="application/pdf"),
+                                            overwrite=True)
+
+                    os.remove(temp_pdf_path)
+
                 if not scan_source:
                     upload_to_blob(file, session, blob_service_client, container_name)
 
@@ -1459,8 +1471,8 @@ def popup_form():
                 return jsonify({'message': 'Source URL is not valid'}), 400
 
             blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{source_url}"
-            blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client_.upload_blob(source_url, blob_type="BlockBlob", overwrite=True)
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            blob_client.upload_blob(source_url, blob_type="BlockBlob", overwrite=True)
 
         update_bar_chart_from_blob(session, blob_service_client, container_name)
 
@@ -1585,7 +1597,7 @@ def stop_process(data):
         print('Stop Flag:', stop_flag)
 
         socketio.emit('stop_process_flag', {'flag': stop_flag, 'pin': login_pin})
-        # socketio.emit('button_response', {'message': 'Operation Cancelled', 'pin': session.get('login_pin')})
+        socketio.emit('button_response', {'message': 'Operation Cancelled', 'pin': session.get('login_pin')})
 
         g.flag = 1
         logger.info('Process is stopped or interrupted!!')
@@ -1756,159 +1768,234 @@ def handle_ask_question(data):
     global senti_text_q_a
     start_time = time.time()
     try:
-        data_source = data['source']
+        source = data['source']
         question = data['question']
-        question_embeddings = embeddings.embed_query(question)
 
-        search_client = SearchClient(
-            endpoint=vector_store_address,
-            index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
-            credential=AzureKeyCredential(vector_store_password)
-        )
+        if source == "webInternet":
+            print("Hi")
+            llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
 
-        # Perform the search
-        results = search_client.search(search_text=question_embeddings, select="*", top=5)
-        documents = []
-        for result in results:
-            doc = {
-                'content': result['content'],
-                'score': result['@search.score']  # Access the relevance score
-            }
-            documents.append(doc)
+            # Web search tool
+            wrapper = DuckDuckGoSearchAPIWrapper(max_results=25)
+            emit('progress', {'percentage': 25, 'pin': session['login_pin']})
+            web_search_tool = DuckDuckGoSearchRun(api_wrapper=wrapper)
 
-        sorted_documents = sorted(documents, key=lambda x: x['score'], reverse=True)
-        print("sorted documents------------>", sorted_documents)
+            context = web_search_tool.invoke({"query": question})
 
-        # faiss_index_path = os.path.join(folder_name, 'faiss_index')
-        vector_store: AzureSearch = AzureSearch(
-            azure_search_endpoint=vector_store_address,
-            azure_search_key=vector_store_password,
-            index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
-            embedding_function=embeddings.embed_query,
-            # retrieval_augmented_generation=True,
-        )
+            # print("context generated---------->",context)
+            generate_prompt = PromptTemplate(
+                template="""
 
-        # Update progress to 25%
-        emit('progress', {'percentage': 25, 'pin': session['login_pin']})
+                <|begin_of_text|>
 
-        # Create the conversation chain handler
-        retriever = vector_store.as_retriever(sorted_documents=sorted_documents)
-        conversation_chain_handler = get_conversation_chain(retriever, data_source)
-        response = conversation_chain_handler(question)
-        print("Conversational result----------->", response)
+                <|start_header_id|>system<|end_header_id|> 
 
-        # Update progress to 50%
-        emit('progress', {'percentage': 50, 'pin': session['login_pin']})
-        sorry_phrases = ['Sorry, there is no information available.', 'Sorry', 'I am sorry',
-                         "I can't see anyting relevant"]
+                You are an AI assistant for Web surfing, that synthesizes web search results. 
+                Strictly use the following pieces of web search context to answer the question. If you don't know the answer, just say that you don't know. 
+                keep the answer concise, and in a human friendly way. 
+                Only make direct references to material if provided in the context.
 
-        # Check if the response starts with any sorry phrases or has no source documents or if the first source document is empty
-        if (
-                any(response["answer"].startswith(phrase) for phrase in sorry_phrases) or
-                not response.get("source_documents") or
-                (response.get("source_documents") and not response["source_documents"][0])
-        ):
-            doc_source = ["N|A"]
-            doc_page_num = ["N|A"]
+                <|eot_id|>
+
+                <|start_header_id|>user<|end_header_id|>
+
+                Question: {question} 
+                Web Search Context: {context} 
+                Answer: 
+
+                <|eot_id|>
+
+                <|start_header_id|>assistant<|end_header_id|>""",
+                input_variables=["question", "context"],
+            )
+
+            # Chain
+            generate_chain = generate_prompt | llm
+            emit('progress', {'percentage': 50, 'pin': session['login_pin']})
+
+            answer = generate_chain.invoke({"question": question, "context": context})
+            response_content = answer.content if isinstance(answer, AIMessage) else str(answer)
+
+            chat_history_list = [{"question": question,
+                                  "answer": response_content,
+                                  "source": "Web/Internet",
+                                  "page_number": "N/A", }]
+            print("chat_history_list--->", chat_history_list)
+
+            # Save chat history to the database
+            for entry in chat_history_list:
+                new_chat = ChatHistory(
+                    login_pin=session['login_pin'],
+                    question=entry['question'],
+                    answer=entry['answer'],
+                    source=entry['source'],
+                    page_number=entry['page_number']
+                )
+                db.session.add(new_chat)
+            db.session.commit()
+            emit('progress', {'percentage': 75, 'pin': session['login_pin']})
+
+            senti_text_q_a = ' '.join(entry['answer'] for entry in chat_history_list)
+            analyze_sentiment_q_a(senti_text_q_a)
+            perform_lda___Q_A(senti_text_q_a)
+
+            # Retrieve chat history from the database
+            chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+            chat_history = [{"question": chat.question,
+                             "answer": chat.answer,
+                             "source": chat.source,
+                             "page_number": chat.page_number}
+                            for chat in chat_history_from_db]
+            emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+            emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
+
 
         else:
-            # Initialize a set to track seen pages and lists for sources and page numbers
-            seen_pages = set()
-            doc_source = []
-            doc_page_num = []
-            docx_sources = []
-            docx_page = []
+            question_embeddings = embeddings.embed_query(question)
 
-            # Iterate over source documents in the response
-            for doc in response["source_documents"]:
-                source = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/" + doc.metadata.get(
-                    "source", "N/A")
-                page = doc.metadata.get("page", "N|A")
-
-                # Add the source to the set of sources
-                if source.endswith('.docx'):
-                    docx_sources.append(source)
-                    docx_page.append(page)
-
-                # Adjust the page number to start from 1 if it starts from 0
-                if isinstance(page, int) and page == 0:
-                    page = 1
-                elif isinstance(page, int):
-                    page += 1
-
-                page_str = str(page)
-
-                # Add source and page to the lists if the page has not been seen before
-                # if page_str == "N|A" or page_str not in seen_pages:
-                if page_str not in seen_pages and page_str != 'N|A':
-                    seen_pages.add(page_str)
-                    doc_source.append(source)
-                    doc_page_num.append(page_str)
-
-            doc_source.extend(list(set(docx_sources)))
-            doc_page_num.extend(docx_page)
-        if data_source == "webInternet":
-            doc_source = ["Web|Internet"]
-            doc_page_num = ["N|A"]
-
-        if data_source == "all":
-            doc_source.append("Web|Internet")
-            doc_page_num.append("N|A")
-
-        # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
-        final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
-                            response['chat_history'][i + 1].content if response['chat_history'][i + 1] else "",
-                            ", ".join(doc_source), ", ".join(doc_page_num))
-                           for i in range(0, len(response['chat_history']), 2)]
-
-        # Create a list of dictionaries for the chat history
-        chat_history_list_ = [{"question": chat_pair[0],
-                               "answer": chat_pair[1],
-                               "source": chat_pair[2],
-                               "page_number": chat_pair[3]}
-                              for chat_pair in final_chat_hist]
-
-        senti_text_q_a = ' '.join(entry['answer'] for entry in chat_history_list_)
-
-        # Update progress to 75%
-        emit('progress', {'percentage': 75, 'pin': session['login_pin']})
-
-        analyze_sentiment_q_a(senti_text_q_a)
-        perform_lda___Q_A(senti_text_q_a)
-
-        # Save chat history to the database
-        for entry in chat_history_list_:
-            new_chat = ChatHistory(
-                login_pin=session['login_pin'],
-                question=entry['question'],
-                answer=entry['answer'],
-                source=entry['source'],
-                page_number=entry['page_number']
+            search_client = SearchClient(
+                endpoint=vector_store_address,
+                index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
+                credential=AzureKeyCredential(vector_store_password)
             )
-            db.session.add(new_chat)
-        db.session.commit()
 
-        # Generate follow-up question
-        chat_history = conversation_chain_handler.memory.chat_memory.messages
-        context = "Use the following pieces of context from the provided files only. Do not use any information from the internet to answer the question at the end."
-        follow_up_question = generate_followup_question(response['answer'], chat_history, context)
-        # print("Followup_question------------->", follow_up_question)
+            # Perform the search
+            results = search_client.search(search_text=question_embeddings, select="*", top=5)
+            documents = []
+            for result in results:
+                doc = {
+                    'content': result['content'],
+                    'score': result['@search.score']  # Access the relevance score
+                }
+                documents.append(doc)
 
-        # Update progress to 100%
-        emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-        elapsed_time = time.time() - start_time
-        g.flag = 1
-        logger.info(f'Answer Generated in {elapsed_time} seconds')
+            sorted_documents = sorted(documents, key=lambda x: x['score'], reverse=True)
+            print("sorted documents------------>", sorted_documents)
 
-        # Retrieve chat history from the database
-        chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
-        chat_history = [{"question": chat.question,
-                         "answer": chat.answer,
-                         "source": chat.source,
-                         "page_number": chat.page_number}
-                        for chat in chat_history_from_db]
+            vector_store: AzureSearch = AzureSearch(
+                azure_search_endpoint=vector_store_address,
+                azure_search_key=vector_store_password,
+                index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
+                embedding_function=embeddings.embed_query,
+            )
 
-        emit('response', {'answer': response['answer'], 'chat_history': chat_history[::-1], 'follow_up': follow_up_question})
+            # Update progress to 25%
+            emit('progress', {'percentage': 25, 'pin': session['login_pin']})
+
+            # Create the conversation chain handler
+            retriever = vector_store.as_retriever(sorted_documents=sorted_documents)
+            conversation_chain_handler = get_conversation_chain(retriever, source)
+            response = conversation_chain_handler(question)
+            print("Conversational result----------->", response)
+
+            # Update progress to 50%
+            emit('progress', {'percentage': 50, 'pin': session['login_pin']})
+            sorry_phrases = ['Sorry, there is no information available.', 'Sorry', 'I am sorry',
+                             "I can't see anyting relevant"]
+
+            if (
+                    any(response["answer"].startswith(phrase) for phrase in sorry_phrases) or
+                    not response.get("source_documents") or
+                    (response.get("source_documents") and not response["source_documents"][0])
+            ):
+                doc_source = ["N|A"]
+                doc_page_num = ["N|A"]
+
+            else:
+                # Initialize a set to track seen pages and lists for sources and page numbers
+                seen_pages = set()
+                doc_source = []
+                doc_page_num = []
+                docx_sources = []
+                docx_page = []
+
+                if source == "all":
+                    doc_source.append("Web|Internet")
+                    doc_page_num.append("N|A")
+
+                # Iterate over source documents in the response
+                for doc in response["source_documents"]:
+                    source = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/" + doc.metadata.get(
+                        "source", "N/A")
+                    page = doc.metadata.get("page", "N|A")
+
+                    # Add the source to the set of sources
+                    if source.endswith('.docx'):
+                        docx_sources.append(source)
+                        docx_page.append(page)
+
+                    # Adjust the page number to start from 1 if it starts from 0
+                    if isinstance(page, int) and page == 0:
+                        page = 1
+                    elif isinstance(page, int):
+                        page += 1
+
+                    page_str = str(page)
+
+                    # Add source and page to the lists if the page has not been seen before
+                    # if page_str == "N|A" or page_str not in seen_pages:
+                    if page_str not in seen_pages and page_str != 'N|A':
+                        seen_pages.add(page_str)
+                        doc_source.append(source)
+                        doc_page_num.append(page_str)
+
+                    doc_source.extend(list(set(docx_sources)))
+                    doc_page_num.extend(docx_page)
+
+            # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
+            final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
+                                response['chat_history'][i + 1].content if response['chat_history'][i + 1] else "",
+                                ", ".join(doc_source), ", ".join(doc_page_num))
+                               for i in range(0, len(response['chat_history']), 2)]
+
+            # Create a list of dictionaries for the chat history
+            chat_history_list = [{"question": chat_pair[0],
+                                  "answer": chat_pair[1],
+                                  "source": chat_pair[2],
+                                  "page_number": chat_pair[3]}
+                                 for chat_pair in final_chat_hist]
+
+            # Generate follow-up question
+            chat_history = conversation_chain_handler.memory.chat_memory.messages
+            context = "Use the following pieces of context from the provided files only. Do not use any information from the internet to answer the question at the end."
+            follow_up_question = generate_followup_question(response['answer'], chat_history, context)
+            # print("Followup_question------------->", follow_up_question)
+
+            senti_text_q_a = ' '.join(entry['answer'] for entry in chat_history_list)
+
+            # Update progress to 75%
+            emit('progress', {'percentage': 75, 'pin': session['login_pin']})
+
+            analyze_sentiment_q_a(senti_text_q_a)
+            perform_lda___Q_A(senti_text_q_a)
+
+            # Save chat history to the database
+            for entry in chat_history_list:
+                new_chat = ChatHistory(
+                    login_pin=session['login_pin'],
+                    question=entry['question'],
+                    answer=entry['answer'],
+                    source=entry['source'],
+                    page_number=entry['page_number']
+                )
+                db.session.add(new_chat)
+            db.session.commit()
+
+            # Update progress to 100%
+            emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+            elapsed_time = time.time() - start_time
+            g.flag = 1
+            logger.info(f'Answer Generated in {elapsed_time} seconds')
+
+            # Retrieve chat history from the database
+            chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+            chat_history = [{"question": chat.question,
+                             "answer": chat.answer,
+                             "source": chat.source,
+                             "page_number": chat.page_number}
+                            for chat in chat_history_from_db]
+
+            emit('response', {'chat_history': chat_history[::-1], 'follow_up': follow_up_question})
 
     except Exception as e:
         g.flag = 0
@@ -2015,10 +2102,8 @@ def table_update(search_term=None):
         # Exclude files from blobs_chart based on criteria
         blobs_chart = container_client.list_blobs(
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
-        blob_list = [blob for blob in blobs_chart if not (blob.name.lower().endswith('.csv'))]
-        mp3_files = {blob.name[:-4] for blob in blob_list if blob.name.endswith('.mp3')}
-        new_blob_list = [blob for blob in blob_list if not (blob.name.endswith('.pdf') and blob.name[:-4] in mp3_files)]
-        new_blob_list_jpg = [blob for blob in new_blob_list if
+        blob_list = [blob for blob in blobs_chart if not (blob.name.lower().endswith('.csv') or blob.name.lower().endswith('.mp3'))]
+        new_blob_list_jpg = [blob for blob in blob_list if
                              not (blob.name.lower().endswith('.jpg') or blob.name.lower().endswith(
                                  '.png') or blob.name.lower().endswith('.jpeg'))]
 

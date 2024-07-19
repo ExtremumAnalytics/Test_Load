@@ -87,22 +87,25 @@ function sendQuestion() {
         // Follow-up question
         var follow_up_question = document.getElementById("followUp");
         follow_up_question.innerHTML = ""; // Clear previous follow-up question
-        var followup_list = document.createElement('p');
-        follow_up_question.appendChild(followup_list);
-        followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + response.follow_up + "</button><br>";
+        if(response.follow_up === 'N/A'){
+           follow_up_question.style.display='none';
+        } else{
+            var followup_list = document.createElement('p');
+            follow_up_question.appendChild(followup_list);
+            followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + response.follow_up + "</button><br>";
 
-        // Attach event listener to follow-up button
-        document.getElementById('followUpButton').addEventListener('click', function() {
-            // Ensure response.follow_up is defined and replace the specified string
-            if (response && response.follow_up) {
-                var strippedString = response.follow_up.replace("Do you also want to know", "").replace("Do you also want to know about", "");
-                document.getElementById("question").value = strippedString.trim();
-                sendQuestion(); // Call sendQuestion again with the follow-up question
-            } else {
-                // console.error("response.follow_up is not defined");
-            }
-        });
-
+            // Attach event listener to follow-up button
+            document.getElementById('followUpButton').addEventListener('click', function() {
+                // Ensure response.follow_up is defined and replace the specified string
+                if (response && response.follow_up) {
+                    var strippedString = response.follow_up.replace("Do you also want to know", "").replace("Do you also want to know ", "");
+                    document.getElementById("question").value = strippedString.trim();
+                    sendQuestion(); // Call sendQuestion again with the follow-up question
+                } else {
+                    // console.error("response.follow_up is not defined");
+                }
+            });
+        }
         document.getElementById("question").value = ""; // Clear the question input
     });
 }
