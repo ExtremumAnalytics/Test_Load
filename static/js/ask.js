@@ -52,14 +52,29 @@ function sendQuestion() {
         // Display chat history
         var historyContainer = document.getElementById("questionAnswer");
         historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
+        
+        console.log(response.answer);
 
         var historyList = document.getElementById("chatHistoryList");
         response.chat_history.forEach(function(item) {
+
             var listItem = document.createElement('li');
-            listItem.innerHTML = "<strong>Question:</strong> " + item.question + "<br>" +
-                "<strong>Answer:</strong> " + item.answer.replace(/- /g, "<br>- ")+ "<br>" +
-                "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong> </a><br><br>";
+            var question = "Question: " + item.question;
+            var answer = "<b>" + "Answer: \n" + "</b>" + item.answer; //.replace(/- /g, "\n- ");
+            var sourceLink = "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong></a>";
+
+            var content ="<b>"+ question +"</b>"+ "\n" + answer + "\n" + sourceLink + "\n\n";
+
+            var preElement = document.createElement('pre');
+            preElement.innerHTML = content;
+            preElement.classList.add('formatted-pre');
+            // Set the CSS properties to handle overflow
+            preElement.style.whiteSpace = 'pre-wrap'; // Allows text to wrap
+            preElement.style.overflowX = 'hidden';    // Hides horizontal overflow
+            preElement.style.overflowY = 'auto';      // Allows vertical overflow (optional)
+            listItem.appendChild(preElement);
             historyList.appendChild(listItem);
+
         });
 
         // Attach event listeners to source links
@@ -72,22 +87,25 @@ function sendQuestion() {
         // Follow-up question
         var follow_up_question = document.getElementById("followUp");
         follow_up_question.innerHTML = ""; // Clear previous follow-up question
-        var followup_list = document.createElement('p');
-        follow_up_question.appendChild(followup_list);
-        followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + response.follow_up + "</button><br>";
+        if(response.follow_up === 'N/A'){
+           follow_up_question.style.display='none';
+        } else{
+            var followup_list = document.createElement('p');
+            follow_up_question.appendChild(followup_list);
+            followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + response.follow_up + "</button><br>";
 
-        // Attach event listener to follow-up button
-        document.getElementById('followUpButton').addEventListener('click', function() {
-            // Ensure response.follow_up is defined and replace the specified string
-            if (response && response.follow_up) {
-                var strippedString = response.follow_up.replace("Do you also want to know about", "");
-                document.getElementById("question").value = strippedString.trim();
-                sendQuestion(); // Call sendQuestion again with the follow-up question
-            } else {
-                // console.error("response.follow_up is not defined");
-            }
-        });
-
+            // Attach event listener to follow-up button
+            document.getElementById('followUpButton').addEventListener('click', function() {
+                // Ensure response.follow_up is defined and replace the specified string
+                if (response && response.follow_up) {
+                    var strippedString = response.follow_up.replace("Do you also want to know", "").replace("Do you also want to know ", "");
+                    document.getElementById("question").value = strippedString.trim();
+                    sendQuestion(); // Call sendQuestion again with the follow-up question
+                } else {
+                    // console.error("response.follow_up is not defined");
+                }
+            });
+        }
         document.getElementById("question").value = ""; // Clear the question input
     });
 }
