@@ -121,7 +121,7 @@ nltk.download('stopwords')
 nltk.download('punkt')
 
 
-global blob_client, logger, chat_history_list, Limit_By_Size, mb_pop, file_size_bytes, df, png_file
+global blob_client, logger, chat_history_list, Limit_By_Size, mb_pop, file_size_bytes, df, png_file, loader
 
 
 app = Flask(__name__, template_folder="Templates")
@@ -398,9 +398,12 @@ def update_when_file_delete():
                      not (blob['name'].endswith('.pdf') and blob['name'][:-4] in mp3_files)]
 
     blob_list_jpg = [blob for blob in new_blob_list if not (
-            blob.name.endswith('.jpg') or blob.name.endswith('.JPG') or blob.name.endswith(
-        '.PNG') or blob.name.endswith('.png') or blob.name.endswith(
-        '.jpeg') or blob.name.endswith('.JPEG'))]
+            blob.name.endswith('.jpg') or
+            blob.name.endswith('.JPG') or
+            blob.name.endswith('.PNG') or
+            blob.name.endswith('.png') or
+            blob.name.endswith('.jpeg') or
+            blob.name.endswith('.JPEG'))]
 
     # Initialize SearchClient
     search_client = SearchClient(
@@ -410,7 +413,7 @@ def update_when_file_delete():
     )
     results = search_client.search(search_text="*", select="*", include_total_count=True)
 
-    VecTor_liSt = []
+    vector_list = []
 
     unique_documents = set()
 
@@ -419,14 +422,14 @@ def update_when_file_delete():
         # print(embeddings_dict)  # This prints the embeddings_dict for each result
         document = embeddings_dict.get('documents')
         if document and document not in unique_documents:
-            VecTor_liSt.append(document)
+            vector_list.append(document)
             unique_documents.add(document)
 
     # Filtering out blobs whose names are in VecTor_liSt
     result_loop = [blob for blob in blob_list_jpg if
-                   not any(blob['name'].endswith(item) for item in VecTor_liSt)]
+                   not any(blob['name'].endswith(item) for item in vector_list)]
 
-    # Further filtering based on VecTor_liSt
+    # Further filtering based on vector_list
     result_loop1 = []
     for blob in result_loop:
         # Extract the URL part for comparison
@@ -436,7 +439,7 @@ def update_when_file_delete():
             url_part = blob['name']
 
         # Append to result_loop if the URL part is not in VecTor_liSt
-        if url_part not in VecTor_liSt:
+        if url_part not in vector_list:
             result_loop1.append(blob)
 
     blob_list_length = len(result_loop1)
@@ -469,15 +472,15 @@ def update_when_file_delete():
                     session['embedding_not_created'].append(url_part)
                     socketio.emit('pending', session['embedding_not_created'])
 
-                blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
+                blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
                 file_name = blob.name.split('/')[-1]  # Extract file name from blob path
                 if file_name.endswith('.pdf') or file_name.endswith('.PDF') or file_name.endswith('.mp3'):
-                    temp_path = blob_client.url
+                    temp_path = blob_client_.url
                 elif file_name.endswith('.xls') or file_name.endswith('.xlsx') or file_name.endswith(
                         '.docx') or file_name.endswith('.doc'):
                     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                         temp_path = temp_file.name
-                        blob_data = blob_client.download_blob()
+                        blob_data = blob_client_.download_blob()
                         blob_data.readinto(temp_file)
 
                 if '.pdf' in file_name or '.PDF' in file_name:
@@ -555,10 +558,10 @@ def update_when_file_delete():
                     with open(temp_pdf_path, "rb") as file:
                         content = file.read()
                     blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{file_name}"
-                    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-                    blob_client.upload_blob(content, blob_type="BlockBlob",
-                                            content_settings=ContentSettings(content_type="application/pdf"),
-                                            overwrite=True)
+                    blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+                    blob_client_.upload_blob(content, blob_type="BlockBlob",
+                                             content_settings=ContentSettings(content_type="application/pdf"),
+                                             overwrite=True)
                     session['progress_files'].append(file_name)
 
                     os.remove(temp_pdf_path)
@@ -591,26 +594,24 @@ def update_when_file_delete():
 
                 update_bar_chart_from_blob(session, blob_service_client, container_name)
                 socketio.emit('progress', {'percentage': 50, 'pin': session['login_pin']})
-                # gauge_source_chart_data = gauge_chart_auth()
-                # socketio.emit('update_gauge_chart', gauge_source_chart_data)
             socketio.emit('progress', {'percentage': 75, 'pin': session['login_pin']})
 
         if not check_stop_flag():
             print("Complete")
             elapsed_time = time.time() - start_time
-            g.flag = 1  # Set flag to 1 on success1
+            g.flag = 1  # Set flag to 1 on success
             logger.info(f"Function update_when_file_delete Data Loaded Successfully in {elapsed_time} seconds")
             return jsonify({"message": "Data loaded successfully"})
 
         else:
             print("Load Process Stopped")
             elapsed_time = time.time() - start_time
-            g.flag = 0  # Set flag to 1 on success1
+            g.flag = 0  # Set flag to 1 on success
             logger.info(f"Function update_when_file_delete Data Loaded unsuccessfully in {elapsed_time} seconds")
             return jsonify({"message": "Data loading cancelled!"})
 
     except Exception as e:
-        g.flag = 0  # Set flag to 1 on success1
+        g.flag = 0  # Set flag to 1 on success
         logger.error(f"Function update_when_file_delete error", exc_info=True)
         print("update_when_file_delete----->", str(e))
         return jsonify({'message': str(e)})
@@ -809,8 +810,9 @@ def get_conversation_chain(retriever, source):
         function: A function to handle question answering with context check.
     """
 
+    global template
     if source == 'myFiles':
-        template = """ Answer only from the files uploaded by the user. Don't use any web/Internet. Also return all the sources from where you fetched data.
+        template = """ Answer only from the files uploaded by the user. Don't use any web/Internet.
                         If you don't know the answer,just say that you don't know, don't try to make up an answer.
                         {context}
                         Question: {question}
@@ -818,7 +820,7 @@ def get_conversation_chain(retriever, source):
                         """
 
     elif source == 'webInternet':
-        template = """ Search only from the Web for the answer. ALso return only Web in source instead of returning reference from files"
+        template = """ Search from the Web for the answer and you can use your knowledge also.
                         If you don't know the answer,just say that you don't know, don't try to make up an answer. 
                         {context}
                         Question: {question}
@@ -836,7 +838,7 @@ def get_conversation_chain(retriever, source):
     deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name)
 
-    CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["question", "context"], template=template)
+    custom_question_prompt = PromptTemplate(input_variables=["question", "context"], template=template)
 
     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
                                       output_key="answer")
@@ -845,10 +847,10 @@ def get_conversation_chain(retriever, source):
         llm=llm,
         retriever=retriever,
         memory=memory,
-        condense_question_prompt=CUSTOM_QUESTION_PROMPT,
+        condense_question_prompt=custom_question_prompt,
         verbose=True,
         return_source_documents=True,
-        combine_docs_chain_kwargs={"prompt": CUSTOM_QUESTION_PROMPT}
+        combine_docs_chain_kwargs={"prompt": custom_question_prompt}
     )
     g.flag = 1  # Set flag to 1 on success
     logger.info(f"Retrieval content from conversational chain")
@@ -930,12 +932,12 @@ def analyze_sentiment_summ(senti_text_summ):
     socketio.emit('analyze_sentiment_summ', senti)
 
 
-def analyze_sentiment_q_a(senti_text_q_a):
+def analyze_sentiment_q_a(senti_text_q_a_):
     """
     Analyzes the sentiment of a given text using Vader Sentiment Intensity Analyzer.
 
     Parameters:
-        senti_text_q_a (str): The input text for sentiment analysis.
+        senti_text_q_a_ (str): The input text for sentiment analysis.
 
     Returns:
         dict: A dictionary containing the percentages of positive, negative, and neutral sentiments.
@@ -944,7 +946,7 @@ def analyze_sentiment_q_a(senti_text_q_a):
     sid = SentimentIntensityAnalyzer()
 
     # Analyze sentiment
-    sentiment_scores = sid.polarity_scores(senti_text_q_a)
+    sentiment_scores = sid.polarity_scores(senti_text_q_a_)
 
     # Calculate percentages
     # total = sum(abs(score) for score in sentiment_scores.values())
@@ -1457,8 +1459,8 @@ def popup_form():
                 return jsonify({'message': 'Source URL is not valid'}), 400
 
             blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{source_url}"
-            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client.upload_blob(source_url, blob_type="BlockBlob", overwrite=True)
+            blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            blob_client_.upload_blob(source_url, blob_type="BlockBlob", overwrite=True)
 
         update_bar_chart_from_blob(session, blob_service_client, container_name)
 
@@ -1510,8 +1512,8 @@ def run_query(data):
             csv_buffer.seek(0)
 
             blob_name = f"{folder_name_azure}/{file_name}"
-            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client.upload_blob(
+            blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            blob_client_.upload_blob(
                 csv_buffer.getvalue(),
                 blob_type="BlockBlob",
                 content_settings=ContentSettings(content_type="text/csv"),
@@ -1542,14 +1544,14 @@ def run_query(data):
             cursor.close()
             conn.close()
 
-            df = pd.DataFrame(results, columns=columns)
+            df_data = pd.DataFrame(results, columns=columns)
             csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
+            df_data.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
 
             blob_name = f"{folder_name_azure}/{file_name}"
-            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client.upload_blob(
+            blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            blob_client_.upload_blob(
                 csv_buffer.getvalue(),
                 blob_type="BlockBlob",
                 content_settings=ContentSettings(content_type="text/csv"),
@@ -1631,14 +1633,13 @@ def handle_summary_input(data):
 
     try:
         session['summary_word_count'] = data['value']
-
         custom_p = data.get('summary_que')
-
         session['summary_word_count'] = data['value']
 
         if int(session['summary_word_count']) == 0:
             emit('summary_response', {'message': 'Summary word count is zero!'})
             return
+
         else:
             word_count = int(session['summary_word_count'])
             emit('progress', {'percentage': 10, 'pin': session['login_pin']})
@@ -1671,6 +1672,7 @@ def handle_summary_input(data):
                     filename_to_docs[filename].append(doc)
                 else:
                     filename_to_docs[filename] = [doc]
+
             except KeyError as e:
                 print(f"KeyError: {e}. Result: {result}")
             except Exception as e:
@@ -1684,9 +1686,9 @@ def handle_summary_input(data):
         counter = 1
 
         for filename, documents in old_structure:
-            summary = custom_summary(documents, custom_p, chain_type, word_count)
+            summary_list = custom_summary(documents, custom_p, chain_type, word_count)
             key = f'{filename}--{counter}--'
-            summary_dict = {'key': key, 'value': summary}
+            summary_dict = {'key': key, 'value': summary_list}
             summ.append(summary_dict)
             counter += 1
             emit('summary_response', summ)
@@ -1708,6 +1710,7 @@ def handle_summary_input(data):
 
     except Exception as e:
         g.flag = 0
+        print('ERROR! ',e)
         logger.error('Summary generation error', exc_info=True)
         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
         emit('summary_response', {'message': 'No data load'})
@@ -1753,7 +1756,7 @@ def handle_ask_question(data):
     global senti_text_q_a
     start_time = time.time()
     try:
-        source = data['source']
+        data_source = data['source']
         question = data['question']
         question_embeddings = embeddings.embed_query(question)
 
@@ -1790,7 +1793,7 @@ def handle_ask_question(data):
 
         # Create the conversation chain handler
         retriever = vector_store.as_retriever(sorted_documents=sorted_documents)
-        conversation_chain_handler = get_conversation_chain(retriever, source)
+        conversation_chain_handler = get_conversation_chain(retriever, data_source)
         response = conversation_chain_handler(question)
         print("Conversational result----------->", response)
 
@@ -1844,11 +1847,11 @@ def handle_ask_question(data):
 
             doc_source.extend(list(set(docx_sources)))
             doc_page_num.extend(docx_page)
-        if source == "webInternet":
+        if data_source == "webInternet":
             doc_source = ["Web|Internet"]
             doc_page_num = ["N|A"]
 
-        if source == "all":
+        if data_source == "all":
             doc_source.append("Web|Internet")
             doc_page_num.append("N|A")
 
@@ -1859,13 +1862,13 @@ def handle_ask_question(data):
                            for i in range(0, len(response['chat_history']), 2)]
 
         # Create a list of dictionaries for the chat history
-        chat_history_list = [{"question": chat_pair[0],
-                              "answer": chat_pair[1],
-                              "source": chat_pair[2],
-                              "page_number": chat_pair[3]}
-                             for chat_pair in final_chat_hist]
+        chat_history_list_ = [{"question": chat_pair[0],
+                               "answer": chat_pair[1],
+                               "source": chat_pair[2],
+                               "page_number": chat_pair[3]}
+                              for chat_pair in final_chat_hist]
 
-        senti_text_q_a = ' '.join(entry['answer'] for entry in chat_history_list)
+        senti_text_q_a = ' '.join(entry['answer'] for entry in chat_history_list_)
 
         # Update progress to 75%
         emit('progress', {'percentage': 75, 'pin': session['login_pin']})
@@ -1874,7 +1877,7 @@ def handle_ask_question(data):
         perform_lda___Q_A(senti_text_q_a)
 
         # Save chat history to the database
-        for entry in chat_history_list:
+        for entry in chat_history_list_:
             new_chat = ChatHistory(
                 login_pin=session['login_pin'],
                 question=entry['question'],
@@ -1905,7 +1908,7 @@ def handle_ask_question(data):
                          "page_number": chat.page_number}
                         for chat in chat_history_from_db]
 
-        emit('response', {'chat_history': chat_history[::-1], 'follow_up': follow_up_question})
+        emit('response', {'answer': response['answer'], 'chat_history': chat_history[::-1], 'follow_up': follow_up_question})
 
     except Exception as e:
         g.flag = 0
