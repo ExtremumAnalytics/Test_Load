@@ -8,28 +8,28 @@ from langchain.embeddings import AzureOpenAIEmbeddings
 from dotenv import load_dotenv
 
 # Load environment variables from .env file for local development
-load_dotenv()
+# load_dotenv()
 
-# Check if running in production or development environment
-IS_PRODUCTION = os.getenv('IS_PRODUCTION', 'false').lower() == 'true'
+# # Check if running in production or development environment
+# IS_PRODUCTION = os.getenv('IS_PRODUCTION', 'false').lower() == 'true'
 
-if IS_PRODUCTION:
-    # For default Azure account use only
-    vectorsecret = "vectordatabsekey"
-    computer_vision = "computer-vision-key-v1"
-    openapi_key = "OPENAI-API-KEY"
-    KVUri = f"https://eavault.vault.azure.net/"
-    credential = DefaultAzureCredential()
-    client = SecretClient(vault_url=KVUri, credential=credential)
+# if not IS_PRODUCTION:
+#     # For local use only
+#     main_key = os.environ["Main_key"]
+#     vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
+#     computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
+# else:
+# For default Azure account use only
+vectorsecret = "vectordatabsekey"
+computer_vision = "computer-vision-key-v1"
+openapi_key = "OPENAI-API-KEY"
+KVUri = f"https://eavault.vault.azure.net/"
+credential = DefaultAzureCredential()
+client = SecretClient(vault_url=KVUri, credential=credential)
 
-    main_key = client.get_secret(openapi_key).value
-    vector_store = client.get_secret(vectorsecret).value
-    computer_vision_key = client.get_secret(computer_vision).value
-else:
-    # For local use only
-    main_key = os.environ["Main_key"]
-    vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
-    computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
+main_key = client.get_secret(openapi_key).value
+vector_store = client.get_secret(vectorsecret).value
+computer_vision_key = client.get_secret(computer_vision).value
 
 # Set OpenAI environment variables
 os.environ["OPENAI_API_TYPE"] = "azure"
@@ -46,18 +46,18 @@ computervision_client = ComputerVisionClient(computer_vision_api_endpoint, compu
 vector_store_address = "https://cognilink-vectordb.search.windows.net"
 vector_store_password = vector_store
 
-# Blob Storage setup
-if IS_PRODUCTION:
-    account_name = "testcongnilink"
-    container_name = "congnilink-container"
-    account_url = "https://testcongnilink.blob.core.windows.net"
-    blob_service_client = BlobServiceClient(account_url, credential=DefaultAzureCredential())
-else:
-    account_name = os.environ['account_name']
-    account_key = os.environ['account_key']
-    container_name = os.environ['container_name']
-    connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-    blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+# # Blob Storage setup
+# if not IS_PRODUCTION:
+#     account_name = os.environ['account_name']
+#     account_key = os.environ['account_key']
+#     container_name = os.environ['container_name']
+#     connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+#     blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+# else:
+account_name = "testcongnilink"
+container_name = "congnilink-container"
+account_url = "https://testcongnilink.blob.core.windows.net"
+blob_service_client = BlobServiceClient(account_url, credential=DefaultAzureCredential())
 
 container_client = blob_service_client.get_container_client(container_name)
 
