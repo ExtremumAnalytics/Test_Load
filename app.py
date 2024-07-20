@@ -768,7 +768,7 @@ def get_conversation_chain(retriever, source):
     global template
     if source == 'myFiles':
         template = """ Answer only from the files uploaded by the user. Don't use any web/Internet.
-                        If you don't know the answer,just say that you don't know, don't try to make up an answer.
+                        If you don't know the answer,just say Sorry that you don't know, don't try to make up an answer.
                         {context}
                         Question: {question}
                         Helpful Answer: 
