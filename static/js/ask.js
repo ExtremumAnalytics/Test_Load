@@ -53,17 +53,15 @@ function sendQuestion() {
         var historyContainer = document.getElementById("questionAnswer");
         historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
         
-        console.log(response.answer);
-
         var historyList = document.getElementById("chatHistoryList");
         response.chat_history.forEach(function(item) {
 
             var listItem = document.createElement('li');
-            var question = "Question: " + item.question;
+            var question = "<b>" + "Question: " + "</b>" + item.question;
             var answer = "<b>" + "Answer: \n" + "</b>" + item.answer; //.replace(/- /g, "\n- ");
             var sourceLink = "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong></a>";
 
-            var content ="<b>"+ question +"</b>"+ "\n" + answer + "\n" + sourceLink + "\n\n";
+            var content = question + "\n" + answer + "\n" + sourceLink + "\n\n";
 
             var preElement = document.createElement('pre');
             preElement.innerHTML = content;
@@ -91,6 +89,7 @@ function sendQuestion() {
            follow_up_question.style.display='none';
         } else{
             var followup_list = document.createElement('p');
+            follow_up_question.style.display='block';
             follow_up_question.appendChild(followup_list);
             followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + response.follow_up + "</button><br>";
 
