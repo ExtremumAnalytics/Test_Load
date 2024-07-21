@@ -97,7 +97,7 @@ function sendQuestion() {
             document.getElementById('followUpButton').addEventListener('click', function() {
                 // Ensure response.follow_up is defined and replace the specified string
                 if (response && response.follow_up) {
-                    var strippedString = response.follow_up.replace("Do you also want to know", "").replace("Do you also want to know ", "");
+                    var strippedString = response.follow_up.replace("Do you also want to know", "").replace("Do you also want to know about", "");
                     document.getElementById("question").value = strippedString.trim();
                     sendQuestion(); // Call sendQuestion again with the follow-up question
                 } else {

@@ -767,8 +767,8 @@ def get_conversation_chain(retriever, source):
 
     global template
     if source == 'myFiles':
-        template = """ Answer only from the files uploaded by the user. Don't use any web/Internet.
-                        If you don't know the answer,just say Sorry that you don't know, don't try to make up an answer.
+        template = """ Use the content from the uploaded files by the user. Don't use any web/Internet.
+                        If you don't know the answer,just say that you don't know, don't try to make up an answer.
                         {context}
                         Question: {question}
                         Helpful Answer: 
@@ -1780,7 +1780,6 @@ def handle_ask_question(data):
         question = data['question']
 
         if source == "webInternet":
-            print("Hi")
             llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
 
             # Web search tool
