@@ -767,8 +767,8 @@ def get_conversation_chain(retriever, source):
 
     global template
     if source == 'myFiles':
-        template = """ Answer only from the files uploaded by the user. Don't use any web/Internet.
-                        If you don't know the answer,just say Sorry that you don't know, don't try to make up an answer.
+        template = """ Use the content from the uploaded files by the user. Don't use any web/Internet.
+                        If you don't know the answer,just say that you don't know, don't try to make up an answer.
                         {context}
                         Question: {question}
                         Helpful Answer: 
@@ -1401,7 +1401,6 @@ def popup_form():
                         extract_text_from_image(file, lang)
 
                 if file.filename.endswith('.mp3'):
-
                     # print("mp3--------->file received", file.filename)
                     folder_name = os.path.join('static', 'login', str(session['login_pin']))
                     # Ensure the folder exists
@@ -1455,7 +1454,9 @@ def popup_form():
                                             content_settings=ContentSettings(content_type="application/pdf"),
                                             overwrite=True)
 
+                    # Remove the temporary PDF and MP3 files
                     os.remove(temp_pdf_path)
+                    os.remove(temp_file_path)  # Remove the MP3 file
 
                 if not scan_source:
                     upload_to_blob(file, session, blob_service_client, container_name)
@@ -1669,6 +1670,10 @@ def handle_summary_input(data):
         # Initialize the list for old_structure documents
         filename_to_docs = {}
 
+        # Function to split content into chunks of a specified size
+        def split_content(content, size=8000):
+            return [content[i:i + size] for i in range(0, len(content), size)]
+
         # Process each result
         for result in results:
             try:
@@ -1676,14 +1681,17 @@ def handle_summary_input(data):
                 filename = result['file_name']
                 content = result['content']
 
-                # Create a Document object with metadata
-                doc = Document(page_content=content, metadata={'source': filename})
+                # Split the content into chunks of 8000 characters
+                content_chunks = split_content(content, size=8000)
 
-                # Add the document to the corresponding filename key
+                # Create Document objects with metadata for each chunk
+                docs = [Document(page_content=chunk) for chunk in content_chunks]
+
+                # Add the document chunks to the corresponding filename key
                 if filename in filename_to_docs:
-                    filename_to_docs[filename].append(doc)
+                    filename_to_docs[filename].extend(docs)
                 else:
-                    filename_to_docs[filename] = [doc]
+                    filename_to_docs[filename] = docs
 
             except KeyError as e:
                 print(f"KeyError: {e}. Result: {result}")
@@ -1772,7 +1780,6 @@ def handle_ask_question(data):
         question = data['question']
 
         if source == "webInternet":
-            print("Hi")
             llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
 
             # Web search tool
