@@ -31,7 +31,6 @@ function sendQuestion() {
     socket.on('progress', function(data) {
         if (data.pin === pin) {
             updateProgressBar(data.percentage);
-            // console.log(data.percentage);
         }
     });
 
