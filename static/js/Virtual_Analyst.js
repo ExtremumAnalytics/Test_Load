@@ -37,11 +37,10 @@ socket.on('updateTable', function(data) {
 
 function table_data_retrieve() {
     modal.style.display = "block";
-    $.ajax({
-        url: '/table_update',
-        type: 'GET',
-        success: function(data) {
-        }
+    // Listen for the 'table_update' event from the server
+    socket.on('table_update', function(data) {
+        // Handle the data received from the server
+        console.log(data); 
     });
 }
 
