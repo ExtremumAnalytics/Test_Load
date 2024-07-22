@@ -31,7 +31,6 @@ function sendQuestion() {
     socket.on('progress', function(data) {
         if (data.pin === pin) {
             updateProgressBar(data.percentage);
-            // console.log(data.percentage);
         }
     });
 
@@ -136,7 +135,13 @@ function openPopup(sources, pageNumbers) {
 
     // Create the content div
     var popupContent = document.createElement('div');
+    var tableContent = document.createElement('div');
     popupContent.classList.add('popup-content');
+    tableContent.classList.add('table-content');
+    tableContent.style.maxHeight  = '500px'; // Allows text to wrap
+    tableContent.style.whiteSpace = 'pre-wrap'; // Allows text to wrap
+    tableContent.style.overflowX = 'hidden';    // Hides horizontal overflow
+    tableContent.style.overflowY = 'auto';      // Allows vertical overflow (optional)
 
     // Create the close button
     var closeButton = document.createElement('span');
@@ -174,7 +179,7 @@ function openPopup(sources, pageNumbers) {
         var fileName = extractFileName(sources[i]);  // Extract the file name from the URL
 
         sourceLink.href = 'javascript:void(0)';  // Prevent default link behavior
-        sourceLink.textContent = fileName;
+        sourceLink.textContent = fileName.substring(0, 40) + '...';
 
         // Add event listener to open the file in Google Viewer
         sourceLink.addEventListener('click', (function(url) {
@@ -193,7 +198,8 @@ function openPopup(sources, pageNumbers) {
 
     // Append the close button and table to the popup content
     popupContent.appendChild(closeButton);
-    popupContent.appendChild(table);
+    tableContent.appendChild(table);
+    popupContent.appendChild(tableContent);
 
     // Append the content to the popup div
     popupDiv.appendChild(popupContent);

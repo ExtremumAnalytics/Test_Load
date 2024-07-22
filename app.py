@@ -1643,6 +1643,7 @@ def handle_summary_input(data):
     global text_word_cloud
     session['summary_add'] = []
     start_time = time.time()
+    error_messages = []
 
     try:
         session['summary_word_count'] = data['value']
@@ -1694,9 +1695,9 @@ def handle_summary_input(data):
                     filename_to_docs[filename] = docs
 
             except KeyError as e:
-                print(f"KeyError: {e}. Result: {result}")
+                error_messages.append(f"KeyError: {e}. Result: {result}")
             except Exception as e:
-                print(f"An unexpected error occurred while processing result: {e}")
+                error_messages.append(f"An unexpected error occurred while processing result: {str(e)}")
 
         # Convert the dictionary to a list of tuples
         old_structure = [(filename, docs) for filename, docs in filename_to_docs.items()]
@@ -1706,12 +1707,21 @@ def handle_summary_input(data):
         counter = 1
 
         for filename, documents in old_structure:
-            summary_list = custom_summary(documents, custom_p, chain_type, word_count)
-            key = f'{filename}--{counter}--'
-            summary_dict = {'key': key, 'value': summary_list}
-            summ.append(summary_dict)
-            counter += 1
-            emit('summary_response', summ)
+            try:
+                summary_list = custom_summary(documents, custom_p, chain_type, word_count)
+                key = f'{filename}--{counter}--'
+                summary_dict = {'key': key, 'value': summary_list}
+                summ.append(summary_dict)
+                counter += 1
+                emit('summary_response', summ)
+            except ValueError as ve:
+                error_message = f"Azure content filter triggered for file {filename}: {str(ve)}"
+                error_messages.append(error_message)
+                logger.error('Summary generation error: ' + error_message, exc_info=True)
+            except Exception as e:
+                error_message = f"An unexpected error occurred for file {filename}: {str(e)}"
+                error_messages.append(error_message)
+                logger.error('Summary generation error: ' + error_message, exc_info=True)
 
         session['summary_add'].extend(summ)
 
@@ -1730,10 +1740,14 @@ def handle_summary_input(data):
 
     except Exception as e:
         g.flag = 0
-        print('ERROR! ',e)
-        logger.error('Summary generation error', exc_info=True)
+        error_message = f"An unexpected error occurred: {str(e)}"
+        error_messages.append(error_message)
+        logger.error('Summary generation error: ' + error_message, exc_info=True)
+
+    finally:
+        if error_messages:
+            emit('summary_response', {'errors': error_messages})
         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-        emit('summary_response', {'message': 'No data load'})
 
 
 @socketio.on('clear_chat_summ')
@@ -2234,7 +2248,10 @@ def webcrawler_start(data):
             try:
                 pdf_url = pdf_link
 
-                name = pdf_name.replace('/', '-')
+                temp_filename = re.sub(r'[^\w\s.-]', '', pdf_name)
+                cleaned_filename = re.sub(r'\s+', '-', temp_filename)
+
+                name = cleaned_filename.replace('/', '-')
                 if not name:
                     name = os.path.basename(urlparse(pdf_url).path)
                 download_pdf(pdf_url, folder_name, name)
