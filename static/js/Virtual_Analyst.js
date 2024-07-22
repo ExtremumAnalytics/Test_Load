@@ -98,6 +98,7 @@ function loadData() {
 // Function to clear the chat content
 function clearChat() {
   document.getElementById('eda_questionAnswer').innerHTML = '';
+  document.getElementById('question_eda').value = '';
   $('#message').text('Chat cleared successful.');
   setTimeout(function() {
     $('#message').text('');
@@ -128,8 +129,7 @@ function sendQuestion() {
             setTimeout(function() {
                 $('#message').text('');
             }, 8000); //delete after 8 seconds
-            // console.log(data);
-            document.getElementById('eda_questionAnswer').innerHTML = `<p></p><b>Output:</b> ${data.output} <br><p></p> <b>Query:</b> ${data.query}<p></p> <b>Results:</b> <a href="${data.url}">Download Query Results</a>`;
+            document.getElementById('eda_questionAnswer').innerHTML = `<p></p><b>Output:</b> ${data.output} <br><p></p> <b>Query:</b> ${data.query}<p></p> ${data.df_table} <p></p> <b>Results:</b> <a href="${data.url}">Download Query Results</a>`;
             updateQueryTable();
         })
         updateQueryTable();
