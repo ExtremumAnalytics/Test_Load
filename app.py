@@ -1331,6 +1331,25 @@ def handle_connect():
                     for chat in chat_history_from_db]
     emit('chat_history', {'chat_history': chat_history[::-1]})
 
+    # Code to fetch draft data from storage
+    container_client_ = blob_service_client.get_container_client(container_name)
+    blob_list = container_client_.list_blobs(
+        name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
+
+    blobs = []
+    for blob in blob_list:
+        if (blob.name.split('/')[2].endswith('.csv') or
+                blob.name.split('/')[2].endswith('.xlsx') or
+                blob.name.split('/')[2].endswith('.xlscd') or
+                blob.name.split('/')[2].endswith('.xls')):
+            blobs.append({
+                'name': blob.name.split('/')[-1],
+                'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
+                # 'draftType': draft_type,
+                'status': 'Uploaded'  # or other status based on your logic
+            })
+    emit('updateAnalystTable', blobs)
+
 
 @socketio.on('send_data')
 def handle_send_data(data):
@@ -2723,14 +2742,13 @@ def query_table_update():
             elapsed_time = time.time() - start_time
             g.flag = 1  # Set flag to 1 on success
             logger.info(f"query_table_update route successfully sent data in {elapsed_time} seconds")
-        socketio.emit('updateAnalystTable', blobs)
+        # socketio.emit('updateAnalystTable', blobs)
         return jsonify(blobs)
 
     except Exception as e:
         g.flag = 0  # Set flag to 0 on error
         logger.error(f"query_table_update route error", exc_info=True)
         return jsonify({'error': str(e)}), 500
-
 
 
 @app.route("/", methods=["GET", "POST"])

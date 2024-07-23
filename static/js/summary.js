@@ -91,8 +91,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const summaryKey = `${summary.key}:${summary.value}`;
             if (!displayedSummaries.has(summaryKey)) {
                 const listItem = document.createElement('li'); // Create a list item element
-                listItem.innerHTML = `<b>${summary.key}</b>: ${summary.value.replace(/- /g, "<br>- ")}<p></p>`;
                 list.appendChild(listItem); // Append the list item to the list
+
+                const words = `<b>${summary.key}</b>: ${summary.value.replace(/- /g, "<br>- ")}`.split(' ');
+                let wordIndex = 0;
+
+                function typeWord() {
+                    if (wordIndex < words.length) {
+                        listItem.innerHTML += words[wordIndex] + ' ';
+                        wordIndex++;
+                        setTimeout(typeWord, 50); // Adjust the delay as needed (50ms in this case)
+                    } else {
+                        listItem.innerHTML += '<p></p>'; // Add the paragraph break after the summary
+                    }
+                }
+                typeWord(); // Start the typing effect
                 displayedSummaries.add(summaryKey); // Add to the set of displayed summaries
             }
         });
