@@ -50,7 +50,7 @@ from langchain.schema import Document
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain.tools import DuckDuckGoSearchRun
 from langchain.schema import AIMessage
-
+from langchain_core.runnables import RunnablePassthrough
 # for azure vector db index creation
 from azure.search.documents import SearchClient
 from langchain.document_loaders import PyPDFLoader
@@ -192,7 +192,6 @@ def create_or_pass_folder(container_client_, session):
         user_folder = str(session['login_pin'])
         try:
             container_client_.get_blob_client(container_name, user_folder).upload_blob("")
-            print('successfully created')
             g.flag = 1  # Set flag to 1 on success1
             logger.info(f"Function create_or_pass_folder successfully created folder")
             return f"Folder '{user_folder}' successfully created."
@@ -304,7 +303,6 @@ def update_bar_chart_from_blob(session, blob_service_client_, container_name_):
         # Get a list of blobs in the specified folder
         blob_list = blob_service_client_.get_container_client(container_name_).list_blobs(
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
-        # print("blob_list------?", blob_list)
 
         # Iterate through each blob in the folder
         for blob in blob_list:
@@ -410,7 +408,6 @@ def update_when_file_delete():
 
     for result in results:
         embeddings_dict = json.loads(result['metadata'])
-        # print(embeddings_dict)  # This prints the embeddings_dict for each result
         document = embeddings_dict.get('documents')
         if document and document not in unique_documents:
             VecTor_liSt.append(document)
@@ -698,7 +695,7 @@ def get_vectorstore(text_chunks, file_name):
             documents.append(document)
 
         result = search_client.upload_documents(documents=documents)
-        print(f"Uploaded documents: {result}")
+        # print(f"Uploaded documents: {result}")
         logger.info('Documents uploaded to vector database')
 
     except Exception as e:
@@ -802,7 +799,7 @@ def get_conversation_chain(retriever, source):
         retriever=retriever,
         memory=memory,
         condense_question_prompt=custom_question_prompt,
-        verbose=True,
+        # verbose=True,
         return_source_documents=True,
         combine_docs_chain_kwargs={"prompt": custom_question_prompt}
     )
@@ -1293,7 +1290,7 @@ def is_url_valid(url):
 
     try:
         response = requests.get(url, headers=headers, timeout=10)
-        print("response_URL--->", response)
+        # print("response_URL--->", response)
         # Check if the response status code is 200 (OK)
         time.sleep(0.5)
         if response.status_code == 200:
@@ -1325,6 +1322,14 @@ def handle_connect():
     socketio.emit('update_bar_chart', bar_chart_data)
     socketio.emit('update_gauge_chart', gauge_source_chart_data)
     socketio.emit('userName', {'userName': session['user_name'], 'pin': session['login_pin']})
+
+    chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+    chat_history = [{"question": chat.question,
+                     "answer": chat.answer,
+                     "source": chat.source,
+                     "page_number": chat.page_number}
+                    for chat in chat_history_from_db]
+    emit('chat_history', {'chat_history': chat_history[::-1]})
 
 
 @socketio.on('send_data')
@@ -1393,7 +1398,7 @@ def popup_form():
                 scan_source = False
                 if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg', '.pdf']):
                     lang = request.form.get('selected_language', False)
-                    print("lang------>", lang)
+                    # print("lang------>", lang)
                     if lang and '.pdf' in file.filename:
                         extract_text_from_pdf(file, lang)
                         scan_source = True
@@ -1747,6 +1752,7 @@ def handle_summary_input(data):
     finally:
         if error_messages:
             emit('summary_response', {'errors': error_messages})
+            emit('summary_response', {'message': 'No data load'})
         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
 
 
@@ -1841,7 +1847,7 @@ def handle_ask_question(data):
                                   "answer": response_content,
                                   "source": "Web/Internet",
                                   "page_number": "N/A", }]
-            print("chat_history_list--->", chat_history_list)
+            # print("chat_history_list--->", chat_history_list)
 
             # Save chat history to the database
             for entry in chat_history_list:
@@ -1865,7 +1871,8 @@ def handle_ask_question(data):
             chat_history = [{"question": chat.question,
                              "answer": chat.answer,
                              "source": chat.source,
-                             "page_number": chat.page_number}
+                             "page_number": chat.page_number,
+                             "index": chat.id}
                             for chat in chat_history_from_db]
             emit('progress', {'percentage': 100, 'pin': session['login_pin']})
             emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
@@ -1891,7 +1898,7 @@ def handle_ask_question(data):
                 documents.append(doc)
 
             sorted_documents = sorted(documents, key=lambda x: x['score'], reverse=True)
-            print("sorted documents------------>", sorted_documents)
+            # print("sorted documents------------>", sorted_documents)
 
             vector_store: AzureSearch = AzureSearch(
                 azure_search_endpoint=vector_store_address,
@@ -1912,7 +1919,7 @@ def handle_ask_question(data):
             # Update progress to 50%
             emit('progress', {'percentage': 50, 'pin': session['login_pin']})
             sorry_phrases = ['Sorry, there is no information available.', 'Sorry', 'I am sorry',
-                             "I can't see anyting relevant"]
+                             "I can't see anyting relevant", "I'm sorry"]
 
             if (
                     any(response["answer"].startswith(phrase) for phrase in sorry_phrases) or
@@ -1941,27 +1948,28 @@ def handle_ask_question(data):
                     page = doc.metadata.get("page", "N|A")
 
                     # Add the source to the set of sources
-                    if source.endswith('.docx'):
+                    if source.endswith('.docx') or page == "N|A":
                         docx_sources.append(source)
                         docx_page.append(page)
 
-                    # Adjust the page number to start from 1 if it starts from 0
-                    if isinstance(page, int) and page == 0:
-                        page = 1
-                    elif isinstance(page, int):
-                        page += 1
+                    else:
+                        # Adjust the page number to start from 1 if it starts from 0
+                        if isinstance(page, int) and page == 0:
+                            page = 1
+                        elif isinstance(page, int):
+                            page += 1
 
-                    page_str = str(page)
+                        page_str = str(page)
 
-                    # Add source and page to the lists if the page has not been seen before
-                    # if page_str == "N|A" or page_str not in seen_pages:
-                    if page_str not in seen_pages and page_str != 'N|A':
-                        seen_pages.add(page_str)
-                        doc_source.append(source)
-                        doc_page_num.append(page_str)
-
-                    doc_source.extend(list(set(docx_sources)))
-                    doc_page_num.extend(docx_page)
+                        # Add source and page to the lists if the page has not been seen before
+                        if page_str != 'N|A' and page_str not in seen_pages:
+                            seen_pages.add(page_str)
+                            doc_source.append(source)
+                            doc_page_num.append(page_str)
+                print('Before docx source-----------',doc_source)
+                doc_source.extend(list(set(docx_sources)))
+                print('After--------------------',doc_source)
+                doc_page_num.extend(docx_page)
 
             # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
             final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
@@ -2013,9 +2021,9 @@ def handle_ask_question(data):
             chat_history = [{"question": chat.question,
                              "answer": chat.answer,
                              "source": chat.source,
-                             "page_number": chat.page_number}
+                             "page_number": chat.page_number,
+                             "index": chat.id}
                             for chat in chat_history_from_db]
-
             emit('response', {'chat_history': chat_history[::-1], 'follow_up': follow_up_question})
 
     except Exception as e:
@@ -2151,7 +2159,7 @@ def table_update(search_term=None):
                 # Convert the date to IST
                 date = blob['last_modified']
                 date_str = convert_to_ist(date)
-                print("date--------->", date_str)
+                # print("date--------->", date_str)
 
             if blob.name.split('/')[2] != 'draft':
                 file_name = blob.name.split('/')[2]
@@ -2449,7 +2457,7 @@ def delete_pdf_file(data):
 
         # Delete the file
         if res is True:
-            print("file deleted from temp")
+            # print("file deleted from temp")
             g.flag = 1  # Set flag to 1 on success1
             logger.info(f"Successfully webcrawler File Loaded In Cognilink Application")
             socketio.emit('delete_response', {'message': 'Successfully file loaded in CogniLink application'})
@@ -2497,7 +2505,6 @@ def handle_eda_process(data):
                     return
 
         question = data.get('question')
-        print("question----->", question)
         if question:
             g.flag = 1
             logger.info("SocketIO Eda_Process Question received.")
@@ -2589,14 +2596,37 @@ def question_answer_on_structure_data(data):
     file_name = f"query_results_{timestamp}.csv"
 
     try:
+
         sql_db = SQLDatabase.from_uri(conn_string)
         query_input = data.get('query_input')
         print("question_passed--------->", query_input)
-        llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
-        write_query = create_sql_query_chain(llm, sql_db)
-        query_generated = write_query.invoke({"question": query_input})
+        schema = sql_db.get_table_info()
+        print("Schema----->", schema)
+        template = '''Based on the table schema:{schema} write a sql query that would answer user questions.return only sql query:
+        Question: "{question}"
 
-        if query_generated:
+        SQL QUERY:
+        '''
+        prompt = PromptTemplate.from_template(template)
+
+        # format_prompt=prompt.format(schema=schema,question=query_input)
+        # print("PROMPT AFTER FORMATTING--------->",format_prompt)
+
+        def format_prompt(data):
+            return prompt.format(schema=data['schema'], question=data['question'])
+
+        llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
+        write_query_chain = (RunnablePassthrough()
+                             | format_prompt
+                             | llm
+                             )
+        # write_query = create_sql_query_chain(llm, sql_db)
+        query_generated = write_query_chain.invoke({"schema": schema, "question": query_input})
+        print("Query generated---------->", query_generated)
+        query_to_run = query_generated.content
+        print("Query To Run---------->", query_to_run)
+
+        if query_to_run:
             conn = mysql.connector.connect(
                 host=db_host,
                 user=db_user,
@@ -2605,7 +2635,7 @@ def question_answer_on_structure_data(data):
             )
 
             cursor = conn.cursor()
-            cursor.execute(query_generated)
+            cursor.execute(query_to_run)
 
             columns = [desc[0] for desc in cursor.description]
             results = cursor.fetchall()
@@ -2621,10 +2651,11 @@ def question_answer_on_structure_data(data):
                 Answer:"""
             )
             llm_chain = LLMChain(prompt=answer_prompt, llm=llm)
-            answer = llm_chain.invoke({"question": query_input, "query": query_generated, "result": results})
+            answer = llm_chain.invoke({"question": query_input, "query": query_to_run, "result": results})
             print("Answer----------------->", answer['text'])
 
             df = pd.DataFrame(results, columns=columns)
+            df_table = df.head(5).to_html(index=False)
             csv_buffer = io.StringIO()
             df.to_csv(csv_buffer, index=False)
             csv_buffer.seek(0)
@@ -2645,7 +2676,7 @@ def question_answer_on_structure_data(data):
                     csv_file_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
                     g.flag = 1
                     logger.info(f'CSV File URL: {csv_file_url}')  # Log the draft URL
-                    emit('eda_db_response', {'output': answer['text'], 'query': query_generated, 'url': csv_file_url})
+                    emit('eda_db_response', {'output': answer['text'], 'query': query_to_run, 'url': csv_file_url, 'df_table': df_table})
                 else:
                     g.flag = 0
                     logger.error('CSV file URL not found!')
@@ -2678,7 +2709,10 @@ def query_table_update():
 
         blobs = []
         for blob in blob_list:
-            if blob.name.split('/')[2].endswith('.csv'):
+            if (blob.name.split('/')[2].endswith('.csv') or
+                    blob.name.split('/')[2].endswith('.xlsx') or
+                    blob.name.split('/')[2].endswith('.xlscd') or
+                    blob.name.split('/')[2].endswith('.xls')):
                 blobs.append({
                     'name': blob.name.split('/')[-1],
                     'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
@@ -2689,7 +2723,7 @@ def query_table_update():
             elapsed_time = time.time() - start_time
             g.flag = 1  # Set flag to 1 on success
             logger.info(f"query_table_update route successfully sent data in {elapsed_time} seconds")
-        socketio.emit('updateTable', blobs)
+        socketio.emit('updateAnalystTable', blobs)
         return jsonify(blobs)
 
     except Exception as e:

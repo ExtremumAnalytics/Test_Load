@@ -31,48 +31,82 @@ function sendQuestion() {
     socket.on('progress', function(data) {
         if (data.pin === pin) {
             updateProgressBar(data.percentage);
+            // console.log(data.percentage);
         }
     });
-
     socket.on('response', function(response) {
         updateProgressBar(100);
-        // console.log('100');
+        // Hide the wait image after a delay
         setTimeout(() => {
             document.getElementById("waitImg").style.display = 'none';
         }, 1500);
 
-        if (response.message) {
-            document.getElementById('message').innerText = response.message;
-            setTimeout(function() {
-                document.getElementById('message').innerText = '';
-            }, 8000); // delete after 8 seconds
-        }
-
         // Display chat history
         var historyContainer = document.getElementById("questionAnswer");
         historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
-        
-        var historyList = document.getElementById("chatHistoryList");
-        response.chat_history.forEach(function(item) {
 
+        var historyList = document.getElementById("chatHistoryList");
+        var chatHistory = response.chat_history;
+
+        // Find the item with the maximum id
+        var latestItem = chatHistory.reduce((maxItem, currentItem) =>
+            currentItem.index > maxItem.index ? currentItem : maxItem, chatHistory[0]);
+
+        chatHistory.forEach(function(item) {
+            // Create a list item for each history entry
             var listItem = document.createElement('li');
+            // Set the question part
             var question = "<b>" + "Question: " + "</b>" + item.question;
-            var answer = "<b>" + "Answer: \n" + "</b>" + item.answer; //.replace(/- /g, "\n- ");
+
+            // Create a source link element
             var sourceLink = "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong></a>";
 
-            var content = question + "\n" + answer + "\n" + sourceLink + "\n\n";
-
+            // Create a preformatted text element
             var preElement = document.createElement('pre');
-            preElement.innerHTML = content;
             preElement.classList.add('formatted-pre');
-            // Set the CSS properties to handle overflow
+
+            // Set CSS properties for overflow handling
             preElement.style.whiteSpace = 'pre-wrap'; // Allows text to wrap
             preElement.style.overflowX = 'hidden';    // Hides horizontal overflow
-            preElement.style.overflowY = 'auto';      // Allows vertical overflow (optional)
+            preElement.style.overflowY = 'auto';      // Allows vertical overflow
+            preElement.style.fontFamily = 'Times New Roman'; // Set font to Times New Roman
+            preElement.style.fontSize ='16px';
+
+            // Append the preformatted text element to the list item
             listItem.appendChild(preElement);
             historyList.appendChild(listItem);
 
+            if (item.index === latestItem.index) {
+                // Handle the latest answer to be displayed word by word
+                preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>";
+
+
+                var words = item.answer.split(' ');
+                var word_index = 0;
+
+                var intervalId = setInterval(() => {
+                    if (word_index < words.length) {
+                        var wordSpan = document.createElement('span');
+                        wordSpan.innerText = words[word_index] + ' ';
+                        preElement.appendChild(wordSpan);
+                        word_index++;
+                    } else {
+                        clearInterval(intervalId);
+                        var sourceElement = document.createElement('div');
+                        sourceElement.innerHTML = sourceLink + "\n\n";
+                        preElement.appendChild(sourceElement);
+                        // Attach event listener to the dynamically added source link
+                        sourceElement.querySelector('.source-link').addEventListener('click', function () {
+                        openPopup(this.getAttribute('data-source').split(','), this.getAttribute('data-page').split(','));
+                        });
+                    }
+                }, 50); // Adjust the interval time (50ms) to control the speed of word display
+            } else {
+                // Handle previous answers to be displayed all at once
+                preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>" + item.answer + "<br>" + sourceLink + "\n\n";
+            }
         });
+
 
         // Attach event listeners to source links
         document.querySelectorAll('.source-link').forEach(function(link) {
@@ -110,15 +144,30 @@ function sendQuestion() {
 
 function openFileInNewTab(url) {
     try {
-        // Ensure URL is fully encoded
-        var encodedUrl = encodeURIComponent(url.trim());
-        var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodedUrl;
-        // console.log('Opening URL:', googleDocsUrl);
-        var win = window.open(googleDocsUrl, '_blank');
-        if (win) {
-            win.focus();
-        } else {
-            console.error("Failed to open new tab. Popup blocker might be enabled.");
+        const pattern = /https:\/\/.+\/https:\/\/.+/;
+        // console.log(url);
+        const match = url.match(pattern);
+        if(match){
+            const extractedUrl = match[0].split('https://').slice(2).join('https://');
+            const finalUrl = `https://${extractedUrl}`;
+            var win = window.open(finalUrl, '_blank');
+            if (win) {
+                win.focus();
+            } else {
+                console.error("Failed to open new tab. Popup blocker might be enabled.");
+            }
+        }
+        else{
+            // Ensure URL is fully encoded
+            var encodedUrl = encodeURIComponent(url.trim());
+            var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodedUrl;
+            // console.log('Opening URL:', googleDocsUrl);
+            var win = window.open(googleDocsUrl, '_blank');
+            if (win) {
+                win.focus();
+            } else {
+                console.error("Failed to open new tab. Popup blocker might be enabled.");
+            }
         }
     } catch (e) {
         console.error("Error opening file in new tab:", e);
@@ -167,7 +216,22 @@ function openPopup(sources, pageNumbers) {
 
     // Function to extract file name from URL
     function extractFileName(url) {
-        return url.split('/').pop();
+        // Regular expression to find the URL after the changeable part
+        const pattern = /https:\/\/.+\/https:\/\/.+/;
+
+        // Search for the pattern in the input string
+        const match = url.match(pattern);
+
+        if (match) {
+            // Extract the URL part after the last occurrence of 'https://'
+            const extractedUrl = match[0].split('https://').slice(2).join('https://');
+            // console.log("Extracted URL:", `https://${extractedUrl}`);
+            return extractedUrl;
+        }
+        else{
+            return url.split('/').pop();
+        }
+        
     }
 
     // Create and append the source rows
@@ -179,7 +243,12 @@ function openPopup(sources, pageNumbers) {
         var fileName = extractFileName(sources[i]);  // Extract the file name from the URL
 
         sourceLink.href = 'javascript:void(0)';  // Prevent default link behavior
-        sourceLink.textContent = fileName.substring(0, 40) + '...';
+        if(fileName.length>40){
+            sourceLink.textContent = fileName.substring(0, 40) + '...';
+        }
+        else{
+            sourceLink.textContent = fileName;
+        }
 
         // Add event listener to open the file in Google Viewer
         sourceLink.addEventListener('click', (function(url) {
