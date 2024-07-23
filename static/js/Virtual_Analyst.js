@@ -4,34 +4,41 @@ var span = document.getElementsByClassName("close")[0];
 var socket = io();
 
 // Select Files to load
-socket.on('updateAnalystTable', function(data) {
-    var fileList = document.getElementById("fileList");
-
-    // Clear the fileList dropdown before adding new options
-    fileList.innerHTML = '';
-
-    // Creating a default db option
-    var option1 = document.createElement("option");
-    option1.text = 'Select Data';
-    option1.value = 'select';
-    fileList.appendChild(option1);
-
-    const option2 = document.createElement("option");
-    option2.text = 'Use Database';
-    option2.value = 'database';
-    fileList.appendChild(option2);
-
-
-    var filteredData = data.filter(function(file) {
-        var fileExtension = file.name.split('.').pop().toLowerCase();
-        return fileExtension === 'xlsx' || fileExtension === 'csv';
+document.addEventListener('DOMContentLoaded', (event) => {
+    
+    socket.on('connect', function() {
+        console.log('Connected to the server');
     });
 
-    filteredData.forEach(function(file) {
-        var option = document.createElement("option");
-        option.text = file.name;
-        option.value = file.url;
-        fileList.appendChild(option);
+    socket.on('updateAnalystTable', function(data) {
+        var fileList = document.getElementById("fileList");
+
+        // Clear the fileList dropdown before adding new options
+        fileList.innerHTML = '';
+
+        // Creating a default db option
+        var option1 = document.createElement("option");
+        option1.text = 'Select Data';
+        option1.value = 'select';
+        fileList.appendChild(option1);
+
+        const option2 = document.createElement("option");
+        option2.text = 'Use Database';
+        option2.value = 'database';
+        fileList.appendChild(option2);
+
+
+        var filteredData = data.filter(function(file) {
+            var fileExtension = file.name.split('.').pop().toLowerCase();
+            return fileExtension === 'xlsx' || fileExtension === 'csv';
+        });
+
+        filteredData.forEach(function(file) {
+            var option = document.createElement("option");
+            option.text = file.name;
+            option.value = file.url;
+            fileList.appendChild(option);
+        });
     });
 });
 
