@@ -4,6 +4,7 @@ import base64
 import json
 from io import BytesIO
 import re
+
 import docx
 import asyncio
 import pytz
@@ -102,7 +103,7 @@ from EA.Database.database import UserRole, UserDetails, ChatHistory
 from EA.Config.configuration import (blob_service_client, container_client, computervision_client, embeddings, vector_store_address, vector_store_password, container_name, main_key)
 from EA.Logger.logging import setup_csv_logger, CustomLoggerAdapter
 from EA.Interrupt.flag import check_stop_flag, write_stop_flag_to_csv, read_stop_flag_from_csv
-
+from EA.Error_Handling.checkError import check_file, check_error
 
 chunk_size = 8000
 chunk_overlap = 400
@@ -1377,7 +1378,6 @@ def handle_update_value(data):
     emit('size_value_updated', {'value': Limit_By_Size, 'message': 'Value updated successfully'})
 
 
-
 @app.route('/popup_form', methods=['POST'])
 def popup_form():
     global mb_pop, file_size_bytes
@@ -1414,10 +1414,24 @@ def popup_form():
             session['MB'] += float("{:.2f}".format(mb_pop))
 
             for file in files:
+                # Check if the file is blank
+                check = check_file(file)
+                error_files = []
+                if check:
+                    if check_error(str(check)) == 'corruptFile':
+                        print(f"The file {file.filename} is corrupt.")
+                        error_files.append(f"The file {file.filename} is corrupt.")
+                        socketio.emit('uploadError', {'message': error_files})
+                        continue
+                    else:
+                        error_files.append(f"The file {file.filename} is blank.")
+                        socketio.emit('uploadError', {'message': error_files})
+                        continue
+
                 scan_source = False
                 if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg', '.pdf']):
                     lang = request.form.get('selected_language', False)
-                    # print("lang------>", lang)
+                    print("lang------>", lang)
                     if lang and '.pdf' in file.filename:
                         extract_text_from_pdf(file, lang)
                         scan_source = True
@@ -1738,13 +1752,16 @@ def handle_summary_input(data):
                 summ.append(summary_dict)
                 counter += 1
                 emit('summary_response', summ)
-            except ValueError as ve:
-                error_message = f"Azure content filter triggered for file {filename}: {str(ve)}"
-                error_messages.append(error_message)
-                logger.error('Summary generation error: ' + error_message, exc_info=True)
             except Exception as e:
                 error_message = f"An unexpected error occurred for file {filename}: {str(e)}"
-                error_messages.append(error_message)
+                file_name = check_error(str(e))
+                if file_name == 'policyError':
+                    error_messages.append(f"""An unexpected error occurred for file {filename}:
+                                            It seems the content of your file violates some policies. 
+                                            This could be due to certain words or phrases that are not allowed.
+                                            For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
+                else:
+                    error_messages.append(error_message)
                 logger.error('Summary generation error: ' + error_message, exc_info=True)
 
         session['summary_add'].extend(summ)
@@ -1765,7 +1782,12 @@ def handle_summary_input(data):
     except Exception as e:
         g.flag = 0
         error_message = f"An unexpected error occurred: {str(e)}"
-        error_messages.append(error_message)
+        file_name = check_error(str(e))
+        if file_name == 'valueError':
+            error_messages.append("""An unexpected error occurred:
+                                The data is not loaded. Please load the data to resolve this error!""")
+        else:
+            error_messages.append(error_message)
         logger.error('Summary generation error: ' + error_message, exc_info=True)
 
     finally:
@@ -1985,9 +2007,7 @@ def handle_ask_question(data):
                             seen_pages.add(page_str)
                             doc_source.append(source)
                             doc_page_num.append(page_str)
-                print('Before docx source-----------',doc_source)
                 doc_source.extend(list(set(docx_sources)))
-                print('After--------------------',doc_source)
                 doc_page_num.extend(docx_page)
 
             # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
