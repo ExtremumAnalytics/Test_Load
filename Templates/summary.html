@@ -102,6 +102,9 @@
             <!-- Navbar End -->
             <div class="flash_msg">
                 <div id="message"></div>
+                <!-- <div class="image-container">
+                    <img id="error" class="centered-image" src="static/images/nodata.png" style="display: none;" alt="Error!">
+                </div> -->
             </div>
 
             <!-- Prompt and Summary -->
@@ -137,7 +140,25 @@
                         </div>
                     </div>
                     <div class="response col-lg-12 bg-light rounded p-4">
-                        <h6 class="mb-2">Summary</h6>
+                        <div class="d-flex flex-row">
+                            <h6 class="m-2">Summary</h6>
+                            <a href="#" id="errorButton" class="m-2" data-toggle="modal" style="display: none;">
+                               Error! Click to view!
+                               <img style="width: 100px; height: 100px;" src="static/images/error400.png" alt="Error!">
+                            </a>
+                                <!-- HTML for the Popup Modal -->
+                                <div id="myModal" class="errorModal" style="display:none;">
+                                    <div class="modal-content">
+                                        <span class="close" onclick="closeModal()">&times;</span>
+                                        <div class="image-container">
+                                            <img class="centered-image" src="static/images/error400.png" alt="Error!">
+                                        </div>
+                                        <div class="modal-body" style="font-size: 14px;" id="modalBody">
+                                            <!-- Error message will be inserted here -->
+                                        </div>
+                                    </div>
+                                </div>
+                        </div>
                         <div id="waitImg" class="progress progress-bar progress-bar-info progress-bar-striped" style=" display:none; width:0%;"  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" >0% </div>
                         <div class="summ" id="summaryContainer" style="overflow-y: auto; max-height: 700px;">
                         </div>

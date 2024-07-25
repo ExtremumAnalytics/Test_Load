@@ -31,58 +31,44 @@ function sendQuestion() {
     socket.on('progress', function(data) {
         if (data.pin === pin) {
             updateProgressBar(data.percentage);
-            // console.log(data.percentage);
         }
     });
+
     socket.on('response', function(response) {
         updateProgressBar(100);
-        // Hide the wait image after a delay
         setTimeout(() => {
             document.getElementById("waitImg").style.display = 'none';
         }, 1500);
 
-        // Display chat history
         var historyContainer = document.getElementById("questionAnswer");
         historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
 
         var historyList = document.getElementById("chatHistoryList");
         var chatHistory = response.chat_history;
 
-        // Find the item with the maximum id
         var latestItem = chatHistory.reduce((maxItem, currentItem) =>
             currentItem.index > maxItem.index ? currentItem : maxItem, chatHistory[0]);
 
         chatHistory.forEach(function(item) {
-            // Create a list item for each history entry
             var listItem = document.createElement('li');
-            // Set the question part
             var question = "<b>" + "Question: " + "</b>" + item.question;
-
-            // Create a source link element
             var sourceLink = "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong></a>";
-
-            // Create a preformatted text element
             var preElement = document.createElement('pre');
             preElement.classList.add('formatted-pre');
-
-            // Set CSS properties for overflow handling
-            preElement.style.whiteSpace = 'pre-wrap'; // Allows text to wrap
-            preElement.style.overflowX = 'hidden';    // Hides horizontal overflow
-            preElement.style.overflowY = 'auto';      // Allows vertical overflow
-            preElement.style.fontFamily = 'Times New Roman'; // Set font to Times New Roman
+            preElement.style.whiteSpace = 'pre-wrap';
+            preElement.style.overflowX = 'hidden';
+            preElement.style.overflowY = 'auto';
+            preElement.style.fontFamily = 'Times New Roman';
             preElement.style.fontSize ='16px';
-
-            // Append the preformatted text element to the list item
             listItem.appendChild(preElement);
             historyList.appendChild(listItem);
 
             if (item.index === latestItem.index) {
-                // Handle the latest answer to be displayed word by word
                 preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>";
-
 
                 var words = item.answer.split(' ');
                 var word_index = 0;
+                var typingComplete = false; // Track when typing is complete
 
                 var intervalId = setInterval(() => {
                     if (word_index < words.length) {
@@ -92,55 +78,57 @@ function sendQuestion() {
                         word_index++;
                     } else {
                         clearInterval(intervalId);
+                        typingComplete = true; // Mark typing as complete
                         var sourceElement = document.createElement('div');
                         sourceElement.innerHTML = sourceLink + "\n\n";
                         preElement.appendChild(sourceElement);
-                        // Attach event listener to the dynamically added source link
                         sourceElement.querySelector('.source-link').addEventListener('click', function () {
-                        openPopup(this.getAttribute('data-source').split(','), this.getAttribute('data-page').split(','));
+                            openPopup(this.getAttribute('data-source').split(','), this.getAttribute('data-page').split(','));
                         });
+
+                        // Show the follow-up question only after typing is complete
+                        if (response.follow_up !== 'N/A') {
+                            showFollowUpQuestion(response.follow_up);
+                        }
                     }
-                }, 50); // Adjust the interval time (50ms) to control the speed of word display
+
+                    // Hide the follow-up question during typing
+                    if (!typingComplete && response.follow_up !== 'N/A') {
+                        document.getElementById("followUp").style.display = 'none';
+                    }
+                }, 50);
             } else {
-                // Handle previous answers to be displayed all at once
                 preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>" + item.answer + "<br>" + sourceLink + "\n\n";
             }
         });
 
-
-        // Attach event listeners to source links
         document.querySelectorAll('.source-link').forEach(function(link) {
             link.addEventListener('click', function() {
                 openPopup(this.getAttribute('data-source').split(','), this.getAttribute('data-page').split(','));
             });
         });
 
-        // Follow-up question
-        var follow_up_question = document.getElementById("followUp");
-        follow_up_question.innerHTML = ""; // Clear previous follow-up question
-        if(response.follow_up === 'N/A'){
-           follow_up_question.style.display='none';
-        } else{
-            var followup_list = document.createElement('p');
-            follow_up_question.style.display='block';
-            follow_up_question.appendChild(followup_list);
-            followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + response.follow_up + "</button><br>";
-
-            // Attach event listener to follow-up button
-            document.getElementById('followUpButton').addEventListener('click', function() {
-                // Ensure response.follow_up is defined and replace the specified string
-                if (response && response.follow_up) {
-                    var strippedString = response.follow_up.replace("Do you also want to know", "").replace("Do you also want to know about", "");
-                    document.getElementById("question").value = strippedString.trim();
-                    sendQuestion(); // Call sendQuestion again with the follow-up question
-                } else {
-                    // console.error("response.follow_up is not defined");
-                }
-            });
-        }
         document.getElementById("question").value = ""; // Clear the question input
     });
 }
+
+function showFollowUpQuestion(followUpText) {
+    var follow_up_question = document.getElementById("followUp");
+    follow_up_question.innerHTML = ""; // Clear previous follow-up question
+    follow_up_question.style.display = 'block';
+
+    var followup_list = document.createElement('p');
+    follow_up_question.appendChild(followup_list);
+    followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + followUpText + "</button><br>";
+
+    document.getElementById('followUpButton').addEventListener('click', function() {
+        var strippedString = followUpText.replace("Do you also want to know", "").replace("Do you also want to know about", "");
+        document.getElementById("question").value = strippedString.trim();
+        sendQuestion(); // Call sendQuestion again with the follow-up question
+    });
+}
+
+
 
 function openFileInNewTab(url) {
     try {

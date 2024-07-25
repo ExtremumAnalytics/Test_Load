@@ -221,6 +221,29 @@ function runDefaultProgram(called_from) {
     // closePopup();
 }
 
+socket.on('uploadError', function(response) {
+    // console.log(response);
+    const errorContainer = document.getElementById('modalBody');
+    list = document.createElement('ul');
+    errorContainer.appendChild(list);
+    const listItem = document.createElement('li'); // Create a list item element
+    list.appendChild(listItem); // Append the list item to the list
+    listItem.innerHTML = response.message;
+    document.getElementById('errorButton').style.display = 'block';
+    alert('Error while uploading the data. Please check!')
+});
+
+document.getElementById('errorButton').onclick = function() {
+    var modal = document.getElementById("myModal");
+    modal.style.display = "block";
+    $('#errorModal').modal('show');
+}
+
+// Close the select menu
+function closeModal() {
+    document.getElementById('myModal').style.display = 'none';
+}
+
 // Progress Updation Start
 socket.on('pending', function(data){
     // console.log('Pending',data);
