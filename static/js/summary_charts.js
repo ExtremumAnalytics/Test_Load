@@ -22,7 +22,7 @@
                     aspectRatio : 2,
                     borderRadius:8,
                     cutout: 95,
-                    data: [75,25]
+                    data: [100,0]
                 }]
             },
             options: {
@@ -53,8 +53,8 @@
         function updateReadinessChart(data) {
             var left = 100 - data.x;
             myChart2.data.datasets[0].data = [
-                data.x,
-                left.toFixed(2)
+                Math.round(data.x),
+                Math.round(left)
             ];
             myChart2.update(); // Refresh the chart
         }
