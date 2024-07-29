@@ -162,6 +162,8 @@ function runDefaultProgram(called_from) {
     var mp3Input = document.getElementById('mp3Input');
     var Image_input = document.getElementById('input_image');
     var lang = document.getElementById('lang').value;
+    var sourceUrlInput = document.getElementById('sourceUrl').value;
+    var urls = sourceUrlInput.split(',').map(url => url.trim()); // Process comma-separated URLs
     const slider = document.getElementById("mySlider");
     var files;
 
@@ -187,7 +189,7 @@ function runDefaultProgram(called_from) {
     var Source_URL = document.getElementsByName('Source_URL')[0].value;
     
     $("#waitImg").show(); // Show the loading image
-    formData.append('Source_URL', Source_URL);
+    formData.append('urls', JSON.stringify(urls));
 
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/popup_form');
@@ -201,7 +203,8 @@ function runDefaultProgram(called_from) {
             $("#waitImg").hide(); // Hide the loading image on success
             linkDataPopup();
             updateTable();
-            document.getElementsByName('Source_URL')[0].value = '';
+
+            urlArray = []; // Clear the URL array
         } else {
             var response = JSON.parse(xhr.responseText);
             document.getElementById('message').innerHTML = '<p>' + response.message + '</p>';
@@ -210,7 +213,7 @@ function runDefaultProgram(called_from) {
             }, 8000);
             updateTable();
             $("#waitImg").hide(); // Hide the loading image on failure
-            document.getElementsByName('Source_URL')[0].value = '';
+            urlArray = []; // Clear the URL array
         }
     };
 
@@ -218,7 +221,6 @@ function runDefaultProgram(called_from) {
     document.getElementById('fileInput').value='';
     document.getElementById('mp3Input').value = '';
     document.getElementById('input_image').value = '';
-    // closePopup();
 }
 
 socket.on('uploadError', function(response) {
@@ -230,7 +232,7 @@ socket.on('uploadError', function(response) {
     list.appendChild(listItem); // Append the list item to the list
     listItem.innerHTML = response.message;
     document.getElementById('errorButton').style.display = 'block';
-    alert('Error while uploading the data. Please check!')
+    // alert('Error while uploading the data. Please check!');
 });
 
 document.getElementById('errorButton').onclick = function() {
@@ -269,6 +271,11 @@ $(document).ready(function () {
     var socket = io();
 
     $("#loadCogniLink").click(function () {
+        const errorContainer = document.getElementById('modalBody');
+        while (errorContainer.firstChild) {
+            errorContainer.removeChild(errorContainer.firstChild);
+        }
+        document.getElementById('errorButton').style.display = 'none';
         $(".progress").show(); //Show the progress bar
         $("#waitImg1").show(); // Show the loading image
         socket.on('progress', function(data){

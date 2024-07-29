@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             preElement.style.whiteSpace = 'pre-wrap'; // Allows text to wrap
             preElement.style.overflowX = 'hidden';    // Hides horizontal overflow
             preElement.style.overflowY = 'auto';      // Allows vertical overflow (optional)
-            preElement.style.fontFamily = 'Calibri';
+            preElement.style.fontFamily = 'TimesNew Roman';
             preElement.style.fontSize ='16px';
             listItem.appendChild(preElement);
             historyList.appendChild(listItem);

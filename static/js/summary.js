@@ -65,6 +65,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Display errors at the bottom
         if (errorMessages.length > 0) {
+            const errorContainer = document.getElementById('modalBody');
+            while (errorContainer.firstChild) {
+                errorContainer.removeChild(errorContainer.firstChild);
+            }
             displayErrors(errorMessages);
             errorMessages = []; // Clear error messages after displaying
         }

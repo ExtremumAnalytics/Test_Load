@@ -604,7 +604,7 @@ def create_or_update_index():
     # Define the index schema
     fields = [
         SimpleField(name="id", type=SearchFieldDataType.String, key=True),
-        SimpleField(name="file_name", type=SearchFieldDataType.String, filterable=True, sortable=True, searchable=True),
+        SearchableField(name="file_name", type=SearchFieldDataType.String, filterable=True, sortable=True, searchable=True),
         SearchableField(name="content", type=SearchFieldDataType.String, searchable=True),
         SearchField(name="content_vector", type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                     searchable=True, vector_search_dimensions=1536, vector_search_profile_name="my-vector-config"),
@@ -1148,6 +1148,7 @@ def generate_followup_question(answer, chat_history, context):
                   "Make sure the follow-up question is derived strictly from the content of the files and is related to a topic not yet covered in the conversation. "
                   "If no new topics can be found in the files, respond with: 'Sorry, I couldn't see anything relevant'. "
                   "Do not create any questions that are not directly based on the content of the files."
+
                   )
     )
     follow_up_chain = LLMChain(llm=llm, prompt=follow_up_prompt_template)
@@ -1386,13 +1387,14 @@ def popup_form():
 
     if request.method == 'POST':
         files = request.files.getlist('myFile')
-        source_url = request.form.get('Source_URL', '')
+        # source_url = request.form.get('Source_URL', '')
+        source_url_list = request.form.get('urls', '[]')  # Get URLs from form data
+        source_urls = json.loads(source_url_list)  # Convert JSON string to list
         mb_pop = 0  # Initialize mb_pop before the loop
 
-        # Check if neither files nor Source_URL are provided
-        if not files and not source_url:
+        # Check if neither files nor URLs are provided
+        if not files and not source_urls:
             return jsonify({'message': 'No data provided'}), 400
-
         if files:
             if not len(files):
                 return jsonify({'message': 'File not found'}), 400
@@ -1498,20 +1500,22 @@ def popup_form():
 
                 if not scan_source:
                     upload_to_blob(file, session, blob_service_client, container_name)
-
         else:
-            if not source_url:
-                print('No Source_URL found')
-                return jsonify({'message': 'No source URL found'}), 400
+            if not source_urls:
+                print('No URLs found')
+                return jsonify({'message': 'No URLs found'}), 400
 
-            # Validate the URL
-            if not is_url_valid(source_url):
-                print("Source URL not valid")
-                return jsonify({'message': 'Source URL is not valid'}), 400
+            # Validate each URL
+            invalid_urls = [url for url in source_urls if not is_url_valid(url)]
+            if invalid_urls:
+                print("Some URLs are not valid:", invalid_urls)
+                return jsonify({'message': f'Invalid URLs found: {", ".join(invalid_urls)}'}), 400
 
-            blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{source_url}"
-            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client.upload_blob(source_url, blob_type="BlockBlob", overwrite=True)
+            # Process each valid URL
+            for url in source_urls:
+                blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{url}"
+                blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+                blob_client.upload_blob(url, blob_type="BlockBlob", overwrite=True)
 
         update_bar_chart_from_blob(session, blob_service_client, container_name)
 
@@ -1676,6 +1680,189 @@ def Cogni_button():
         return jsonify({'message': str(e)}), 500
 
 
+# @socketio.on('summary_input')
+# def handle_summary_input(data):
+#     global text_word_cloud
+#     session['summary_add'] = []
+#     start_time = time.time()
+#     error_messages = []
+#
+#     try:
+#         session['summary_word_count'] = data['value']
+#         custom_p = data.get('summary_que',"")
+#         session['summary_word_count'] = data['value']
+#
+#         if int(session['summary_word_count']) == 0:
+#             emit('summary_response', {'message': 'Summary word count is zero!'})
+#             return
+#
+#         else:
+#             word_count = int(session['summary_word_count'])
+#             emit('progress', {'percentage': 10, 'pin': session['login_pin']})
+#
+#         # Initialize the search client
+#         search_client = SearchClient(
+#             endpoint=vector_store_address,
+#             index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
+#             credential=AzureKeyCredential(vector_store_password)
+#         )
+#
+#         # Function to extract keywords from the prompt
+#         def extract_keywords(prompt):
+#             # Using a simple regex to extract words, you can replace this with a more sophisticated method if needed
+#             keys = re.findall(r'\w+', prompt)
+#             return [keyword for keyword in keys if keyword.lower() != ['summary', 'on', 'generate']]
+#
+#         # Perform the search
+#         # results = search_client.search(search_text="*", select="*", include_total_count=True)
+#         if not custom_p or "all" in custom_p.lower():
+#             results = search_client.search(
+#                 search_text="*",  # Retrieve all files
+#                 select="*",
+#                 include_total_count=True
+#             )
+#         else:
+#             prompt_embeddings = embeddings.embed_query(custom_p)
+#             # Extract keywords from the prompt
+#             keywords = extract_keywords(custom_p)
+#             # Construct a flexible search query using the keywords
+#             # Construct a more precise search query using the keywords
+#             # exact_match_query = " or ".join([f"search.ismatch('{keyword}', 'content')" for keyword in keywords])
+#             partial_match_query = " or ".join([f"search.ismatch('{keyword}*', 'file_name')" for keyword in keywords])
+#             # search_query = f"({exact_match_query}) or ({partial_match_query})"
+#             search_query = f"{partial_match_query}"
+#             print(search_query)
+#             results = search_client.search(
+#                 search_text=prompt_embeddings,
+#                 select="*",
+#                 include_total_count=True,
+#                 filter=search_query
+#             )
+#
+#         # Initialize the list for old_structure documents
+#         filename_to_docs = {}
+#
+#         # Function to split content into chunks of a specified size
+#         def split_content(content, size=8000):
+#             return [content[i:i + size] for i in range(0, len(content), size)]
+#
+#         # Process each result
+#         for result in results:
+#             try:
+#                 # Extract file_name and content
+#                 filename = result['file_name']
+#                 content = result['content']
+#
+#                 # Split the content into chunks of 8000 characters
+#                 content_chunks = split_content(content, size=8000)
+#
+#                 # Create Document objects with metadata for each chunk
+#                 docs = [Document(page_content=chunk) for chunk in content_chunks]
+#
+#                 # Add the document chunks to the corresponding filename key
+#                 if filename in filename_to_docs:
+#                     filename_to_docs[filename].extend(docs)
+#                 else:
+#                     filename_to_docs[filename] = docs
+#
+#             except KeyError as e:
+#                 error_messages.append(f"KeyError: {e}. Result: {result}")
+#             except Exception as e:
+#                 error_messages.append(f"An unexpected error occurred while processing result: {str(e)}")
+#
+#         # Convert the dictionary to a list of tuples
+#         old_structure = [(filename, docs) for filename, docs in filename_to_docs.items()]
+#
+#         # Generate summaries with the required structure
+#         summ = []
+#         counter = 1
+#
+#         for filename, documents in old_structure:
+#             try:
+#                 summary_list = custom_summary(documents, custom_p, chain_type, word_count)
+#                 key = f'{filename}--{counter}--'
+#                 summary_dict = {'key': key, 'value': summary_list}
+#                 summ.append(summary_dict)
+#                 counter += 1
+#                 emit('summary_response', summ)
+#             except Exception as e:
+#                 error_message = f"An unexpected error occurred for file {filename}: {str(e)}"
+#                 file_name = check_error(str(e))
+#                 if file_name == 'policyError':
+#                     error_messages.append(f"""An unexpected error occurred for file {filename}:
+#                                             It seems the content of your file violates some policies.
+#                                             This could be due to certain words or phrases that are not allowed.
+#                                             For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
+#                 else:
+#                     error_messages.append(error_message)
+#                 logger.error('Summary generation error: ' + error_message, exc_info=True)
+#
+#         session['summary_add'].extend(summ)
+#
+#         emit('progress', {'percentage': 75, 'pin': session['login_pin']})
+#
+#         senti_text_summ = ' '.join(entry['value'] for entry in summ)
+#         analyze_sentiment_summ(senti_text_summ)
+#
+#         generate_word_cloud(senti_text_summ)
+#         perform_lda____summ(senti_text_summ)
+#
+#         elapsed_time = time.time() - start_time
+#         g.flag = 1
+#         logger.info(f'Summary Generated in {elapsed_time} seconds')
+#         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+#
+#     except Exception as e:
+#         g.flag = 0
+#         error_message = f"An unexpected error occurred: {str(e)}"
+#         file_name = check_error(str(e))
+#         if file_name == 'valueError':
+#             error_messages.append("""An unexpected error occurred:
+#                                 The data is not loaded. Please load the data to resolve this error!""")
+#         if file_name == 'policyError':
+#             error_messages.append(f"""An unexpected error occurred for file {filename}:
+#                                                     It seems the content of your file violates some policies.
+#                                                     This could be due to certain words or phrases that are not allowed.
+#                                                     For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
+#         else:
+#             error_messages.append(error_message)
+#         logger.error('Summary generation error: ' + str(error_messages), exc_info=True)
+#
+#     finally:
+#         if error_messages:
+#             emit('summary_response', {'errors': error_messages})
+#             emit('summary_response', {'message': 'No data load'})
+#         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+
+
+import multiprocessing
+
+# Function to extract keywords from the prompt
+def extract_keywords(prompt):
+    keys = re.findall(r'\w+', prompt)
+    return [keyword for keyword in keys if keyword.lower() not in ['summary', 'on', 'generate']]
+
+# Function to split content into chunks of a specified size
+def split_content(content, size=8000):
+    return [content[i:i + size] for i in range(0, len(content), size)]
+
+# Function to process a single result
+def process_result(result):
+    try:
+        filename = result['file_name']
+        content = result['content']
+        content_chunks = split_content(content, size=8000)
+        docs = [Document(page_content=chunk) for chunk in content_chunks]
+        return filename, docs
+    except KeyError as e:
+        error_message = f"KeyError: {e}. Result: {result}"
+        logger.error(error_message)
+        return None, None
+    except Exception as e:
+        error_message = f"An unexpected error occurred while processing result: {str(e)}"
+        logger.error(error_message)
+        return None, None
+
 @socketio.on('summary_input')
 def handle_summary_input(data):
     global text_word_cloud
@@ -1685,16 +1872,15 @@ def handle_summary_input(data):
 
     try:
         session['summary_word_count'] = data['value']
-        custom_p = data.get('summary_que')
+        custom_p = data.get('summary_que', "")
         session['summary_word_count'] = data['value']
 
         if int(session['summary_word_count']) == 0:
             emit('summary_response', {'message': 'Summary word count is zero!'})
             return
 
-        else:
-            word_count = int(session['summary_word_count'])
-            emit('progress', {'percentage': 10, 'pin': session['login_pin']})
+        word_count = int(session['summary_word_count'])
+        emit('progress', {'percentage': 10, 'pin': session['login_pin']})
 
         # Initialize the search client
         search_client = SearchClient(
@@ -1704,47 +1890,46 @@ def handle_summary_input(data):
         )
 
         # Perform the search
-        results = search_client.search(search_text="*", select="*", include_total_count=True)
+        if not custom_p or "all" in custom_p.lower():
+            results = search_client.search(
+                search_text="*",  # Retrieve all files
+                select="*",
+                include_total_count=True
+            )
+        else:
+            prompt_embeddings = embeddings.embed_query(custom_p)
+            keywords = extract_keywords(custom_p)
+            partial_match_query = " or ".join([f"search.ismatch('{keyword}*', 'file_name')" for keyword in keywords])
+            search_query = f"{partial_match_query}"
+            results = search_client.search(
+                search_text=prompt_embeddings,
+                select="*",
+                include_total_count=True,
+                filter=search_query
+            )
 
         # Initialize the list for old_structure documents
         filename_to_docs = {}
 
-        # Function to split content into chunks of a specified size
-        def split_content(content, size=8000):
-            return [content[i:i + size] for i in range(0, len(content), size)]
+        # Use multiprocessing to process results in parallel
+        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+            results = pool.map(process_result, results)
 
-        # Process each result
-        for result in results:
-            try:
-                # Extract file_name and content
-                filename = result['file_name']
-                content = result['content']
+        # Filter out any failed results
+        results = [result for result in results if result[0] is not None]
 
-                # Split the content into chunks of 8000 characters
-                content_chunks = split_content(content, size=8000)
-
-                # Create Document objects with metadata for each chunk
-                docs = [Document(page_content=chunk) for chunk in content_chunks]
-
-                # Add the document chunks to the corresponding filename key
-                if filename in filename_to_docs:
-                    filename_to_docs[filename].extend(docs)
-                else:
-                    filename_to_docs[filename] = docs
-
-            except KeyError as e:
-                error_messages.append(f"KeyError: {e}. Result: {result}")
-            except Exception as e:
-                error_messages.append(f"An unexpected error occurred while processing result: {str(e)}")
-
-        # Convert the dictionary to a list of tuples
-        old_structure = [(filename, docs) for filename, docs in filename_to_docs.items()]
+        # Convert the list of tuples to a dictionary
+        for filename, docs in results:
+            if filename in filename_to_docs:
+                filename_to_docs[filename].extend(docs)
+            else:
+                filename_to_docs[filename] = docs
 
         # Generate summaries with the required structure
         summ = []
         counter = 1
 
-        for filename, documents in old_structure:
+        for filename, documents in filename_to_docs.items():
             try:
                 summary_list = custom_summary(documents, custom_p, chain_type, word_count)
                 key = f'{filename}--{counter}--'
@@ -1757,7 +1942,7 @@ def handle_summary_input(data):
                 file_name = check_error(str(e))
                 if file_name == 'policyError':
                     error_messages.append(f"""An unexpected error occurred for file {filename}:
-                                            It seems the content of your file violates some policies. 
+                                            It seems the content of your file violates some policies.
                                             This could be due to certain words or phrases that are not allowed.
                                             For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
                 else:
@@ -1786,9 +1971,14 @@ def handle_summary_input(data):
         if file_name == 'valueError':
             error_messages.append("""An unexpected error occurred:
                                 The data is not loaded. Please load the data to resolve this error!""")
+        if file_name == 'policyError':
+            error_messages.append(f"""An unexpected error occurred for file {filename}:
+                                                    It seems the content of your file violates some policies.
+                                                    This could be due to certain words or phrases that are not allowed.
+                                                    For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
         else:
             error_messages.append(error_message)
-        logger.error('Summary generation error: ' + error_message, exc_info=True)
+        logger.error('Summary generation error: ' + str(error_messages), exc_info=True)
 
     finally:
         if error_messages:
