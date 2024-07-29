@@ -4,34 +4,41 @@ var span = document.getElementsByClassName("close")[0];
 var socket = io();
 
 // Select Files to load
-socket.on('updateTable', function(data) {
-    var fileList = document.getElementById("fileList");
-
-    // Clear the fileList dropdown before adding new options
-    fileList.innerHTML = '';
-
-    // Creating a default db option
-    var option = document.createElement("option");
-    option.text = 'Select Data';
-    option.value = 'select';
-    fileList.appendChild(option);
-
-    const option2 = document.createElement("option");
-    option2.text = 'Use Database';
-    option2.value = 'database';
-    fileList.appendChild(option2);
-
-
-    var filteredData = data.filter(function(file) {
-        var fileExtension = file.name.split('.').pop().toLowerCase();
-        return fileExtension === 'xlsx' || fileExtension === 'csv';
+document.addEventListener('DOMContentLoaded', (event) => {
+    
+    socket.on('connect', function() {
+        console.log('Connected to the server');
     });
 
-    filteredData.forEach(function(file) {
-        var option = document.createElement("option");
-        option.text = file.name;
-        option.value = file.url;
-        fileList.appendChild(option);
+    socket.on('updateAnalystTable', function(data) {
+        var fileList = document.getElementById("fileList");
+
+        // Clear the fileList dropdown before adding new options
+        fileList.innerHTML = '';
+
+        // Creating a default db option
+        var option1 = document.createElement("option");
+        option1.text = 'Select Data';
+        option1.value = 'select';
+        fileList.appendChild(option1);
+
+        const option2 = document.createElement("option");
+        option2.text = 'Use Database';
+        option2.value = 'database';
+        fileList.appendChild(option2);
+
+
+        var filteredData = data.filter(function(file) {
+            var fileExtension = file.name.split('.').pop().toLowerCase();
+            return fileExtension === 'xlsx' || fileExtension === 'csv';
+        });
+
+        filteredData.forEach(function(file) {
+            var option = document.createElement("option");
+            option.text = file.name;
+            option.value = file.url;
+            fileList.appendChild(option);
+        });
     });
 });
 
@@ -98,6 +105,7 @@ function loadData() {
 // Function to clear the chat content
 function clearChat() {
   document.getElementById('eda_questionAnswer').innerHTML = '';
+  document.getElementById('question_eda').value = '';
   $('#message').text('Chat cleared successful.');
   setTimeout(function() {
     $('#message').text('');
@@ -128,8 +136,7 @@ function sendQuestion() {
             setTimeout(function() {
                 $('#message').text('');
             }, 8000); //delete after 8 seconds
-            // console.log(data);
-            document.getElementById('eda_questionAnswer').innerHTML = `<p></p><b>Output:</b> ${data.output} <br><p></p> <b>Query:</b> ${data.query}<p></p> <b>Results:</b> <a href="${data.url}">Download Query Results</a>`;
+            document.getElementById('eda_questionAnswer').innerHTML = `<p></p><b>Output:</b> ${data.output} <br><p></p> <b>Query:</b> ${data.query}<p></p> ${data.df_table} <p></p> <b>Results:</b> <a href="${data.url}">Download Query Results</a>`;
             updateQueryTable();
         })
         updateQueryTable();
@@ -244,7 +251,7 @@ function updateQueryTable(searchTerm) {
             });
         },
         error: function(xhr, status, error) {
-            // console.error('Error updating table:', error);
+            console.error('Error updating table:', error);
         }
     });
 }

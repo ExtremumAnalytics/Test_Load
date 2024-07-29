@@ -98,7 +98,18 @@
             <div class="container-welcome mt-2">
                 <div class="d-flex justify-content-between align-items-center">
                     <h4 class="welcome">Welcome to CogniLink!</h4>
-                    <button id="stopButton" onclick="stop_all()" class="btn btn-danger">&#10006;</button>
+                    <button id="errorButton" class="trigger-btn btn btn-secondary m-2" style="color: #000000; background-color: #F7F723; display: none;" data-toggle="modal">&#9888;</button>
+                    <!-- HTML for the Popup Modal -->
+                    <div id="myModal" class="modal" style="display:none;">
+                        <div class="modal-content">
+                            <span class="close" onclick="closeModal()">&times;</span>
+                            <h4>Data Upload Error:</h4>
+                            <div class="modal-body" id="modalBody">
+                                <!-- Error message will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                    <button id="stopButton" onclick="stop_all()" class="btn btn-danger m-2">&#10006;</button>
                 </div>
                 <hr class="dropdown-divider">
             </div>

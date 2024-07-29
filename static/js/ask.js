@@ -10,6 +10,117 @@ function updateProgressBar(percentage) {
     progressBar.setAttribute('width', percent);
     progressBar.innerText = percentage + '% ';
 }
+//function sendQuestion() {
+//    var question = document.getElementById("question").value.trim(); // Trim the question
+//    var source = document.getElementById("selectSource").value;
+//
+//    if (source === 'default') {
+//        alert('Please select a source!');
+//        return;
+//    }
+//
+//    if (question === "") {
+//        alert("Ask Question!");
+//        return;
+//    }
+//    document.getElementById("waitImg").style.display = 'block'; // Show the loading image
+//
+//    socket.emit('ask_question', { question: question, source: source });
+//
+//    socket.on('progress', function(data) {
+//        if (data.pin === pin) {
+//            updateProgressBar(data.percentage);
+//        }
+//    });
+//
+//    socket.on('response', function(response) {
+//        updateProgressBar(100);
+//        setTimeout(() => {
+//            document.getElementById("waitImg").style.display = 'none';
+//        }, 1500);
+//
+//        var historyContainer = document.getElementById("questionAnswer");
+//        historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
+//
+//        var historyList = document.getElementById("chatHistoryList");
+//        var chatHistory = response.chat_history;
+//
+//        var latestItem = chatHistory.reduce((maxItem, currentItem) =>
+//            currentItem.index > maxItem.index ? currentItem : maxItem, chatHistory[0]);
+//
+//        chatHistory.forEach(function(item) {
+//            var listItem = document.createElement('li');
+//            var question = "<b>" + "Question: " + "</b>" + item.question;
+//            var sourceLink = "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong></a>";
+//            var preElement = document.createElement('pre');
+//            preElement.classList.add('formatted-pre');
+//            preElement.style.whiteSpace = 'pre-wrap';
+//            preElement.style.overflowX = 'hidden';
+//            preElement.style.overflowY = 'auto';
+//            preElement.style.fontFamily = 'Times New Roman';
+//            preElement.style.fontSize ='16px';
+//            listItem.appendChild(preElement);
+//            historyList.appendChild(listItem);
+//
+//            if (item.index === latestItem.index) {
+//                preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>";
+//
+//                var words = item.answer.split(' ');
+//                var word_index = 0;
+//                var typingComplete = false; // Track when typing is complete
+//
+//                var intervalId = setInterval(() => {
+//                    if (word_index < words.length) {
+//                        var wordSpan = document.createElement('span');
+//                        wordSpan.innerText = words[word_index] + ' ';
+//                        preElement.appendChild(wordSpan);
+//                        word_index++;
+//                    } else {
+//                        clearInterval(intervalId);
+//                        typingComplete = true; // Mark typing as complete
+//                        var sourceElement = document.createElement('div');
+//                        sourceElement.innerHTML = sourceLink + "\n\n";
+//                        preElement.appendChild(sourceElement);
+//                        sourceElement.querySelector('.source-link').addEventListener('click', function () {
+//                            openPopup(this.getAttribute('data-source').split(','), this.getAttribute('data-page').split(','));
+//                        });
+//
+//                        // Only show the follow-up question if typing is complete
+//                        if (response.follow_up !== 'N/A') {
+//                            showFollowUpQuestion(response.follow_up);
+//                        }
+//                    }
+//                }, 50);
+//            } else {
+//                preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>" + item.answer + "<br>" + sourceLink + "\n\n";
+//            }
+//        });
+//
+//        document.querySelectorAll('.source-link').forEach(function(link) {
+//            link.addEventListener('click', function() {
+//                openPopup(this.getAttribute('data-source').split(','), this.getAttribute('data-page').split(','));
+//            });
+//        });
+//
+//        document.getElementById("question").value = ""; // Clear the question input
+//    });
+//}
+//
+//function showFollowUpQuestion(followUpText) {
+//    var follow_up_question = document.getElementById("followUp");
+//    follow_up_question.innerHTML = ""; // Clear previous follow-up question
+//    follow_up_question.style.display = 'block';
+//
+//    var followup_list = document.createElement('p');
+//    follow_up_question.appendChild(followup_list);
+//    followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + followUpText + "</button><br>";
+//
+//    document.getElementById('followUpButton').addEventListener('click', function() {
+//        var strippedString = followUpText.replace("Do you also want to know", "").replace("Do you also want to know about", "");
+//        document.getElementById("question").value = strippedString.trim();
+//        sendQuestion(); // Call sendQuestion again with the follow-up question
+//    });
+//}
 
 function sendQuestion() {
     var question = document.getElementById("question").value.trim(); // Trim the question
@@ -31,95 +142,131 @@ function sendQuestion() {
     socket.on('progress', function(data) {
         if (data.pin === pin) {
             updateProgressBar(data.percentage);
-            // console.log(data.percentage);
         }
     });
 
     socket.on('response', function(response) {
         updateProgressBar(100);
-        // console.log('100');
         setTimeout(() => {
             document.getElementById("waitImg").style.display = 'none';
         }, 1500);
 
-        if (response.message) {
-            document.getElementById('message').innerText = response.message;
-            setTimeout(function() {
-                document.getElementById('message').innerText = '';
-            }, 8000); // delete after 8 seconds
-        }
-
-        // Display chat history
         var historyContainer = document.getElementById("questionAnswer");
         historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
-        
-        var historyList = document.getElementById("chatHistoryList");
-        response.chat_history.forEach(function(item) {
 
+        var historyList = document.getElementById("chatHistoryList");
+        var chatHistory = response.chat_history;
+
+        var latestItem = chatHistory.reduce((maxItem, currentItem) =>
+            currentItem.index > maxItem.index ? currentItem : maxItem, chatHistory[0]);
+
+        chatHistory.forEach(function(item) {
             var listItem = document.createElement('li');
             var question = "<b>" + "Question: " + "</b>" + item.question;
-            var answer = "<b>" + "Answer: \n" + "</b>" + item.answer; //.replace(/- /g, "\n- ");
             var sourceLink = "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong></a>";
-
-            var content = question + "\n" + answer + "\n" + sourceLink + "\n\n";
-
             var preElement = document.createElement('pre');
-            preElement.innerHTML = content;
             preElement.classList.add('formatted-pre');
-            // Set the CSS properties to handle overflow
-            preElement.style.whiteSpace = 'pre-wrap'; // Allows text to wrap
-            preElement.style.overflowX = 'hidden';    // Hides horizontal overflow
-            preElement.style.overflowY = 'auto';      // Allows vertical overflow (optional)
+            preElement.style.whiteSpace = 'pre-wrap';
+            preElement.style.overflowX = 'hidden';
+            preElement.style.overflowY = 'auto';
+            preElement.style.fontFamily = 'Times New Roman';
+            preElement.style.fontSize ='16px';
             listItem.appendChild(preElement);
             historyList.appendChild(listItem);
 
+            if (item.index === latestItem.index) {
+                preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>";
+
+                var words = item.answer.split(' ');
+                var word_index = 0;
+                var typingComplete = false; // Track when typing is complete
+
+                var intervalId = setInterval(() => {
+                    if (word_index < words.length) {
+                        var wordSpan = document.createElement('span');
+                        wordSpan.innerText = words[word_index] + ' ';
+                        preElement.appendChild(wordSpan);
+                        word_index++;
+                    } else {
+                        clearInterval(intervalId);
+                        typingComplete = true; // Mark typing as complete
+                        var sourceElement = document.createElement('div');
+                        sourceElement.innerHTML = sourceLink + "\n\n";
+                        preElement.appendChild(sourceElement);
+                        sourceElement.querySelector('.source-link').addEventListener('click', function () {
+                            openPopup(this.getAttribute('data-source').split(','), this.getAttribute('data-page').split(','));
+                        });
+
+                        // Show the follow-up question only after typing is complete
+                        if (response.follow_up !== 'N/A') {
+                            showFollowUpQuestion(response.follow_up);
+                        }
+                    }
+
+                    // Hide the follow-up question during typing
+                    if (!typingComplete && response.follow_up !== 'N/A') {
+                        document.getElementById("followUp").style.display = 'none';
+                    }
+                }, 50);
+            } else {
+                preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>" + item.answer + "<br>" + sourceLink + "\n\n";
+            }
         });
 
-        // Attach event listeners to source links
         document.querySelectorAll('.source-link').forEach(function(link) {
             link.addEventListener('click', function() {
                 openPopup(this.getAttribute('data-source').split(','), this.getAttribute('data-page').split(','));
             });
         });
 
-        // Follow-up question
-        var follow_up_question = document.getElementById("followUp");
-        follow_up_question.innerHTML = ""; // Clear previous follow-up question
-        if(response.follow_up === 'N/A'){
-           follow_up_question.style.display='none';
-        } else{
-            var followup_list = document.createElement('p');
-            follow_up_question.style.display='block';
-            follow_up_question.appendChild(followup_list);
-            followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + response.follow_up + "</button><br>";
-
-            // Attach event listener to follow-up button
-            document.getElementById('followUpButton').addEventListener('click', function() {
-                // Ensure response.follow_up is defined and replace the specified string
-                if (response && response.follow_up) {
-                    var strippedString = response.follow_up.replace("Do you also want to know", "").replace("Do you also want to know about", "");
-                    document.getElementById("question").value = strippedString.trim();
-                    sendQuestion(); // Call sendQuestion again with the follow-up question
-                } else {
-                    // console.error("response.follow_up is not defined");
-                }
-            });
-        }
         document.getElementById("question").value = ""; // Clear the question input
     });
 }
 
+function showFollowUpQuestion(followUpText) {
+    var follow_up_question = document.getElementById("followUp");
+    follow_up_question.innerHTML = ""; // Clear previous follow-up question
+    follow_up_question.style.display = 'block';
+
+    var followup_list = document.createElement('p');
+    follow_up_question.appendChild(followup_list);
+    followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + followUpText + "</button><br>";
+
+    document.getElementById('followUpButton').addEventListener('click', function() {
+        var strippedString = followUpText.replace("Do you also want to know", "").replace("Do you also want to know about", "");
+        document.getElementById("question").value = strippedString.trim();
+        sendQuestion(); // Call sendQuestion again with the follow-up question
+    });
+}
+
+
+
 function openFileInNewTab(url) {
     try {
-        // Ensure URL is fully encoded
-        var encodedUrl = encodeURIComponent(url.trim());
-        var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodedUrl;
-        // console.log('Opening URL:', googleDocsUrl);
-        var win = window.open(googleDocsUrl, '_blank');
-        if (win) {
-            win.focus();
-        } else {
-            console.error("Failed to open new tab. Popup blocker might be enabled.");
+        const pattern = /https:\/\/.+\/https:\/\/.+/;
+        // console.log(url);
+        const match = url.match(pattern);
+        if(match){
+            const extractedUrl = match[0].split('https://').slice(2).join('https://');
+            const finalUrl = `https://${extractedUrl}`;
+            var win = window.open(finalUrl, '_blank');
+            if (win) {
+                win.focus();
+            } else {
+                console.error("Failed to open new tab. Popup blocker might be enabled.");
+            }
+        }
+        else{
+            // Ensure URL is fully encoded
+            var encodedUrl = encodeURIComponent(url.trim());
+            var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodedUrl;
+            // console.log('Opening URL:', googleDocsUrl);
+            var win = window.open(googleDocsUrl, '_blank');
+            if (win) {
+                win.focus();
+            } else {
+                console.error("Failed to open new tab. Popup blocker might be enabled.");
+            }
         }
     } catch (e) {
         console.error("Error opening file in new tab:", e);
@@ -136,7 +283,13 @@ function openPopup(sources, pageNumbers) {
 
     // Create the content div
     var popupContent = document.createElement('div');
+    var tableContent = document.createElement('div');
     popupContent.classList.add('popup-content');
+    tableContent.classList.add('table-content');
+    tableContent.style.maxHeight  = '500px'; // Allows text to wrap
+    tableContent.style.whiteSpace = 'pre-wrap'; // Allows text to wrap
+    tableContent.style.overflowX = 'hidden';    // Hides horizontal overflow
+    tableContent.style.overflowY = 'auto';      // Allows vertical overflow (optional)
 
     // Create the close button
     var closeButton = document.createElement('span');
@@ -162,7 +315,22 @@ function openPopup(sources, pageNumbers) {
 
     // Function to extract file name from URL
     function extractFileName(url) {
-        return url.split('/').pop();
+        // Regular expression to find the URL after the changeable part
+        const pattern = /https:\/\/.+\/https:\/\/.+/;
+
+        // Search for the pattern in the input string
+        const match = url.match(pattern);
+
+        if (match) {
+            // Extract the URL part after the last occurrence of 'https://'
+            const extractedUrl = match[0].split('https://').slice(2).join('https://');
+            // console.log("Extracted URL:", `https://${extractedUrl}`);
+            return extractedUrl;
+        }
+        else{
+            return url.split('/').pop();
+        }
+        
     }
 
     // Create and append the source rows
@@ -174,7 +342,12 @@ function openPopup(sources, pageNumbers) {
         var fileName = extractFileName(sources[i]);  // Extract the file name from the URL
 
         sourceLink.href = 'javascript:void(0)';  // Prevent default link behavior
-        sourceLink.textContent = fileName;
+        if(fileName.length>40){
+            sourceLink.textContent = fileName.substring(0, 40) + '...';
+        }
+        else{
+            sourceLink.textContent = fileName;
+        }
 
         // Add event listener to open the file in Google Viewer
         sourceLink.addEventListener('click', (function(url) {
@@ -193,7 +366,8 @@ function openPopup(sources, pageNumbers) {
 
     // Append the close button and table to the popup content
     popupContent.appendChild(closeButton);
-    popupContent.appendChild(table);
+    tableContent.appendChild(table);
+    popupContent.appendChild(tableContent);
 
     // Append the content to the popup div
     popupDiv.appendChild(popupContent);
@@ -269,7 +443,7 @@ socket.on('lda_topics_QA', function(data) {
                     aspectRatio : 2,
                     borderRadius:8,
                     cutout: 80,
-                    data: [75,25]
+                    data: [100,0]
                 }]
             },
             options: {
@@ -301,8 +475,8 @@ socket.on('lda_topics_QA', function(data) {
             // console.log(data);
             var left = 100 - data.x;
             myChart2.data.datasets[0].data = [
-                data.x,
-                left.toFixed(2)
+                Math.round(data.x),
+                Math.round(left)
             ];
             myChart2.update(); // Refresh the chart
         }

@@ -1,12 +1,26 @@
 const socket = io();
 var pin = localStorage.getItem('pin');
 socket.emit('table_update');
+
+document.getElementById('errorButton').onclick = function() {
+    var modal = document.getElementById("myModal");
+    modal.style.display = "block";
+    $('#errorModal').modal('show');
+}
+
+// Close the select menu
+function closeModal() {
+    document.getElementById('myModal').style.display = 'none';
+}
+
 // Generate Summary Button
 document.addEventListener('DOMContentLoaded', function() {
     const fetchSummaryBtn = document.getElementById('fetchSummaryBtn');
     const summaryList = document.getElementById('summaryList');
     const slider = document.getElementById("mySlider");
     const valueBox = document.querySelector(".value-box");
+    const displayedSummaries = new Set(); // To keep track of displayed summaries
+    let errorMessages = [];
 
     function updateProgressBar(percentage) {
         $("#waitImg").css("width", percentage + "%");
@@ -24,52 +38,117 @@ document.addEventListener('DOMContentLoaded', function() {
         updateProgressBar(0);
         const summary_que = document.getElementById('summary_que').value; // Get the value of the input field
         
+        // Clear previous summaries and errors
+        clearOldData();
+
         socket.emit('summary_input', { summary_que: summary_que, value: slider.value });
     });
 
     socket.on('summary_response', function(data) {
-        // console.log(data); // Add this line to check the structure of the data
-        // $("#waitImg").show(); // Show the loading image
-        displaySummaries(data);
-        // $("#waitImg").hide(); // Hide the loading image on success
-        $('#message').text(data.message);
-        setTimeout(function() {
-            $('#message').text('');
-        }, 8000); // Clear message after 8 seconds
+        // Check if data contains errors
+        if (data.errors) {
+            errorMessages = data.errors;
+            console.log(errorMessages);
+        } else if (Array.isArray(data) && data.length > 0) {
+            displaySummaries(data);
+        }
+
+        if (data.message) {
+            $('#message').text(data.message);
+            // document.getElementById('error').style.display='block';
+            setTimeout(function() {
+                $('#message').text('');
+                // document.getElementById('error').style.display='none';
+            }, 5000); // Clear message after 5 seconds
+        }
         updateImage();
+
+        // Display errors at the bottom
+        if (errorMessages.length > 0) {
+            const errorContainer = document.getElementById('modalBody');
+            while (errorContainer.firstChild) {
+                errorContainer.removeChild(errorContainer.firstChild);
+            }
+            displayErrors(errorMessages);
+            errorMessages = []; // Clear error messages after displaying
+        }
     });
 
     socket.on('progress', function(data) {
-        if(data.pin==pin){
+        if(data.pin == pin){
             updateProgressBar(data.percentage);
         }
-        if(data.percentage==100){
+        if(data.percentage == 100){
             $("#waitImg").hide(); // Hide the loading image on success
             updateImage();
             socket.emit('table_update');
         }
     });
-    
-    function displaySummaries(summaries) {
-        var summary = document.getElementById('summaryContainer');
-        summary.innerHTML = ''; // Assuming summaryContainer is the container element
 
-        // Check if summaries is an array
-        if (Array.isArray(summaries)) {
+    function clearOldData() {
+        const summaryContainer = document.getElementById('summaryContainer');
+        const errorContainer = document.getElementById('errorContainer');
+        summaryContainer.innerHTML = ''; // Clear the summary container
+        errorContainer.innerHTML = ''; // Clear the error container
+        displayedSummaries.clear(); // Clear the set of displayed summaries
+    }
+
+    function displaySummaries(summaries) {
+        const summaryContainer = document.getElementById('summaryContainer');
+
+        // Create or select the existing unordered list element
+        let list = summaryContainer.querySelector('ul');
+        if (!list) {
+            list = document.createElement('ul');
+            summaryContainer.appendChild(list);
+        }
+
+        summaries.forEach(summary => {
+            // Check if the summary has already been displayed
+            const summaryKey = `${summary.key}:${summary.value}`;
+            if (!displayedSummaries.has(summaryKey)) {
+                const listItem = document.createElement('li'); // Create a list item element
+                list.appendChild(listItem); // Append the list item to the list
+
+                const words = `<b>${summary.key}</b>: ${summary.value.replace(/- /g, "<br>- ")}`.split(' ');
+                let wordIndex = 0;
+
+                function typeWord() {
+                    if (wordIndex < words.length) {
+                        listItem.innerHTML += words[wordIndex] + ' ';
+                        wordIndex++;
+                        setTimeout(typeWord, 50); // Adjust the delay as needed (50ms in this case)
+                    } else {
+                        listItem.innerHTML += '<p></p>'; // Add the paragraph break after the summary
+                    }
+                }
+                typeWord(); // Start the typing effect
+                displayedSummaries.add(summaryKey); // Add to the set of displayed summaries
+            }
+        });
+    }
+
+    function displayErrors(errors) {
+        // const errorContainer = document.getElementById('errorContainer');
+        const error = document.getElementById('modalBody');
+        // document.getElementById('errorButton').style.display='block';
+        if (Array.isArray(errors) && errors.length > 0) {
+
             const list = document.createElement('ul'); // Create an unordered list element
 
-            summaries.forEach(summary => {
+            errors.forEach(error => {
                 const listItem = document.createElement('li'); // Create a list item element
-                
-                listItem.innerHTML = `<b>${summary.key}</b>: ${summary.value.replace(/- /g, "<br>- ")}<p></p>`;
+                // listItem.innerHTML = `<b>Error</b>: ${error}`;
+                listItem.innerHTML = `${error}`;
                 list.appendChild(listItem); // Append the list item to the list
             });
 
-            summary.appendChild(list); // Append the list to the container
-            updateImage();
+            // errorContainer.appendChild(list); // Append the list to the container
+            error.appendChild(list); // Append the list to the container
+            document.getElementById('myModal').style.display='block';
+
         } else {
-            // Handle the case where summaries is not an array (e.g., log an error)
-            // console.error('Invalid data format. Expected an array.');
+            console.error('Invalid error data format. Expected an array.');
         }
     }
 });
@@ -101,6 +180,8 @@ socket.on('clear_chat_response', function(data) {
     // Clear the chat history container
     var historyContainer = document.getElementById("summaryContainer");
     historyContainer.innerHTML = "";
+    var errorContainer = document.getElementById("errorContainer");
+    errorContainer.innerHTML = "";
 });
 
 

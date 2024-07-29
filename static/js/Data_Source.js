@@ -267,7 +267,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         "rgba(0, 0, 255, 0.1)",
                     ],
                     maxBarThickness:20,
-                    data: [10]  // Start with empty data, which will be updated dynamically
+                    data: [0]  // Start with empty data, which will be updated dynamically
                 }]
             },
             options: {
@@ -318,9 +318,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     $(document).ready(function() {
         const socket = io();
-
         const ctx3 = $("#readiness_chart").get(0).getContext("2d");
-        const myChart3 = new Chart(ctx3,{
+        const myChart3 = new Chart(ctx3, {
             type: "pie",
             data: {
                 labels: ['Total Readiness', 'Data Left'],
@@ -329,15 +328,15 @@ document.addEventListener("DOMContentLoaded", function() {
                         "rgba(0, 156, 255, 0.7)",
                         "rgba(156, 0, 255, 0.7)",
                         "rgba(0, 0, 255, 0.7)",
-                        "rgba(0, 0, 255, 0.1)",
+                        "rgba(0, 0, 255, 0.1)"
                     ],
                     borderWidth: 1,
                     circumference: 180,
-                    rotation : 270,
-                    aspectRatio : 2,
-                    borderRadius:8,
+                    rotation: 270,
+                    aspectRatio: 2,
+                    borderRadius: 8,
                     cutout: 95,
-                    data: [75,25]
+                    data: [100, 0]
                 }]
             },
             options: {
@@ -356,18 +355,18 @@ document.addEventListener("DOMContentLoaded", function() {
             },
             plugins: [ChartDataLabels]
         });
-
+ 
         socket.on('update_gauge_chart', function(data) {
-            if(data.pin == pin){
+            if (data.pin == pin) {
                 updateReadinessChart(data);
             }
         });
-
+ 
         function updateReadinessChart(data) {
             var left = 100 - data.x;
             myChart3.data.datasets[0].data = [
-                data.x,
-                left.toFixed(2)
+                Math.round(data.x),
+                Math.round(left)
             ];
             myChart3.update(); // Refresh the chart
         }
