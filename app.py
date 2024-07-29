@@ -1680,189 +1680,6 @@ def Cogni_button():
         return jsonify({'message': str(e)}), 500
 
 
-# @socketio.on('summary_input')
-# def handle_summary_input(data):
-#     global text_word_cloud
-#     session['summary_add'] = []
-#     start_time = time.time()
-#     error_messages = []
-#
-#     try:
-#         session['summary_word_count'] = data['value']
-#         custom_p = data.get('summary_que',"")
-#         session['summary_word_count'] = data['value']
-#
-#         if int(session['summary_word_count']) == 0:
-#             emit('summary_response', {'message': 'Summary word count is zero!'})
-#             return
-#
-#         else:
-#             word_count = int(session['summary_word_count'])
-#             emit('progress', {'percentage': 10, 'pin': session['login_pin']})
-#
-#         # Initialize the search client
-#         search_client = SearchClient(
-#             endpoint=vector_store_address,
-#             index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
-#             credential=AzureKeyCredential(vector_store_password)
-#         )
-#
-#         # Function to extract keywords from the prompt
-#         def extract_keywords(prompt):
-#             # Using a simple regex to extract words, you can replace this with a more sophisticated method if needed
-#             keys = re.findall(r'\w+', prompt)
-#             return [keyword for keyword in keys if keyword.lower() != ['summary', 'on', 'generate']]
-#
-#         # Perform the search
-#         # results = search_client.search(search_text="*", select="*", include_total_count=True)
-#         if not custom_p or "all" in custom_p.lower():
-#             results = search_client.search(
-#                 search_text="*",  # Retrieve all files
-#                 select="*",
-#                 include_total_count=True
-#             )
-#         else:
-#             prompt_embeddings = embeddings.embed_query(custom_p)
-#             # Extract keywords from the prompt
-#             keywords = extract_keywords(custom_p)
-#             # Construct a flexible search query using the keywords
-#             # Construct a more precise search query using the keywords
-#             # exact_match_query = " or ".join([f"search.ismatch('{keyword}', 'content')" for keyword in keywords])
-#             partial_match_query = " or ".join([f"search.ismatch('{keyword}*', 'file_name')" for keyword in keywords])
-#             # search_query = f"({exact_match_query}) or ({partial_match_query})"
-#             search_query = f"{partial_match_query}"
-#             print(search_query)
-#             results = search_client.search(
-#                 search_text=prompt_embeddings,
-#                 select="*",
-#                 include_total_count=True,
-#                 filter=search_query
-#             )
-#
-#         # Initialize the list for old_structure documents
-#         filename_to_docs = {}
-#
-#         # Function to split content into chunks of a specified size
-#         def split_content(content, size=8000):
-#             return [content[i:i + size] for i in range(0, len(content), size)]
-#
-#         # Process each result
-#         for result in results:
-#             try:
-#                 # Extract file_name and content
-#                 filename = result['file_name']
-#                 content = result['content']
-#
-#                 # Split the content into chunks of 8000 characters
-#                 content_chunks = split_content(content, size=8000)
-#
-#                 # Create Document objects with metadata for each chunk
-#                 docs = [Document(page_content=chunk) for chunk in content_chunks]
-#
-#                 # Add the document chunks to the corresponding filename key
-#                 if filename in filename_to_docs:
-#                     filename_to_docs[filename].extend(docs)
-#                 else:
-#                     filename_to_docs[filename] = docs
-#
-#             except KeyError as e:
-#                 error_messages.append(f"KeyError: {e}. Result: {result}")
-#             except Exception as e:
-#                 error_messages.append(f"An unexpected error occurred while processing result: {str(e)}")
-#
-#         # Convert the dictionary to a list of tuples
-#         old_structure = [(filename, docs) for filename, docs in filename_to_docs.items()]
-#
-#         # Generate summaries with the required structure
-#         summ = []
-#         counter = 1
-#
-#         for filename, documents in old_structure:
-#             try:
-#                 summary_list = custom_summary(documents, custom_p, chain_type, word_count)
-#                 key = f'{filename}--{counter}--'
-#                 summary_dict = {'key': key, 'value': summary_list}
-#                 summ.append(summary_dict)
-#                 counter += 1
-#                 emit('summary_response', summ)
-#             except Exception as e:
-#                 error_message = f"An unexpected error occurred for file {filename}: {str(e)}"
-#                 file_name = check_error(str(e))
-#                 if file_name == 'policyError':
-#                     error_messages.append(f"""An unexpected error occurred for file {filename}:
-#                                             It seems the content of your file violates some policies.
-#                                             This could be due to certain words or phrases that are not allowed.
-#                                             For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
-#                 else:
-#                     error_messages.append(error_message)
-#                 logger.error('Summary generation error: ' + error_message, exc_info=True)
-#
-#         session['summary_add'].extend(summ)
-#
-#         emit('progress', {'percentage': 75, 'pin': session['login_pin']})
-#
-#         senti_text_summ = ' '.join(entry['value'] for entry in summ)
-#         analyze_sentiment_summ(senti_text_summ)
-#
-#         generate_word_cloud(senti_text_summ)
-#         perform_lda____summ(senti_text_summ)
-#
-#         elapsed_time = time.time() - start_time
-#         g.flag = 1
-#         logger.info(f'Summary Generated in {elapsed_time} seconds')
-#         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-#
-#     except Exception as e:
-#         g.flag = 0
-#         error_message = f"An unexpected error occurred: {str(e)}"
-#         file_name = check_error(str(e))
-#         if file_name == 'valueError':
-#             error_messages.append("""An unexpected error occurred:
-#                                 The data is not loaded. Please load the data to resolve this error!""")
-#         if file_name == 'policyError':
-#             error_messages.append(f"""An unexpected error occurred for file {filename}:
-#                                                     It seems the content of your file violates some policies.
-#                                                     This could be due to certain words or phrases that are not allowed.
-#                                                     For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
-#         else:
-#             error_messages.append(error_message)
-#         logger.error('Summary generation error: ' + str(error_messages), exc_info=True)
-#
-#     finally:
-#         if error_messages:
-#             emit('summary_response', {'errors': error_messages})
-#             emit('summary_response', {'message': 'No data load'})
-#         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-
-
-import multiprocessing
-
-# Function to extract keywords from the prompt
-def extract_keywords(prompt):
-    keys = re.findall(r'\w+', prompt)
-    return [keyword for keyword in keys if keyword.lower() not in ['summary', 'on', 'generate']]
-
-# Function to split content into chunks of a specified size
-def split_content(content, size=8000):
-    return [content[i:i + size] for i in range(0, len(content), size)]
-
-# Function to process a single result
-def process_result(result):
-    try:
-        filename = result['file_name']
-        content = result['content']
-        content_chunks = split_content(content, size=8000)
-        docs = [Document(page_content=chunk) for chunk in content_chunks]
-        return filename, docs
-    except KeyError as e:
-        error_message = f"KeyError: {e}. Result: {result}"
-        logger.error(error_message)
-        return None, None
-    except Exception as e:
-        error_message = f"An unexpected error occurred while processing result: {str(e)}"
-        logger.error(error_message)
-        return None, None
-
 @socketio.on('summary_input')
 def handle_summary_input(data):
     global text_word_cloud
@@ -1872,15 +1689,16 @@ def handle_summary_input(data):
 
     try:
         session['summary_word_count'] = data['value']
-        custom_p = data.get('summary_que', "")
+        custom_p = data.get('summary_que',"")
         session['summary_word_count'] = data['value']
 
         if int(session['summary_word_count']) == 0:
             emit('summary_response', {'message': 'Summary word count is zero!'})
             return
 
-        word_count = int(session['summary_word_count'])
-        emit('progress', {'percentage': 10, 'pin': session['login_pin']})
+        else:
+            word_count = int(session['summary_word_count'])
+            emit('progress', {'percentage': 10, 'pin': session['login_pin']})
 
         # Initialize the search client
         search_client = SearchClient(
@@ -1888,6 +1706,12 @@ def handle_summary_input(data):
             index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
             credential=AzureKeyCredential(vector_store_password)
         )
+
+        # Function to extract keywords from the prompt
+        def extract_keywords(prompt):
+            # Using a simple regex to extract words, you can replace this with a more sophisticated method if needed
+            keys = re.findall(r'\w+', prompt)
+            return [keyword for keyword in keys if keyword.lower() != ['summary', 'on', 'generate']]
 
         # Perform the search
         if not custom_p or "all" in custom_p.lower():
@@ -1898,9 +1722,14 @@ def handle_summary_input(data):
             )
         else:
             prompt_embeddings = embeddings.embed_query(custom_p)
+            # Extract keywords from the prompt
             keywords = extract_keywords(custom_p)
+            # Construct a flexible search query using the keywords
+            # exact_match_query = " or ".join([f"search.ismatch('{keyword}', 'content')" for keyword in keywords])
             partial_match_query = " or ".join([f"search.ismatch('{keyword}*', 'file_name')" for keyword in keywords])
+            # search_query = f"({exact_match_query}) or ({partial_match_query})"
             search_query = f"{partial_match_query}"
+            # print(search_query)
             results = search_client.search(
                 search_text=prompt_embeddings,
                 select="*",
@@ -1911,25 +1740,42 @@ def handle_summary_input(data):
         # Initialize the list for old_structure documents
         filename_to_docs = {}
 
-        # Use multiprocessing to process results in parallel
-        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-            results = pool.map(process_result, results)
+        # Function to split content into chunks of a specified size
+        def split_content(content, size=8000):
+            return [content[i:i + size] for i in range(0, len(content), size)]
 
-        # Filter out any failed results
-        results = [result for result in results if result[0] is not None]
+        # Process each result
+        for result in results:
+            try:
+                # Extract file_name and content
+                filename = result['file_name']
+                content = result['content']
 
-        # Convert the list of tuples to a dictionary
-        for filename, docs in results:
-            if filename in filename_to_docs:
-                filename_to_docs[filename].extend(docs)
-            else:
-                filename_to_docs[filename] = docs
+                # Split the content into chunks of 8000 characters
+                content_chunks = split_content(content, size=8000)
+
+                # Create Document objects with metadata for each chunk
+                docs = [Document(page_content=chunk) for chunk in content_chunks]
+
+                # Add the document chunks to the corresponding filename key
+                if filename in filename_to_docs:
+                    filename_to_docs[filename].extend(docs)
+                else:
+                    filename_to_docs[filename] = docs
+
+            except KeyError as e:
+                error_messages.append(f"KeyError: {e}. Result: {result}")
+            except Exception as e:
+                error_messages.append(f"An unexpected error occurred while processing result: {str(e)}")
+
+        # Convert the dictionary to a list of tuples
+        old_structure = [(filename, docs) for filename, docs in filename_to_docs.items()]
 
         # Generate summaries with the required structure
         summ = []
         counter = 1
 
-        for filename, documents in filename_to_docs.items():
+        for filename, documents in old_structure:
             try:
                 summary_list = custom_summary(documents, custom_p, chain_type, word_count)
                 key = f'{filename}--{counter}--'
@@ -2145,7 +1991,7 @@ def handle_ask_question(data):
             retriever = vector_store.as_retriever(sorted_documents=sorted_documents)
             conversation_chain_handler = get_conversation_chain(retriever, source)
             response = conversation_chain_handler(question)
-            print("Conversational result----------->", response)
+            # print("Conversational result----------->", response)
 
             # Update progress to 50%
             emit('progress', {'percentage': 50, 'pin': session['login_pin']})
@@ -2456,7 +2302,7 @@ def webcrawler_start(data):
     os.makedirs(folder_name, exist_ok=True)
 
     try:
-        print("Received URL:", url)
+        # print("Received URL:", url)
         session['current_status'] = "Website URL Received"
         socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
         response = requests.get(url)
@@ -2479,7 +2325,7 @@ def webcrawler_start(data):
                     'current_file': current_file,
                     'pin': login_pin
                 })
-                print("Crawling Cancelled")
+                # print("Crawling Cancelled")
                 return jsonify({'message': 'Webcrawler stopped!'})
 
             try:
@@ -2565,7 +2411,7 @@ def extract_pdf_info_from_table(html_content):
     for row in rows:
         if check_stop_flag():
             write_stop_flag_to_csv(session['login_pin'], 'False')
-            print("Web Crawling Cancelled")
+            # print("Web Crawling Cancelled")
             break
         # Extract data from each row
         cells = row.find_all('td')
@@ -2828,9 +2674,9 @@ def question_answer_on_structure_data(data):
 
         sql_db = SQLDatabase.from_uri(conn_string)
         query_input = data.get('query_input')
-        print("question_passed--------->", query_input)
+        # print("question_passed--------->", query_input)
         schema = sql_db.get_table_info()
-        print("Schema----->", schema)
+        # print("Schema----->", schema)
         template = '''Based on the table schema:{schema} write a sql query that would answer user questions.return only sql query:
         Question: "{question}"
 
@@ -2851,9 +2697,9 @@ def question_answer_on_structure_data(data):
                              )
         # write_query = create_sql_query_chain(llm, sql_db)
         query_generated = write_query_chain.invoke({"schema": schema, "question": query_input})
-        print("Query generated---------->", query_generated)
+        # print("Query generated---------->", query_generated)
         query_to_run = query_generated.content
-        print("Query To Run---------->", query_to_run)
+        # print("Query To Run---------->", query_to_run)
 
         if query_to_run:
             conn = mysql.connector.connect(
@@ -2881,7 +2727,7 @@ def question_answer_on_structure_data(data):
             )
             llm_chain = LLMChain(prompt=answer_prompt, llm=llm)
             answer = llm_chain.invoke({"question": query_input, "query": query_to_run, "result": results})
-            print("Answer----------------->", answer['text'])
+            # print("Answer----------------->", answer['text'])
 
             df = pd.DataFrame(results, columns=columns)
             df_table = df.head(5).to_html(index=False)
