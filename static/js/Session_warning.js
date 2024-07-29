@@ -71,4 +71,4 @@ function checkSessionWithBackend() {
 }
 checkSessionWithBackend();
 // Set interval to check session status with the backend
-setInterval(checkSessionWithBackend, 1000); // Check every 1 second
+setInterval(checkSessionWithBackend, 5000); // Check every 1 second

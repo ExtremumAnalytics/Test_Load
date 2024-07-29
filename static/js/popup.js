@@ -1,3 +1,4 @@
+
 var socket = io(); // Assuming Socket.IO is initialized correctly
 var pin = localStorage.getItem('pin');
 
@@ -24,17 +25,18 @@ function submitForm(input_prm) {
     } else {
         // Execute default program
         runDefaultProgram(input_prm);
+        
     }
 }
 
 function stop_all() {
     let stop_flag = true;
     socket.emit('stop_process', { login_pin:pin, stop_flag: stop_flag });
-    console.log(' stop button is  pressed')
+    // console.log(' stop button is  pressed')
 
     socket.on('stop_process_flag', function(data){
         if(data.pin==pin){
-            console.log('Flag value received:',data.flag)
+            // console.log('Flag value received:',data.flag)
         }
     });
 }
@@ -108,7 +110,7 @@ function dataLoadUpdate() {
 // Function to execute new web crawling program
 function executeNewProgram() {
     var url = document.getElementById('webCrawlingInput').value;
-    console.log("URL to crawl:", url);
+    // console.log("URL to crawl:", url);
 
     // Sending the URL to the server using Socket.IO
     socket.emit('webcrawler_start', { url: url, login_pin:pin });
@@ -116,7 +118,7 @@ function executeNewProgram() {
     // Update status event
     socket.on('update_status', function(data) {
         if(data.pin==pin){
-            console.log("Status Update:", data.status);
+            // console.log("Status Update:", data.status);
             // Update UI with the new status, if needed
             $('#message').text(data.status);
             setTimeout(function() {
@@ -128,7 +130,7 @@ function executeNewProgram() {
     // Update progress event
     socket.on('update_progress', function(data) {
         if(data.pin==pin){
-            console.log("Progress Update:", data);
+            // console.log("Progress Update:", data);
             // Update UI with the new progress, if needed
             document.getElementById("progress").innerHTML = `
                 <label>Current Status: ${data.current_status}</label>
@@ -201,6 +203,17 @@ function runDefaultProgram(called_from) {
             $("#waitImg").hide(); // Hide the loading image on success
             linkDataPopup();
             updateTable();
+            socket.emit('eda_excel_to_json');
+            socket.on('excel_to_json', (response) =>{
+            if (response.message){
+                console.log("hi");
+                document.getElementById('message').innerHTML = '<p>' + response.message + '</p>';
+                setTimeout(function () {
+                    document.getElementById('message').innerHTML = '';
+                }, 5000);
+                updateTable();}
+            });
+
             document.getElementsByName('Source_URL')[0].value = '';
         } else {
             var response = JSON.parse(xhr.responseText);
@@ -219,19 +232,21 @@ function runDefaultProgram(called_from) {
     document.getElementById('mp3Input').value = '';
     document.getElementById('input_image').value = '';
     // closePopup();
+
+    
 }
 
 // Progress Updation Start
 socket.on('pending', function(data){
-    console.log('Pending',data);
+    // console.log('Pending',data);
 });
 
 socket.on('failed', function(data){
-    console.log('Failed',data);
+    // console.log('Failed',data);
 });
 
 socket.on('success', function(data){
-    console.log('Success',data);
+    // console.log('Success',data);
 });
 // Progress Updation End
 
@@ -250,7 +265,7 @@ $(document).ready(function () {
         $("#waitImg1").show(); // Show the loading image
         socket.on('progress', function(data){
             if(data.pin==pin){
-                console.log('Percentage:',data.percentage);
+                // console.log('Percentage:',data.percentage);
                 updateProgressBar(data.percentage);
             }
         });
@@ -265,11 +280,14 @@ $(document).ready(function () {
                 setTimeout(function() {
                     $('#message').text('');
                 }, 8000);
-                console.log('Data is Loaded:', data);
+                // console.log('Data is Loaded:', data);
                 dataLoadUpdate();
+                socket.emit('table_update');
+
+                updateTable();
             },
             error: function (error) {
-                console.error('Error in Loading CogniLink data:', error);
+                console.error('Error in loading CogniLink data:', error);
                 $("#waitImg1").hide(); // Hide the loading image on success
                 $(".progress").hide(); //Hide the progress bar
             }
@@ -288,7 +306,7 @@ $(document).ready(function () {
 
 function dataLoadUpdate() {
     // Add your logic here to handle data load update
-    console.log('Data load update function called');
+    // console.log('Data load update function called');
 }
 
 // Open a new window
@@ -307,6 +325,10 @@ function openFileInNewTab(url) {
 // Checking and returning the different file types START
 function isPDF(filename) {
     return filename.toLowerCase().endsWith('.pdf');
+}
+
+function isJson(filename) {
+    return filename.toLowerCase().endsWith('.json');
 }
 
 function isExcel(filename) {
@@ -434,9 +456,9 @@ function updateTable(searchTerm) {
             }
 
             var row = '<tr>' +
-                        '<td><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + checkboxValue + '"></td>' +
-                        '<td>' + nameDisplay + '</td>' +
-                        '<td>';
+                        '<td style="text-align: center;"><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + checkboxValue + '"></td>' +
+                        '<td style="text-align: center;">' + nameDisplay + '</td>' +
+                        '<td style="text-align: center;">';
 
             if (isExcel(name)) {
                 // If it's an Excel file, open it in a new tab
@@ -460,7 +482,7 @@ function updateTable(searchTerm) {
                 row += '<a href="' + blob.url + '" target="_blank">View</a>';
             }
 
-            row += '</td><td class="action-links">';
+            row += '</td><td style="text-align: center;" class="action-links">';
 
             if (isPDF(name)) {
                 // Provide download link specifically for PDFs
@@ -474,8 +496,8 @@ function updateTable(searchTerm) {
                 row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';  // Provide download link for other types
             }
 
-            row += '</td><td>' + blob.status + '</td>' +
-                    '<td>' + Date + '</td>' + // Add the date column
+            row += '</td><td style="text-align: center;">' + blob.status + '</td>' +
+                    '<td style="text-align: center;">' + Date + '</td>' + // Add the date column
                     '</tr>';
             $('#table-body').append(row);
         });
@@ -555,12 +577,12 @@ function deleteSelectedFiles() {
 }
 
 socket.on('delete_selected_file_response', function(msg){
-    console.log('Received delete_selected_file_response event:', msg);
+    // console.log('Received delete_selected_file_response event:', msg);
     updateTable();
 });
 
 socket.on('update_table_vault', function(msg){
-    console.log('Received delete_selected_file_response event:', msg);
+    // console.log('Received delete_selected_file_response event:', msg);
     updateTable();
 });
 
@@ -575,7 +597,7 @@ function deleteFile(fileNames) {
         data: JSON.stringify({ file_names: fileNames }),
         dataType: 'json',
         success: function(response) {
-            console.log(response.message) // Log success message
+            // console.log(response.message) // Log success message
             // Optionally, update UI or do something else after successful deletion
             updateTable(); // Refresh the table after deletion
             $("#waitImg_del").hide(); // Hide the loading image on success
@@ -587,6 +609,13 @@ function deleteFile(fileNames) {
     });
 }
 
+function closeUserModal(){
+    document.getElementById('userGuide').style.display = 'none';
+}
+
+function openUserModal(){
+    document.getElementById('userGuide').style.display = 'block';
+}
 
 
 // Data Base Connection Form
@@ -598,21 +627,30 @@ document.getElementById('dbForm').onsubmit = async (event) => {
     const socket = io();
 
     socket.emit('run_query', Object.fromEntries(formData));
+    $("#waitImg").show(); 
+    // socket.on('query_success', (data) => {
+    //     document.getElementById('message').innerText = data.message || 'Query executed successfully.';
+    //     setTimeout(() => {
+    //         document.getElementById('message').innerText = '';
+    //     }, 8000); // Clear message after 8 seconds
+    //     updateTable();
+    // });
 
-    socket.on('query_success', (data) => {
-        document.getElementById('message').innerText = data.message || 'Query executed successfully.';
+
+    socket.on('excel_response', (data) => {
+        document.getElementById('message').innerText = data.message;
+        console.log(data);
         setTimeout(() => {
             document.getElementById('message').innerText = '';
         }, 8000); // Clear message after 8 seconds
         updateTable();
-    });
+        $("#waitImg").hide(); 
+        pdfclosePopup()
+        document.getElementById('userGuide').style.display = 'block';
 
-    socket.on('query_error', (data) => {
-        document.getElementById('message').innerText = JSON.stringify(data);
-        setTimeout(() => {
-            document.getElementById('message').innerText = '';
-        }, 8000); // Clear message after 8 seconds
-        updateTable();
+
     });
+    
+    
+    
 };
-

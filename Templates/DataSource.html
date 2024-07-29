@@ -19,7 +19,7 @@
     <!-- Icon Font Stylesheet -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
-    <script src="static/api/Icon_font.js">
+    <script src="static/api/Icon_font.js"></script>
 
     <!-- jQuery UI CSS -->
     <link href="{{ url_for('static', filename='api/jquery-ui.css') }}" rel="stylesheet">
@@ -98,7 +98,22 @@
             <div class="container-welcome mt-2">
                 <div class="d-flex justify-content-between align-items-center">
                     <h4 class="welcome">Welcome to CogniLink!</h4>
-                    <button id="stopButton" onclick="stop_all()" class="btn btn-danger">&#10006;</button>
+                    <button id="HelpButton" onclick="openUserModal()" class="btn btn-secondary m-2"><i class="fa fa-info-circle"></i></button>
+                     <!-- HTML for the Popup Modal USer Guide -->
+                     <div id="userGuide" class="modal" style="display:none;">
+                        <div class="modal-content">
+                            <span class="close-guide" onclick="closeUserModal()">&times;</span>
+                            <h2 class="d-flex justify-content-center ">USER GUIDE</h2>
+                            <ul>
+                                <li>Connect your database by selecting database option then clicking Link data source button</li>
+                                <li>Fill in all the details then click Submit</li>
+                                <li>For better results upload the schema of your database preferably in excel or json format using documets option </li>
+                                <li>If you don't have the schema for your database ,Scroll page down to see the vault where you will find schema file named 'your databaseName_schema.xlsx', just download it and fill in the description fields and then upload the updated file using documents option</li>
+                                <li>Note : Name your database file as 'databaseName_schema' before uploading</li>
+                            </ul>
+                        </div>
+                    </div>            
+                    <button id="stopButton" onclick="stop_all()" class="btn btn-danger m-2">&#10006;</button>
                 </div>
                 <hr class="dropdown-divider">
             </div>
@@ -168,7 +183,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-auto">
+                    <div class="col-auto disabled-div">
                         <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Email Server')">
                             <i class="fa fa-solid fa-file "></i>
                             <div class="ms-2">
@@ -176,7 +191,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-auto">
+                    <div class="col-auto disabled-div">
                         <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Share Point')">
                             <i class="fa fa-solid fa-file"></i>
                             <div class="ms-2">
@@ -202,7 +217,7 @@
                     <button type="button" id="loadCogniLink" class="btn btn-primary m-2 p-2" style="font-size: 14px;">Load CogniLink</button>
                     <button type="button" class="btn btn-primary m-2 p-2" style="font-size: 14px;" onclick="scrollToVault()">Explore Digital Vault</button>
                     <div class="d-flex align-content-center justify-content-center">
-                        <i id="wait-Img" class="fa fa-spinner fa-spin" style="display: none; color: var(--primary); font-size: 64px;"></i>
+                        <i id="waitImg" class="fa fa-spinner fa-spin" style="display: none; color: var(--primary); font-size: 64px;"></i>
                     </div>
                 </div>
                 
@@ -233,9 +248,7 @@
                             <input type="text" name="port" id="port" class="form-control mb-2" placeholder="Enter Port Number" required>
                             <input type="text" name="username" id="username" class="form-control mb-2" placeholder="Enter Username" required>
                             <input type="password" name="password" id="password" class="form-control mb-2" placeholder="Enter Password" required>
-                            <textarea type="text" name="query" id="query" class="form-control mb-2" placeholder="Enter query here" required></textarea>
-                            <div id="results"></div>
-                        
+                            <input type="text" name="db_name" id="dbname" class="form-control mb-2" placeholder="Enter Database Name" required>                        
                             <!-- Button Group -->
                             <div class="row mt-4">
                                 <div class="col-lg-12 d-flex justify-content-center">
@@ -246,7 +259,7 @@
                                 </div>
                             </div>
                         </form>
-                    </div>               
+                    </div>   
 
                     <!-- Source URL Container -->
                     <div id="SourceURL" class="source-url-container p-2" style="display: none;">
@@ -306,7 +319,7 @@
                     <div id="fileForm" style="display: none;">
                         <div class="doc-container p-2">
                             <label class="mb-2" style="color:#000000;" for="docFile">Please Upload Files: (Eg. Docs, Excel, etc.)</label>
-                            <input type="file" id="fileInput" name="myFile" class="form-control mb-2" accept=".pdf, .xls, .xlsx, .docx, .csv" multiple>
+                            <input type="file" id="fileInput" name="myFile" class="form-control mb-2" accept=".pdf, .xls, .xlsx, .docx, .csv, .json" multiple>
                             <!-- Button Group -->
                             <div class="row mt-4">
                                 <div class="col-lg-12 d-flex justify-content-center">
@@ -436,14 +449,14 @@
                     </div>
                     <div id="table-container" class="table-responsive d-flex flex-column bg-white rounded-2" >
                         <table id="data-table" class="table text-start align-middle table-bordered table-hover m-0">
-                            <thead class="table-header">
+                            <thead class="table-header" style="text-align: center;">
                                 <tr class="text-dark">
-                                    <th scope="col" ><input type="checkbox" id="select-checkbox" onclick="toggleSelectAll(this)"></th>
-                                    <th scope="col" >Name</th>
-                                    <th scope="col">View File</th>
-                                    <th scope="col">Download</th>
-                                    <th scope="col">Status</th>
-                                    <th scope="col">Date & Time</th> <!-- Add this line for the date column header -->
+                                    <th scope="col" style="text-align: center;"><input type="checkbox" id="select-checkbox" onclick="toggleSelectAll(this)"></th>
+                                    <th scope="col" style="text-align: center;">Name</th>
+                                    <th scope="col" style="text-align: center;">View File</th>
+                                    <th scope="col" style="text-align: center;">Download</th>
+                                    <th scope="col" style="text-align: center;">Status</th>
+                                    <th scope="col" style="text-align: center;">Date & Time</th> <!-- Add this line for the date column header -->
                                 </tr> 
                             </thead>
                             <tbody id="table-body">
@@ -504,10 +517,6 @@
     <script src="{{ url_for('static', filename='js/Session_warning.js') }}"></script>
     <script src="{{ url_for('static', filename='js/Data_Source.js') }}"></script>
     <script src="{{ url_for('static', filename='js/user_details.js') }}"></script>
-
-
-
-
 
 </body>
 

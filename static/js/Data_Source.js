@@ -1,4 +1,3 @@
-
 //container Handling
 
 // Select Data Source Function
@@ -109,7 +108,7 @@ function linkSelectedDataSource() {
 // Function to handle URL submission
 function submitUrl() {
     var url = document.getElementById('sourceUrl').value;
-    console.log("URL submitted:", url);
+    // console.log("URL submitted:", url);
     // Add your handling logic here
 }
 
@@ -144,7 +143,7 @@ $(function () {
 
     // Handle the Socket.IO events
     socket.on('data_received', function(data) {
-        console.log(`Received data: Min Date: ${data.min_date}, Max Date: ${data.max_date}`);
+        // console.log(`Received data: Min Date: ${data.min_date}, Max Date: ${data.max_date}`);
     });
 
     function sendDataToSocket() {
@@ -186,7 +185,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   // Handle the size_value_updated event from the server
   socket.on('size_value_updated', function(data) {
-      console.log(`Updated value: ${data.value} MB, Message: ${data.message}`);
+    //   console.log(`Updated value: ${data.value} MB, Message: ${data.message}`);
       // Perform any additional actions, such as updating the UI
   });
 });
@@ -365,14 +364,12 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
         function updateReadinessChart(data) {
-            let roundedValue = parseFloat(data.x).toFixed(2);
+            var left = 100 - data.x;
             myChart3.data.datasets[0].data = [
-                roundedValue,
-                (100 - roundedValue).toFixed(2)
+                data.x,
+                left.toFixed(2)
             ];
             myChart3.update(); // Refresh the chart
         }
     });
-
 })(jQuery);
-

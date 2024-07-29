@@ -1,4 +1,3 @@
-# import shutil
 import os
 import time
 import base64
@@ -8,26 +7,22 @@ import re
 import docx
 import asyncio
 import pytz
-
-# Assuming Document is a custom class or namedtuple
-from collections import namedtuple
-from collections import defaultdict
+from werkzeug.utils import secure_filename
 
 from azure.search.documents._generated.models import SearchMode
+from azure.search.documents.indexes._generated.models import SemanticConfiguration, SemanticPrioritizedFields, \
+    SemanticField, SemanticSearch, ScoringProfile, TextWeights
 from flask import Flask, jsonify, url_for, flash
 from flask import render_template, request, g, redirect, session
-from flask_sqlalchemy import SQLAlchemy
 import tempfile
-import pickle
 
 # For Virtual Analyst DB integration
-from langchain.agents import create_sql_agent
-from langchain.agents.agent_toolkits import SQLDatabaseToolkit
 from langchain.sql_database import SQLDatabase
+from langchain.chains import create_sql_query_chain
+from sqlalchemy import create_engine, inspect
 
 # sentiment and word cloud use only
 import nltk
-# from langchain_core.retrievers import BaseRetriever
 from nltk.tokenize import word_tokenize
 from wordcloud import WordCloud
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
@@ -36,45 +31,48 @@ from sklearn.decomposition import LatentDirichletAllocation
 from nltk.corpus import stopwords
 
 # for azure credentials use only
-from azure.identity import DefaultAzureCredential
-from azure.storage.blob import BlobServiceClient, BlobClient, ContentSettings, BlobProperties
-from azure.identity import ClientSecretCredential
-from azure.keyvault.secrets import SecretClient
-from azure.search.documents import SearchClient
-from azure.core.credentials import AzureKeyCredential
-# for computer vision
-from azure.cognitiveservices.vision.computervision import ComputerVisionClient
+from azure.storage.blob import BlobServiceClient, ContentSettings
 from azure.cognitiveservices.vision.computervision.models import OperationStatusCodes
-from msrest.authentication import CognitiveServicesCredentials
-
-from dotenv import load_dotenv
 
 # langchain module
 from langchain.chat_models import AzureChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains.summarize import load_summarize_chain
-from langchain_community.document_loaders import AzureBlobStorageFileLoader, PyPDFLoader, Docx2txtLoader, \
+from langchain_community.document_loaders import Docx2txtLoader, \
     UnstructuredExcelLoader, \
-    AssemblyAIAudioTranscriptLoader, CSVLoader
-# from langchain.text_splitter import RecursiveCharacterTextSplitter
+    AssemblyAIAudioTranscriptLoader
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.chat_models import AzureChatOpenAI
-# from langchain_community.embeddings import AzureOpenAIEmbeddings
-from langchain_openai import AzureOpenAIEmbeddings
-from langchain_community.vectorstores.azuresearch import AzureSearch
 from langchain.vectorstores import AzureSearch
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.llm import LLMChain
-from azure.cognitiveservices.vision.computervision import ComputerVisionClient
-from msrest.authentication import CognitiveServicesCredentials
-
 from langchain.schema import Document
+from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+from langchain.tools import DuckDuckGoSearchRun
+from langchain.schema import AIMessage
+from langchain_core.runnables import RunnablePassthrough
+# for azure vector db index creation
+from azure.search.documents import SearchClient
+from langchain.document_loaders import PyPDFLoader
+from azure.core.credentials import AzureKeyCredential
+from azure.search.documents.indexes import SearchIndexClient
+from azure.search.documents.indexes.models import (
+    SearchFieldDataType,
+    SimpleField,
+    SearchableField,
+    SearchIndex,
+    SearchField,
+    VectorSearch,
+    VectorSearchProfile,
+    HnswAlgorithmConfiguration
+)
 
 # for mp3 to pdf
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
+
 # for webscraping
 import requests
 from bs4 import BeautifulSoup
@@ -86,69 +84,26 @@ import matplotlib
 from pandasai import Agent
 from pandasai.llm import AzureOpenAI
 
-matplotlib.use('Agg')
-
-# for logging use
-import logging
-from logging.handlers import TimedRotatingFileHandler
 import traceback
-import csv
 from datetime import datetime
 
 # Socket IO
-from flask_socketio import SocketIO, emit, send
+from flask_socketio import SocketIO, emit
 
 # For database connection
 import pyodbc, datetime
 import pymongo
-from flask import send_file
 import mysql.connector
-from pymongo import MongoClient
-import traceback
+# from pymongo import MongoClient
 import io
 
-# # for default Azure account use only
-# vectorsecret = "vectordatabsekey"
-# computer_vision = "computer-vision-key-v1"
-# openapi_key = "OPENAI-API-KEY"
-# KVUri = f"https://eavault.vault.azure.net/"
-# credential = DefaultAzureCredential()
-# client = SecretClient(vault_url=KVUri, credential=credential)
-# retrieved_secret = client.get_secret(openapi_key)
-# main_key = retrieved_secret.value
-# retrieved = client.get_secret(vectorsecret)
-# vector_store = retrieved.value
-# retrieved_com = client.get_secret(computer_vision)
-# computer_vision_key = retrieved_com.value
+# Import folder file
+from EA.Database.database import db, create_all_tables
+from EA.Database.database import UserRole, UserDetails, ChatHistory,DatabaseDetailsSave
+from EA.Config.configuration import (blob_service_client, container_client, computervision_client, embeddings, vector_store_address, vector_store_password, container_name, main_key)
+from EA.Logger.logging import setup_csv_logger, CustomLoggerAdapter
+from EA.Interrupt.flag import check_stop_flag, write_stop_flag_to_csv, read_stop_flag_from_csv
 
-# for local use only
-load_dotenv()
-main_key = os.environ["Main_key"]
-vector_store = os.environ["AZURE_COGNITIVE_SEARCH_API_KEY"]
-computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
-
-os.environ["OPENAI_API_TYPE"] = "azure"
-os.environ["OPENAI_API_KEY"] = main_key
-os.environ["OPENAI_API_VERSION"] = "2023-05-15"
-os.environ["AZURE_OPENAI_ENDPOINT"] = "https://ea-openai.openai.azure.com/"
-
-# computer_vision_key = os.environ["COMPUTER_VISION_SUBSCRIPTION_KEY"]
-computer_vision_api_endpint = "https://test-computer-vision-extremum.cognitiveservices.azure.com/"
-# # for vector db
-vector_store_address = "https://cognilink-vectordb.search.windows.net"
-vector_store_password = vector_store
-
-# for image computer vision
-COMPUTER_VISION_ENDPOINT = "https://test-computer-vision-extremum.cognitiveservices.azure.com/"
-# COMPUTER_VISION_password = computer_vision_key
-computervision_credentials = CognitiveServicesCredentials(computer_vision_key)
-computervision_client = ComputerVisionClient(COMPUTER_VISION_ENDPOINT, computervision_credentials)
-
-# 1 - text-embedding-3large testing  2- text-embedding
-embeddings = AzureOpenAIEmbeddings(azure_deployment='text-embedding')
-
-computervision_credentials = CognitiveServicesCredentials(computer_vision_key)
-computervision_client = ComputerVisionClient(computer_vision_api_endpint, computervision_credentials)
 
 chunk_size = 8000
 chunk_overlap = 400
@@ -156,16 +111,12 @@ custom_prompt = ''
 chain_type = 'map_reduce'
 num_summaries = 1
 
-# logger variable:
-# logger = ''
-summary_word_cpunt = 0
+matplotlib.use('Agg')
+
 blob_list_length = 0
 tot_file = 0
-tot_succ = 0
+tot_suc = 0
 tot_fail = 0
-Limit_By_Size = 0
-Source_URL = ""
-bar_chart_url = {}
 # word cloud
 text_word_cloud = ''
 
@@ -174,23 +125,40 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# blob storage use locally.
-account_name = os.environ['account_name']
-account_key = os.environ['account_key']
-container_name = os.environ['container_name']
-# Create a BlobServiceClient object
-connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-container_client = blob_service_client.get_container_client(container_name)
+
+global blob_client, logger, chat_history_list, Limit_By_Size, mb_pop, file_size_bytes, df, png_file, loader
 
 
-# # for Azure server use only
-# account_name = "testcongnilink"
-# container_name = "congnilink-container"
-# account_url = "https://testcongnilink.blob.core.windows.net"
-# default_credential = DefaultAzureCredential()
-# blob_service_client = BlobServiceClient(account_url, credential=default_credential)
-# container_client = blob_service_client.get_container_client(container_name)
+app = Flask(__name__, template_folder="Templates")
+app.debug = True
+app.static_folder = "static"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///Dashboard.db"
+db.init_app(app)
+
+# Create tables
+create_all_tables(app)
+app.config['DEBUG'] = True
+app.secret_key = os.urandom(24)
+socketio = SocketIO(app, manage_session=True)
+
+
+env_mapping_dict = {"http://cognilink-prod.azurewebsites.net/": "prod",
+                    "http://cognilink-dev.azurewebsites.net/": "dev", "http://127.0.0.1:5000/": "dev"}
+
+# Define timezones
+utc_zone = pytz.utc
+ist_zone = pytz.timezone('Asia/Kolkata')
+
+
+def convert_to_ist(date):
+    # Ensure the date is timezone aware, if it is naive, set it to UTC first
+    if date.tzinfo is None:
+        date = utc_zone.localize(date)
+    # Convert to IST
+    date_ist = date.astimezone(ist_zone)
+    # Convert the date object to an ISO 8601 string
+    return date_ist.isoformat()
+
 
 def set_model():
     model = session.get('engine', 'gpt-4-0125-preview')  # Default to 'gpt-4-0125-preview'
@@ -205,12 +173,12 @@ def set_model():
     return deployment_name
 
 
-def create_or_pass_folder(container_client, session):
+def create_or_pass_folder(container_client_, session):
     """
      Creates a folder in the specified Azure Blob Storage container if it does not already exist.
 
      Args:
-         container_client (BlobServiceClient): Azure Blob Service client instance.
+         container_client_ (BlobServiceClient): Azure Blob Service client instance.
          session (dict): User session dictionary containing the 'login_pin'.
 
      Returns:
@@ -220,13 +188,11 @@ def create_or_pass_folder(container_client, session):
          Sets the global variable `g.flag` to 1 on success and 0 on failure.
          Logs the success or failure of the folder creation process.
      """
-    container_name = "congnilink-container"
 
     if 'login_pin' in session:
         user_folder = str(session['login_pin'])
         try:
-            container_client.get_blob_client(container_name, user_folder).upload_blob("")
-            print('successfully created')
+            container_client_.get_blob_client(container_name, user_folder).upload_blob("")
             g.flag = 1  # Set flag to 1 on success1
             logger.info(f"Function create_or_pass_folder successfully created folder")
             return f"Folder '{user_folder}' successfully created."
@@ -235,7 +201,7 @@ def create_or_pass_folder(container_client, session):
             logger.error(f"Function create_or_pass_folder error", exc_info=True)
             if "BlobNotFound" in str(e):
                 try:
-                    container_client.get_blob_client(container_name, user_folder).create_container()
+                    container_client_.get_blob_client(container_name, user_folder).create_container()
                     return f"Folder '{user_folder}' successfully created."
                 except Exception as e:
                     return f"Error creating folder '{user_folder}': {str(e)}"
@@ -257,14 +223,14 @@ def clean_filename(filename):
     return cleaned_filename
 
 
-def upload_to_blob(file_content, session, blob_service_client, container_name):
+def upload_to_blob(file_content, session, blob_service_client_, container_name_):
     """Uploads a file to Azure Blob Storage with enhanced security and error handling.
 
     Args:
         file_content (http.MultipartFile): The file object to upload.
         session (dict): User session dictionary.
-        blob_service_client (BlobServiceClient): Azure Blob Service client instance.
-        container_name (str): Name of the Azure Blob Storage container.
+        blob_service_client_ (BlobServiceClient): Azure Blob Service client instance.
+        container_name_ (str): Name of the Azure Blob Storage container.
 
     Returns:
         str: URL of the uploaded blob or an error message.
@@ -281,7 +247,7 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
         cleaned_filename = clean_filename(file_content.filename)
 
         blob_name = f"{folder_name}/{cleaned_filename}"
-        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+        blob_client = blob_service_client_.get_blob_client(container=container_name_, blob=blob_name)
 
         # Read the content of file_content
         content = file_content.read()
@@ -314,58 +280,14 @@ def upload_to_blob(file_content, session, blob_service_client, container_name):
         return f"Error: {str(e)}"
 
 
-# def upload_to_blob(file_content, session, blob_service_client, container_name):
-#     """Uploads a file to Azure Blob Storage with enhanced security and error handling.
-#
-#     Args:
-#         file_content (http.MultipartFile): The file object to upload.
-#         session (dict): User session dictionary.
-#         blob_service_client (BlobServiceClient): Azure Blob Service client instance.
-#         container_name (str): Name of the Azure Blob Storage container.
-#
-#     Returns:
-#         str: URL of the uploaded blob or an error message.
-#     """
-#     global blob_client
-#
-#     if 'login_pin' not in session:
-#         return "Error: 'login_pin' not found in session."
-#     try:
-#         folder_name = "cognilink/" + str(session['login_pin'])
-#
-#         blob_name = f"{folder_name}/{file_content.filename}"
-#         blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-#
-#         # Read the content of file_content
-#         content = file_content.read()
-#
-#         # # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
-#         # blob_client.upload_blob(content, blob_type="BlockBlob",
-#         #                         content_settings=ContentSettings(content_type="application/octet-stream"),
-#         #                         overwrite=True)
-#         # Upload with overwrite and proper content type handling
-#         blob_client.upload_blob(content, blob_type="BlockBlob",
-#                                 content_settings=ContentSettings(content_type=file_content.content_type),
-#                                 overwrite=True)
-#     except Exception as e:
-#         g.flag = 0  # Set flag to 1 on success1
-#         logger.error(f"Function upload_to_blob error", exc_info=True)
-#         print('upload_to_blob----->', str(e))
-#
-#     # Return the URL of the uploaded Blob
-#     g.flag = 1  # Set flag to 1 on success1
-#     logger.info(f"Function upload_to_blob successfully created blob_client.url")
-#     return blob_client.url
-
-
-def update_bar_chart_from_blob(session, blob_service_client, container_name):
+def update_bar_chart_from_blob(session, blob_service_client_, container_name_):
     """
     Updates a bar chart in the user session based on the types of files in a specified Azure Blob Storage folder.
 
     Args:
         session (dict): User session dictionary containing the 'login_pin'.
-        blob_service_client (BlobServiceClient): Azure Blob Service client instance.
-        container_name (str): Name of the Azure Blob Storage container.
+        blob_service_client_ (BlobServiceClient): Azure Blob Service client instance.
+        container_name_ (str): Name of the Azure Blob Storage container.
 
     Returns:
         list: List of blobs in the specified folder.
@@ -380,9 +302,8 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
     blob_list = []
     try:
         # Get a list of blobs in the specified folder
-        blob_list = blob_service_client.get_container_client(container_name).list_blobs(
+        blob_list = blob_service_client_.get_container_client(container_name_).list_blobs(
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
-        # print("blob_list------?", blob_list)
 
         # Iterate through each blob in the folder
         for blob in blob_list:
@@ -429,15 +350,6 @@ def update_bar_chart_from_blob(session, blob_service_client, container_name):
     return blob_list
 
 
-# # Normalize the filenames
-# def normalize_filename(name):
-#     return re.sub(r'\s+', ' ', name).strip()
-#
-# # Extract filename without path and extension
-# def extract_base_name(name):
-#     return normalize_filename(os.path.splitext(os.path.basename(name))[0])
-
-
 def update_when_file_delete():
     """
     Updates session and charts when a file is deleted from Azure Blob Storage.
@@ -451,62 +363,41 @@ def update_when_file_delete():
     Returns:
         Response: JSON response indicating the result of the operation.
     """
-    global blob_list_length, Source_URL, loader, tot_file, bar_chart_url, txt_to_pdf
-    txt_to_pdf = {}
-    bar_chart_url = {}
+    global blob_list_length, loader, tot_file
     blob_list_length = 0
-    tot_succ = 0
+    tot_suc = 0
     tot_fail = 0
-    final_chunks = []
 
+    start_time = time.time()
     # Lists to store progress of files loading
     session['embedding_not_created'] = []
     session['failed_files'] = []
     session['progress_files'] = []
-    folder_name_azure = str(session['login_pin'])
-    folder_name = os.path.join('static', 'login', folder_name_azure)
-    file_path = os.path.join(folder_name, 'summary_chunk.pkl')
     all_blobs = blob_service_client.get_container_client(container_name).list_blobs(
         name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
     all_blobs_list = list(all_blobs)  # Convert to list to enable filtering
 
-    # for blob in all_blobs_list:
-    #     file_name = blob.name.split('/')[-1]  # Extract file name from blob path
-    #
-    #     if file_name.endswith('.csv') or file_name.endswith('.CSV'):
-    #         session['progress_files'].append(file_name)
-    #         socketio.emit('success', session['progress_files'])
     blob_list = [blob for blob in all_blobs_list if not (
             blob.name.endswith('.csv') or
             blob.name.endswith('.CSV') or
             blob.name.endswith('.jpg') or
             blob.name.endswith('.png') or
             blob.name.endswith('.text') or
-            blob.name.endswith('.jpeg'))]
+            blob.name.endswith('.jpeg') or
+            blob.name.endswith('.mp3') or
+            blob.name.endswith('.json')or
+            blob.name.endswith('_schema.xls')or
+            blob.name.endswith('_schema.xlsx')
+    )]
+
     # Update session counts for CSV files directly
-    # print("code yhan chala------->", blob_list)
     csv_files_count = len(all_blobs_list) - len(blob_list)
-    tot_succ += csv_files_count
-    # Mark CSV files as successfully read
-    # Step 1: Create a set of .mp3 file names without extensions
-    mp3_files = {blob['name'][:-4] for blob in blob_list if blob['name'].endswith('.mp3')}
+    tot_suc += csv_files_count
 
-    # Step 2: Filter the blob_list to exclude .pdf files that have a corresponding .mp3 file
-    new_blob_list = [blob for blob in blob_list if
-                     not (blob['name'].endswith('.pdf') and blob['name'][:-4] in mp3_files)]
-
-    blob_list_jpg = [blob for blob in new_blob_list if not (
+    blob_list_jpg = [blob for blob in blob_list if not (
             blob.name.endswith('.jpg') or blob.name.endswith('.JPG') or blob.name.endswith(
         '.PNG') or blob.name.endswith('.png') or blob.name.endswith(
         '.jpeg') or blob.name.endswith('.JPEG'))]
-
-    # # Extracting url_part for blobs with 'https://' or 'http://' in their name
-    # url_list = []
-    # for blob in blob_list_jpg:
-    #     if 'https://' in blob.name or 'http://' in blob.name:
-    #         # Assuming session['login_pin'] is defined somewhere in your session
-    #         url_part = blob.name.split(str(session['login_pin']) + '/')[1]
-    #         url_list.append(url_part)
 
     # Initialize SearchClient
     search_client = SearchClient(
@@ -522,22 +413,10 @@ def update_when_file_delete():
 
     for result in results:
         embeddings_dict = json.loads(result['metadata'])
-        # print(embeddings_dict)  # This prints the embeddings_dict for each result
         document = embeddings_dict.get('documents')
         if document and document not in unique_documents:
             VecTor_liSt.append(document)
             unique_documents.add(document)
-
-    # # Filtering out blobs whose names are in vector_db_list
-    # result_loop = [blob for blob in blob_list_jpg if
-    #                not any(blob['name'].endswith(item) for item in VecTor_liSt)]
-    #
-    # for blob in blob_list_jpg:
-    #     if 'https://' in blob.name or 'http://' in blob.name:
-    #         url_part = blob.name.split(str(session['login_pin']) + '/')[1]
-    #         if url_part not in VecTor_liSt:
-    #             result_loop.append(blob)
-    # print("blob_list_jpg-------->", blob_list_jpg)
 
     # Filtering out blobs whose names are in VecTor_liSt
     result_loop = [blob for blob in blob_list_jpg if
@@ -556,18 +435,8 @@ def update_when_file_delete():
         if url_part not in VecTor_liSt:
             result_loop1.append(blob)
 
-    # print("result_loop----->", result_loop)
-
-    # # Result computation
-    # # Adjusted list to handle inclusion based on VecTor_liSt
-    # result_loop = [
-    #     blob for blob in blob_list_jpg
-    #     if any(item in blob['name'] for item in VecTor_liSt) or
-    #        ('https://' in blob['name'] or 'http://' in blob['name'] and
-    #         any(blob['name'].split(f"{session['login_pin']}/")[1].endswith(item) for item in VecTor_liSt))
-    # ]
     blob_list_length = len(result_loop1)
-    if blob_list_length == 0 and Source_URL == "":
+    if blob_list_length == 0:
         session['bar_chart_ss'] = {}
         session['over_all_readiness'] = 0
         session['total_success_rate'] = 0
@@ -582,6 +451,8 @@ def update_when_file_delete():
     try:
         if blob_list_length != 0:
             for blob in result_loop1:
+                final_chunks = []
+
                 if check_stop_flag():
                     write_stop_flag_to_csv(session['login_pin'], 'False')
                     print("Data Load Cancelled")
@@ -605,25 +476,15 @@ def update_when_file_delete():
                         blob_data = blob_client.download_blob()
                         blob_data.readinto(temp_file)
 
-                    # loader = AzureBlobStorageFileLoader(
-                    #     conn_str=connection_string,
-                    #     container=container_name,
-                    #     blob_name=blob.name
-                    # )
                 if '.pdf' in file_name or '.PDF' in file_name:
                     loader = PyPDFLoader(temp_path)
                     session['embedding_not_created'].append(file_name)
                     socketio.emit('pending', session['embedding_not_created'])
 
-                # if '.txt' in file_name or '.TXT' in file_name:
-                #     loader = TextLoader(temp_path)
+                # elif '.mp3' in file_name:
+                #     loader = AssemblyAIAudioTranscriptLoader(temp_path, api_key="5bbe5761b36b4ff885dbd18836c3c723")
                 #     session['embedding_not_created'].append(file_name)
                 #     socketio.emit('pending', session['embedding_not_created'])
-
-                elif '.mp3' in file_name:
-                    loader = AssemblyAIAudioTranscriptLoader(temp_path, api_key="5bbe5761b36b4ff885dbd18836c3c723")
-                    session['embedding_not_created'].append(file_name)
-                    socketio.emit('pending', session['embedding_not_created'])
 
                 elif '.docx' in file_name or '.doc' in file_name:
                     loader = Docx2txtLoader(temp_path)
@@ -634,6 +495,7 @@ def update_when_file_delete():
                     loader = UnstructuredExcelLoader(temp_path)
                     session['embedding_not_created'].append(file_name)
                     socketio.emit('pending', session['embedding_not_created'])
+
                 if check_stop_flag():
                     write_stop_flag_to_csv(session['login_pin'], 'False')
                     print("Data Load Cancelled")
@@ -649,130 +511,30 @@ def update_when_file_delete():
                     for ele in chunks:
                         ele.metadata['source'] = s_url
                         ele.metadata['documents'] = file_name
+
                 print(f"Number of chunks :: {len(chunks)}")
                 if len(chunks) == 0:
                     tot_fail += 1
                     # Failed files list
                     session['failed_files'].append(file_name)
-                    jsonify({"message": f"No Text Available in {file_name} In This File."})
+                    jsonify({"message": f"No text available in {file_name} this file."})
+
                 final_chunks.extend(chunks)
 
-                if '.mp3' in file_name and len(chunks) != 0:
-                    # file_name_without_extension = file_name.split('.')[0]
-                    file_name_without_extension = file_name.rsplit('.', 1)[0]
-                    temp_pdf_path = os.path.join(folder_name, f"{file_name_without_extension}.pdf")
-
-                    doc = SimpleDocTemplate(temp_pdf_path, pagesize=letter)
-                    styles = getSampleStyleSheet()
-                    flowables = []
-
-                    # Add a single heading for all chunks
-                    heading = "<font size=14><b>{}</b></font><br/><br/>".format(file_name_without_extension)
-                    flowables.append(Paragraph(heading, style=styles["Normal"]))
-
-                    # Combine all chunks' text into a single string
-                    combined_text = ""
-                    for i, chunk in enumerate(chunks):
-                        combined_text += chunk.page_content + "\n\n"
-
-                    # Add the combined text under the heading
-                    ptext = "<font size=12>{}</font>".format(combined_text)
-                    paragraph = Paragraph(ptext, style=styles["Normal"])
-                    flowables.append(paragraph)
-
-                    doc.build(flowables)
-                    session['progress_files'].append(file_name)
-                    file_name = os.path.basename(temp_pdf_path)
-
-                    with open(temp_pdf_path, "rb") as file:
-                        content = file.read()
-                    blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{file_name}"
-                    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-                    blob_client.upload_blob(content, blob_type="BlockBlob",
-                                            content_settings=ContentSettings(content_type="application/pdf"),
-                                            overwrite=True)
-                    session['progress_files'].append(file_name)
-
-                    os.remove(temp_pdf_path)
-                # if '.mp3' in file_name and len(chunks) != 0:
-                #     for i, chunk in enumerate(chunks):
-                #         txt_to_pdf[f"{file_name}_{i + 1}"] = chunk.page_content
-                #     # Split file_name at the dot and append ".pdf" to the first part
-                #     file_name_without_extension = file_name.split('.')[0]
-                #     temp_pdf_path = os.path.join(folder_name, f"{file_name_without_extension}.pdf")
-                #
-                #     doc = SimpleDocTemplate(temp_pdf_path, pagesize=letter)
-                #     styles = getSampleStyleSheet()
-                #     flowables = []
-                #
-                #     for name, text in txt_to_pdf.items():
-                #
-                #         if check_stop_flag():
-                #             # write_stop_flag_to_csv(session['login_pin'], 'False')
-                #             print("Data Load Cancelled")
-                #             break
-                #
-                #         ptext = "<font size=12><b>{}<br/><br/></b></font>{}".format(name, text)
-                #         paragraph = Paragraph(ptext, style=styles["Normal"])
-                #         flowables.append(paragraph)
-                #         flowables.append(Paragraph("<br/><br/><br/>", style=styles["Normal"]))
-                #
-                #     doc.build(flowables)
-                #     session['progress_files'].append(file_name)
-                #     # Get the filename from the path
-                #     file_name = os.path.basename(temp_pdf_path)
-                #     with open(temp_pdf_path, "rb") as file:
-                #         content = file.read()
-                #     blob_name = f"cognilink/{folder_name_azure}/{file_name}"
-                #     blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-                #
-                #     # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
-                #     blob_client.upload_blob(content, blob_type="BlockBlob",
-                #                             content_settings=ContentSettings(content_type="application/pdf"),
-                #                             overwrite=True)
-                #     session['progress_files'].append(file_name)
-                #
-                #     # Delete Temporary PDF file
-                #     os.remove(temp_pdf_path)
-                tot_succ += 1
+                tot_suc += 1
                 if file_name not in session['failed_files']:
                     session['progress_files'].append(file_name)
                 for file_name in session['embedding_not_created']:
                     session['embedding_not_created'].remove(file_name)
 
                 # Calculate progress_list
-                session['successful_list'] = min(tot_succ - tot_fail, session['total_files_list'])
+                session['successful_list'] = min(tot_suc - tot_fail, session['total_files_list'])
                 session['failed_list'] = min(tot_fail, session['total_files_list'] - session['successful_list'])
                 session['progress_list'] = session['total_files_list'] - session['successful_list'] - session[
                     'failed_list']
 
-                # Load existing data if the file exists
-                if os.path.exists(file_path):
-                    with open(file_path, 'rb') as f:
-                        try:
-                            existing_data = pickle.load(f)
-                        except EOFError:
-                            existing_data = []
-                    # print("Existing data loaded:", existing_data)
-                else:
-                    existing_data = []
-
-                # Append new data to existing data
-                existing_data.append({file_name: [chunks]})
-
-                # Save the updated list back to the file
-                with open(file_path, 'wb') as f:
-                    pickle.dump(existing_data, f)
-
-                get_vectostore(final_chunks, file_name)
-                # vectorstore.save_local(os.path.join(folder_name, 'faiss_index'))
-                # session['over_all_readiness'] = session['total_files_list']
-                # session['total_success_rate'] = session['successful_list']
-                # Check if session is modified and save it if necessary
-                # if session.modified:
-                #     # Manually save the session
-                #     session_interface = app.session_interface
-                #     session_interface.save_session(app, session, None)
+                if len(chunks) != 0:
+                    get_vectorstore(final_chunks, file_name)
 
                 pie_chart_data = create_pie_chart()
                 socketio.emit('updatePieChart', pie_chart_data)
@@ -790,84 +552,21 @@ def update_when_file_delete():
                 # gauge_source_chart_data = gauge_chart_auth()
                 # socketio.emit('update_gauge_chart', gauge_source_chart_data)
             socketio.emit('progress', {'percentage': 75, 'pin': session['login_pin']})
+
         if not check_stop_flag():
             print("Complete")
+            elapsed_time = time.time() - start_time
             g.flag = 1  # Set flag to 1 on success1
-            logger.info(f"Function update_when_file_delete Data Loaded Successfully")
-            return jsonify({"message": "Data Loaded Successfully"})
+            logger.info(f"Function update_when_file_delete Data Loaded Successfully in {elapsed_time} seconds")
+            return jsonify({"message": "Data loaded successfully"})
+
         else:
             print("Load Process Stopped")
+            elapsed_time = time.time() - start_time
             g.flag = 0  # Set flag to 1 on success1
-            logger.info(f"Function update_when_file_delete Data Loaded Unsuccessfull")
-            return jsonify({"message": "Data Loading Cancelled!"})
-        # if Source_URL != "":
-        #     # delete_documents_from_vectordb(["Source_Website"])
-        #     session['total_files_list'] += 1
-        #     f_name_url = "Source_Website"
-        #     # bar_chart_url[file_type] = bar_chart_url.get(file_type, 0) + 1
-        #     # Update bar_chart_url with values from session, if available
-        #     # if 'bar_chart_ss' in session:
-        #     #     session['bar_chart_ss'].update(bar_chart_url)
-        #     loader = WebBaseLoader(Source_URL)
-        #     chunks_url = loader.load_and_split()
-        #     for ele in chunks_url:
-        #         ele.metadata['documents'] = f_name_url
-        #     print(f"Number of chunks :: {len(chunks_url)}")
-        #     if len(chunks_url) == 0:
-        #         tot_fail += 1
-        #         return jsonify({"message": "No data available in website"})
-        #     final_chunks.extend(chunks_url)
-        #     # summary_chunk.append({f_name_url: [chunks_url]})
-        #     tot_succ += 1
-        #     # Calculate progress_list
-        #     session['successful_list'] = min(tot_succ - tot_fail, session['total_files_list'])
-        #     session['failed_list'] = min(tot_fail, session['total_files_list'] - session['successful_list'])
-        #     session['progress_list'] = session['total_files_list'] - session['successful_list'] - session['failed_list']
-        #
-        #     # Load existing data if the file exists
-        #     if os.path.exists(file_path):
-        #         with open(file_path, 'rb') as f:
-        #             try:
-        #                 existing_data = pickle.load(f)
-        #             except EOFError:
-        #                 existing_data = []
-        #         # print("Existing data loaded:", existing_data)
-        #     else:
-        #         existing_data = []
-        #
-        #     # Append new data to existing data
-        #     existing_data.append({f_name_url: [chunks_url]})
-        #     # Save the updated list back to the file
-        #     with open(file_path, 'wb') as f:
-        #         pickle.dump(existing_data, f)
-        #
-        #     get_vectostore(final_chunks)
-        #     # # vectorstore.save_local(os.path.join(folder_name, 'faiss_index'))
-        #     # session['over_all_readiness'] = session['total_files_list']
-        #     # session['total_success_rate'] = session['successful_list']
-        #
-        #     # session_interface.save_session(app, session)
-        #     update_bar_chart_from_blob(session, blob_service_client, container_name)
-        #     pie_chart_data = create_pie_chart()
-        #     socketio.emit('updatePieChart', pie_chart_data)
-        #     # gauge_source_chart_data = gauge_chart_auth()
-        #     # socketio.emit('update_gauge_chart', gauge_source_chart_data)
-        #     Source_URL = ""
-        # socketio.emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-        # time.sleep(0.01)
-        # socketio.emit('pending', session['embedding_not_created'])
-        # socketio.emit('failed', session['failed_files'])
-        # socketio.emit('success', session['progress_files'])
-        # if not check_stop_flag():
-        #     print("Complete")
-        #     g.flag = 1  # Set flag to 1 on success1
-        #     logger.info(f"Function update_when_file_delete Data Loaded Successfully")
-        #     return jsonify({"message": "Data Loaded Successfully"})
-        # else:
-        #     print("Load Process Stopped")
-        #     g.flag = 0  # Set flag to 1 on success1
-        #     logger.info(f"Function update_when_file_delete Data Loaded Unsuccessfull")
-        #     return jsonify({"message": "Data Loading Cancelled!"})
+            logger.info(f"Function update_when_file_delete Data Loaded unsuccessfully in {elapsed_time} seconds")
+            return jsonify({"message": "Data loading cancelled!"})
+
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
         logger.error(f"Function update_when_file_delete error", exc_info=True)
@@ -875,12 +574,12 @@ def update_when_file_delete():
         return jsonify({'message': str(e)})
 
 
-def generate_word_cloud(text_word_cloud):
+def generate_word_cloud(word_cloud_text):
     """
     Generates a word cloud image from the provided text and saves it to a file.
 
     Args:
-        text_word_cloud (str): The text to be used for generating the word cloud.
+        word_cloud_text (str): The text to be used for generating the word cloud.
 
     Side Effects:
         Saves the generated word cloud image to a file in the user's folder.
@@ -888,12 +587,8 @@ def generate_word_cloud(text_word_cloud):
     Returns:
         None
     """
-    # Tokenize karein
-    tokens = word_tokenize(text_word_cloud)
-
-    # # Generate WordCloud with specified width and height
-    # font_path = os.path.abspath(os.path.join('static', 'images', 'NotoSans-Regular.ttf'))
-    # font_path = font_path,
+    # Tokenization
+    tokens = word_tokenize(word_cloud_text)
 
     # Generate WordCloud with specified width and height
     wordcloud = WordCloud(width=1200, height=800,
@@ -905,29 +600,6 @@ def generate_word_cloud(text_word_cloud):
     wordcloud.to_file(f'static/login/{folder_name}/wordcloud.png')
 
 
-import os
-from azure.core.credentials import AzureKeyCredential
-from azure.search.documents import SearchClient
-from azure.search.documents.indexes import SearchIndexClient
-from azure.search.documents.indexes.models import SearchIndex, SimpleField, SearchFieldDataType
-from PyPDF2 import PdfFileReader
-from langchain.document_loaders import PyPDFLoader
-from azure.core.credentials import AzureKeyCredential
-from azure.search.documents.indexes import SearchIndexClient
-from azure.search.documents.indexes.models import (
-    SearchIndex,
-    SearchField,
-    SearchFieldDataType,
-    SimpleField,
-    SearchableField,
-    SearchIndex,
-    SearchField,
-    VectorSearch,
-    VectorSearchProfile,
-    HnswAlgorithmConfiguration
-)
-
-
 def create_or_update_index():
     index_name = f"cognilink-{session['env_map']}-{session['login_pin']}"
     # Create the SearchIndexClient
@@ -936,7 +608,7 @@ def create_or_update_index():
     # Define the index schema
     fields = [
         SimpleField(name="id", type=SearchFieldDataType.String, key=True),
-        SimpleField(name="file_name", type=SearchFieldDataType.String, filterable=True, sortable=True),
+        SimpleField(name="file_name", type=SearchFieldDataType.String, filterable=True, sortable=True, searchable=True),
         SearchableField(name="content", type=SearchFieldDataType.String, searchable=True),
         SearchField(name="content_vector", type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                     searchable=True, vector_search_dimensions=1536, vector_search_profile_name="my-vector-config"),
@@ -947,26 +619,47 @@ def create_or_update_index():
         algorithms=[HnswAlgorithmConfiguration(name="my-algorithms-config")],
     )
 
-    index = SearchIndex(name=index_name, fields=fields, vector_search=vector_search)
+    semantic_config = SemanticConfiguration(
+        name="my-semantic-config",
+        prioritized_fields=SemanticPrioritizedFields(
+            content_fields=[SemanticField(field_name='content'), SemanticField(field_name='file_name')],
+            keywords_fields=[SemanticField(field_name='file_name')]
+        )
+    )
+    semantic_search = SemanticSearch(configurations=[semantic_config])
+
+    # Define the scoring profile
+    scoring_profile = ScoringProfile(
+        name="custom_scoring_profile",
+        text_weights=TextWeights(weights={"content": 50, "content_vector": 50}),
+    )
+
+    index = SearchIndex(name=index_name, fields=fields,
+                        vector_search=vector_search,
+                        semantic_search=semantic_search,
+                        scoring_profiles=[scoring_profile],
+                        )
 
     # Create or update the index
     try:
         client.create_or_update_index(index)
+        logger.info(f"Index {index_name} created for user {str(session['user_name'])}")
         print(f"Index '{index_name}' created or updated successfully.")
     except Exception as e:
+        logger.error(f"Index {index_name} not created for user {str(session['user_name'])}", exc_info=True)
         print(f"Index '{index_name}' creation or update failed. Error: {str(e)}")
 
 
 # Make sure to define session, vector_store_address, and vector_store_password before calling this function
 
 
-def get_vectostore(text_chunks, file_name):
+def get_vectorstore(text_chunks, file_name):
     """
     Performs the specified operation on an AzureSearch vector store with the given text chunks.
 
     Args:
         text_chunks (list): A list of text chunks to be added to the vector store.
-        operation (str): The operation to perform on the vector store. Options are 'add', 'update', 'delete', or 'override'.
+        file_name (str): Filename to add a field in vector db
 
     Side Effects:
         Adds, updates, deletes, or overrides the provided text chunks in the AzureSearch vector store.
@@ -974,53 +667,45 @@ def get_vectostore(text_chunks, file_name):
     Returns:
         None
     """
-    index_name = f"cognilink-{session['env_map']}-{session['login_pin']}"
-    # Create the SearchClient
-    search_client = SearchClient(vector_store_address, index_name, AzureKeyCredential(vector_store_password))
-    documents = []
+    try:
+        index_name = f"cognilink-{session['env_map']}-{session['login_pin']}"
+        # Create the SearchClient
+        search_client = SearchClient(vector_store_address, index_name, AzureKeyCredential(vector_store_password))
+        documents = []
 
-    # Replace dots in file_name for vector_id creation
-    sanitized_file_name = file_name.replace('.', '_')
+        # Replace dots in file_name for vector_id creation
+        # Extract the URL part for comparison
+        if 'https://' in file_name or 'http://' in file_name:
+            file_name = file_name.split("//")[1]
+        else:
+            file_name = file_name
 
-    for i, chunk in enumerate(text_chunks):
-        embedding = embeddings.embed_query(chunk.page_content)
-        metadata_str = json.dumps(chunk.metadata)
-        document = {
-            "id": f"{sanitized_file_name}_{str(i)}",
-            "file_name": file_name,
-            "content": chunk.page_content,
-            "content_vector": embedding,
-            "metadata": metadata_str
-        }
-        documents.append(document)
+        cleaned_filename = re.sub(r'[^\w\s.-]', '', file_name)
+        cleaned_filename = re.sub(r'\s+', '-', cleaned_filename)
+        sanitized_file_name = re.sub(r'[.:/]', '_', cleaned_filename)
 
-    # # Create a list of dictionaries for the chat history
-    # vector_id_list = [{"v_id": data['id'],
-    #                    "filename": data['file_name']}
-    #                   for data in documents]
-    #
-    # print('Vector List', vector_id_list)
-    # # Save vector_id to the database
-    # for entry in vector_id_list:
-    #     new_vector = VectorEmbeddingsData(
-    #         login_pin=session['login_pin'],
-    #         vector_id=entry['v_id'],
-    #         filename=entry['filename']
-    #     )
-    #     db.session.add(new_vector)
-    # db.session.commit()
-    #
-    # # Retrieve vector data from the database
-    # vector_data_from_db = VectorEmbeddingsData.query.filter_by(login_pin=session['login_pin']).all()
-    # vector_data = [{"v_id": data.vector_id,
-    #                 "login_pin": data.login_pin,
-    #                 "filename": data.filename}
-    #                for data in vector_data_from_db]
-    #
-    # print('Vector ID Data----------->',vector_data)
+        count = 0
+        for i, chunk in enumerate(text_chunks):
+            embedding = embeddings.embed_query(
+                f'/ {file_name} /' + chunk.page_content + f' / {file_name.split(".")[0]}')
+            metadata_str = json.dumps(chunk.metadata)
+            document = {
+                "id": f"{sanitized_file_name}_{str(count)}",
+                "file_name": file_name,
+                "content": chunk.page_content + f' / {file_name}',
+                "content_vector": embedding,
+                "metadata": metadata_str
+            }
+            count += 1
+            documents.append(document)
 
-    result = search_client.upload_documents(documents=documents)
-    print(f"Uploaded documents: {result}")
+        result = search_client.upload_documents(documents=documents)
+        # print(f"Uploaded documents: {result}")
+        logger.info('Documents uploaded to vector database')
+
+    except Exception as e:
+        logger.error("Documents not uploaded to vector database", exc_info=True)
+        print('ERROR! ',e)
 
 
 def delete_documents_from_vectordb(documents_to_delete):
@@ -1059,102 +744,49 @@ def delete_documents_from_vectordb(documents_to_delete):
         batch_response = search_client.upload_documents(actions)
 
         if batch_response:
+            logger.info('Documents deleted from vector database')
             print({"message": "Documents deleted successfully"})
         else:
+            logger.error('Failed to delete some documents from vector database')
             raise Exception("Failed to delete some documents")
 
     except Exception as e:
+        logger.error('Failed to delete some documents from vector database', exc_info=True)
         print({'message': str(e)})
 
 
-# def get_conversation_chain(vectorstore):
-#     """
-#     Retrieves a conversation chain for conversational retrieval using Azure models.
-#
-#     Args:
-#         vectorstore: The AzureSearch vector store instance.
-#
-#     Returns:
-#         function: A function to handle question answering with context check.
-#     """
-#     deployment_name = set_model()
-#     llm = AzureChatOpenAI(azure_deployment=deployment_name)
-#
-#     template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
-#                 just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
-#                 If no information is available to answer the question, respond with: 'No information available to answer the question.'
-#                 {context}
-#                 Question: {question}
-#                 Helpful Answer:
-#                 """
-#     # template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
-#     #             just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
-#     #             If no information is available to answer the question, respond with: 'No information available to answer the question.'
-#     #             {context}
-#     #             Question: {question}
-#     #             Helpful Answer:
-#     #             """
-#
-#     # template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,
-#     # just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible.
-#     # {context}
-#     # Question: {question}
-#     # Helpful Answer:"""
-#     CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
-#
-#     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
-#                                       output_key="answer")
-#
-#     conversation_chain = ConversationalRetrievalChain.from_llm(
-#         llm=llm,
-#         retriever=vectorstore.as_retriever(),
-#         memory=memory,
-#         return_source_documents=True,
-#         combine_docs_chain_kwargs={"prompt": CUSTOM_QUESTION_PROMPT}
-#     )
-#
-#     return conversation_chain
-
-
-def get_conversation_chain(vectorstore, source):
+def get_conversation_chain(retriever, source):
     """
     Retrieves a conversation chain for conversational retrieval using Azure models.
 
     Args:
-        vectorstore: The AzureSearch vector store instance.
+        retriever: The AzureSearch vector store instance.
         source (str): The source of the context ('myFiles' or 'webInternet').
 
     Returns:
         function: A function to handle question answering with context check.
     """
 
+    global template
     if source == 'myFiles':
-        context = "Answer only from the files uploaded by the user. Don't use any web/Internet.ALso return all the sources from where you fetched data"
-        template = """
-                        Answer only from the files uploaded by the user. Don't use any web/Internet.Also
-                        If you don't know the answer,just say that you don't know, don't try to make up an answer. 
-                        Use three sentences maximum. Keep the answer as concise as possible.
+        template = """ Use the content from the uploaded files by the user. Don't use any web/Internet.
+                        If you don't know the answer,just say that you don't know, don't try to make up an answer.
                         {context}
                         Question: {question}
                         Helpful Answer: 
                         """
+
     elif source == 'webInternet':
-        context = "Search the Web for the answer.ALso return only Web in source instead of returning reference from files"
-        template = """ Search only from the Web for the answer. ALso return only Web in source instead of returning reference from files"
+        template = """ Search from the Web for the answer and you can use your knowledge also.
                         If you don't know the answer,just say that you don't know, don't try to make up an answer. 
-                        Use three sentences maximum. Keep the answer as concise as possible.
                         {context}
                         Question: {question}
                         Helpful Answer: 
                         """
     elif source == 'all':
-        context = """Use both the content from the uploaded files also as well as search internet also and then combine or return the best possible answer.
-                   ALso list web in the sources if you have used web"""
         template = """Use both the content from the uploaded files also as well as search internet also and then combine or return the best possible answer.
-                    ALso list web in the sources if you have used web.
-                    If you don't know the answer,just say that you don't know, don't try to make up an answer. 
-                    Use three sentences maximum. Keep the answer as concise as possible.
-                    {context}
+                    If you don't know the answer,just say that you don't know, don't try to make up an answer.
+                    {context} 
                     Question: {question}
                     Helpful Answer: 
                     """
@@ -1162,86 +794,50 @@ def get_conversation_chain(vectorstore, source):
     deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name)
 
-    CUSTOM_QUESTION_PROMPT = PromptTemplate(input_variables=["context", "question"], template=template)
+    custom_question_prompt = PromptTemplate(input_variables=["question", "context"], template=template)
 
     memory = ConversationBufferMemory(memory_key="chat_history", input_key='question', return_messages=True,
                                       output_key="answer")
 
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
-        retriever=vectorstore.as_retriever(k=10),
-        # retriever=vectorstore.as_retriever(search_kwargs={'k':10}),
+        retriever=retriever,
         memory=memory,
-        verbose=True,
+        condense_question_prompt=custom_question_prompt,
+        # verbose=True,
         return_source_documents=True,
-        combine_docs_chain_kwargs={"prompt": CUSTOM_QUESTION_PROMPT}
+        combine_docs_chain_kwargs={"prompt": custom_question_prompt}
     )
     g.flag = 1  # Set flag to 1 on success
     logger.info(f"Retrieval content from conversational chain")
     return conversation_chain
 
 
-# def custom_summary(docs, custom_prompt, chain_type):
-#     """
-#     Generates custom summaries for the provided documents using Azure models.
-#
-#     Args:
-#         docs (list): List of documents to be summarized.
-#         custom_prompt (str): Custom prompt template for summarization.
-#         chain_type (str): Type of summarization chain.
-#
-#     Returns:
-#         list: List of custom summaries.
-#     """
-#     custom_prompt = custom_prompt + """:\n {text}"""
-#     COMBINE_PROMPT = PromptTemplate(template=custom_prompt, input_variables=["text"])
-#     MAP_PROMPT = PromptTemplate(template="Summarize:\n{text}", input_variables=["text"])
-#     model = session['engine']
-#     # print("summary---->session['engine']---->", model)
-#     deployment_name = set_model()
-#     llm = AzureChatOpenAI(azure_deployment=deployment_name, model_name=model, temperature=0.50)
-#
-#     if chain_type == "map_reduce":
-#         chain = load_summarize_chain(llm, chain_type=chain_type,
-#                                      map_prompt=MAP_PROMPT,
-#                                      combine_prompt=COMBINE_PROMPT)
-#     else:
-#         chain = load_summarize_chain(llm, chain_type=chain_type)
-#
-#     summaries = chain({"input_documents": docs}, return_only_outputs=True)["output_text"]
-#     # summaries = []
-#     # for i in range(num_summaries):
-#     #     summary_output = chain({"input_documents": docs}, return_only_outputs=True)["output_text"]
-#     #     summaries.append(summary_output)
-#     # print(summaries)
-#     emit('progress', {'percentage': 50, 'pin': session['login_pin']})
-#
-#     return summaries
-
-def custom_summary(docs, custom_prompt, chain_type, word_count):
+def custom_summary(docs, custom_prompt_, chain_type_, word_count):
     """
     Generates custom summaries for the provided documents using Azure models.
 
     Args:
         docs (list): List of documents to be summarized.
-        custom_prompt (str): Custom prompt template for summarization.
-        chain_type (str): Type of summarization chain.
+        custom_prompt_ (str): Custom prompt template for summarization.
+        chain_type_ (str): Type of summarization chain.
         word_count (int): Desired word count for the summary.
 
     Returns:
         list: List of custom summaries.
     """
-    custom_prompt = f"{custom_prompt}:\n {{text}}\nPlease summarize in {word_count} words."
-    COMBINE_PROMPT = PromptTemplate(template=custom_prompt, input_variables=["text"])
-    MAP_PROMPT = PromptTemplate(template=f"Summarize in {word_count} words:\n{{text}}", input_variables=["text"])
+    # Use the custom prompt as it is for summarization
+    combine_prompt = PromptTemplate(template=f"{custom_prompt_}:\n{{text}}\nPlease summarize in {word_count} words.",
+                                    input_variables=["text"])
+    map_prompt = PromptTemplate(template=f"{custom_prompt_} in {word_count} words:\n{{text}}", input_variables=["text"])
     model = session['engine']
     deployment_name = set_model()
     llm = AzureChatOpenAI(azure_deployment=deployment_name, model_name=model, temperature=0.50)
 
     if chain_type == "map_reduce":
-        chain = load_summarize_chain(llm, chain_type=chain_type,
-                                     map_prompt=MAP_PROMPT,
-                                     combine_prompt=COMBINE_PROMPT)
+        chain = load_summarize_chain(llm, chain_type=chain_type_,
+                                     map_prompt=map_prompt,
+                                     combine_prompt=combine_prompt)
     else:
         chain = load_summarize_chain(llm, chain_type=chain_type)
 
@@ -1252,65 +848,6 @@ def custom_summary(docs, custom_prompt, chain_type, word_count):
 
 
 # ## End Summarization section --------
-
-
-app = Flask(__name__, template_folder="Templates")
-app.debug = True
-app.static_folder = "static"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///Dashboard.db"
-app.config['DEBUG'] = True
-db = SQLAlchemy(app)
-app.secret_key = os.urandom(24)
-socketio = SocketIO(app, manage_session=True)
-
-
-# Define FileStorage table
-class FileStorage(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(255), nullable=False)
-    file_data = db.Column(db.LargeBinary)
-    file_description = db.Column(db.Text)
-    created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
-
-
-# Define UserRoles table
-class UserRole(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    role_id = db.Column(db.String(10), unique=True, nullable=False)
-    user_details = db.relationship('UserDetails', backref='user_role', lazy=True)
-
-
-# Define UserDetails table
-class UserDetails(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    role_id = db.Column(db.String(10), db.ForeignKey('user_role.role_id'), nullable=False)
-    first_name = db.Column(db.String(50), nullable=False)
-    last_name = db.Column(db.String(50), nullable=False)
-    email_id = db.Column(db.String(100), unique=True, nullable=False)
-    created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
-    modified_date = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
-    status = db.Column(db.String(20), nullable=False)
-    login_pin = db.Column(db.String(20), nullable=False)
-
-
-# Define ChatHistory table
-class ChatHistory(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    login_pin = db.Column(db.String(20), nullable=False)
-    question = db.Column(db.Text, nullable=False)
-    answer = db.Column(db.Text, nullable=False)
-    source = db.Column(db.Text, nullable=False)
-    page_number = db.Column(db.Text, nullable=False)
-    created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
-
-
-# class VectorEmbeddingsData(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     login_pin = db.Column(db.String(20), nullable=False)
-#     vector_id = db.Column(db.Text, nullable=False)
-#     filename = db.Column(db.Text, nullable=False, unique=True)
-#     created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 
 def analyze_sentiment_summ(senti_text_summ):
@@ -1336,11 +873,11 @@ def analyze_sentiment_summ(senti_text_summ):
 
     # Calculate percentages
     total = sentiment_scores['pos'] + sentiment_scores['neg'] + sentiment_scores['neu']
-    senti_Positive_summ = sentiment_scores['pos'] / total * 100
-    senti_Negative_summ = sentiment_scores['neg'] / total * 100
+    senti_positive_summ = sentiment_scores['pos'] / total * 100
+    senti_negative_summ = sentiment_scores['neg'] / total * 100
     senti_neutral_summ = sentiment_scores['neu'] / total * 100
 
-    x1 = [senti_Positive_summ, senti_Negative_summ, senti_neutral_summ]
+    x1 = [senti_positive_summ, senti_negative_summ, senti_neutral_summ]
     y1 = ['Positive', 'Negative', 'Neutral']
     pin = session['login_pin']
 
@@ -1351,12 +888,12 @@ def analyze_sentiment_summ(senti_text_summ):
     socketio.emit('analyze_sentiment_summ', senti)
 
 
-def analyze_sentiment_Q_A(senti_text_Q_A):
+def analyze_sentiment_q_a(senti_text_q_a_):
     """
     Analyzes the sentiment of a given text using Vader Sentiment Intensity Analyzer.
 
     Parameters:
-        text (str): The input text for sentiment analysis.
+        senti_text_q_a_ (str): The input text for sentiment analysis.
 
     Returns:
         dict: A dictionary containing the percentages of positive, negative, and neutral sentiments.
@@ -1365,22 +902,22 @@ def analyze_sentiment_Q_A(senti_text_Q_A):
     sid = SentimentIntensityAnalyzer()
 
     # Analyze sentiment
-    sentiment_scores = sid.polarity_scores(senti_text_Q_A)
+    sentiment_scores = sid.polarity_scores(senti_text_q_a_)
 
     # Calculate percentages
     # total = sum(abs(score) for score in sentiment_scores.values())
     total = sentiment_scores['pos'] + sentiment_scores['neg'] + sentiment_scores['neu']
-    senti_Positive_Q_A = sentiment_scores['pos'] / total * 100
-    senti_Negative_Q_A = sentiment_scores['neg'] / total * 100
-    senti_neutral_Q_A = sentiment_scores['neu'] / total * 100
+    senti_positive_q_a = sentiment_scores['pos'] / total * 100
+    senti_negative_q_a = sentiment_scores['neg'] / total * 100
+    senti_neutral_q_a = sentiment_scores['neu'] / total * 100
 
-    x1 = [senti_Positive_Q_A, senti_Negative_Q_A, senti_neutral_Q_A]
+    x1 = [senti_positive_q_a, senti_negative_q_a, senti_neutral_q_a]
     y1 = ['Positive', 'Negative', 'Neutral']
     pin = session['login_pin']
-    senti_Q_A = {'values': x1, 'labels': y1, 'pin': pin}
+    senti_q_a = {'values': x1, 'labels': y1, 'pin': pin}
     g.flag = 1  # Set flag to 1 on success
     logger.info(f"Ask QnA sentiments analyzed")
-    socketio.emit('analyze_sentiment_Q_A', senti_Q_A)
+    socketio.emit('analyze_sentiment_q_a', senti_q_a)
 
 
 def create_bar_chart():
@@ -1409,12 +946,12 @@ def create_bar_chart():
     return file_bar
 
 
-def perform_lda___Q_A(chat_history_list, num_topics=1, n_top_words=5):
+def perform_lda___Q_A(chat_history_list_, num_topics=1, n_top_words=5):
     """
     Performs Latent Dirichlet Allocation (LDA) on the provided chat history to extract topics and their top words.
 
     Args:
-        chat_history_list (list): A list of strings containing chat history.
+        chat_history_list_ (list): A list of strings containing chat history.
         num_topics (int): Number of topics to extract (default is 1).
         n_top_words (int): Number of top words per topic (default is 5).
 
@@ -1424,7 +961,7 @@ def perform_lda___Q_A(chat_history_list, num_topics=1, n_top_words=5):
     Returns:
         None
     """
-    lda_topics_Q_A = {'keywords': set()}
+    lda_topics_q_a = {'keywords': set()}
     # Declare the global variable
 
     # Tokenization and stop words removal
@@ -1436,7 +973,7 @@ def perform_lda___Q_A(chat_history_list, num_topics=1, n_top_words=5):
         return ' '.join(tokens)
 
     # Preprocess conversation text
-    processed_conversation = preprocess_text(chat_history_list)
+    processed_conversation = preprocess_text(chat_history_list_)
 
     # Create a CountVectorizer to convert text to a matrix of token counts
     vectorizer = CountVectorizer(stop_words='english')
@@ -1449,69 +986,16 @@ def perform_lda___Q_A(chat_history_list, num_topics=1, n_top_words=5):
     # Aggregate all keywords from each topic
     for topic in lda.components_:
         keywords = [vectorizer.get_feature_names_out()[i] for i in topic.argsort()[:-n_top_words - 1:-1]]
-        lda_topics_Q_A['keywords'].update(keywords)  # Add keywords to the set
+        lda_topics_q_a['keywords'].update(keywords)  # Add keywords to the set
 
-    lda_topics_Q_A['keywords'] = list(lda_topics_Q_A['keywords'])  # Convert set to list before emitting
-    lda_topics_Q_A['pin'] = session['login_pin']
-
-    # # Store topics and their top words in lda_topics_Q_A dictionary
-    # for topic_idx, topic in enumerate(lda.components_):
-    #     topic_key = f"Topic{topic_idx + 1}"
-    #     lda_topics_Q_A[topic_key] = [vectorizer.get_feature_names_out()[i] for i in
-    #                                  topic.argsort()[:-n_top_words - 1:-1]]
+    lda_topics_q_a['keywords'] = list(lda_topics_q_a['keywords'])  # Convert set to list before emitting
+    lda_topics_q_a['pin'] = session['login_pin']
 
     g.flag = 1
     logger.info('QnA topics generated.')
     # Return lda_topics_Q_A
-    socketio.emit('lda_topics_QA', lda_topics_Q_A)
+    socketio.emit('lda_topics_QA', lda_topics_q_a)
 
-
-# def perform_lda____summ(senti_text_summ, num_topics=1, n_top_words=3):
-#     """
-#     Performs Latent Dirichlet Allocation (LDA) on the provided text for sentiment analysis to extract topics and their top words.
-#
-#     Args:
-#         senti_text_summ (str): The text for sentiment analysis.
-#         num_topics (int): Number of topics to extract (default is 2).
-#         n_top_words (int): Number of top words per topic (default is 3).
-#
-#     Side Effects:
-#         Emits LDA topics and their top words via socketio.
-#
-#     Returns:
-#         None
-#     """
-#     lda_topics_summ = {}
-#     # Tokenization and stop words removal
-#     stop_words = set(stopwords.words('english'))
-#
-#     def preprocess_text(text):
-#         tokens = word_tokenize(text.lower())
-#         tokens = [token for token in tokens if token not in stop_words]
-#         return ' '.join(tokens)
-#
-#     # Preprocess conversation text
-#     processed_conversation = preprocess_text(senti_text_summ)
-#
-#     # Create a CountVectorizer to convert text to a matrix of token counts
-#     vectorizer = CountVectorizer(stop_words='english')
-#     X = vectorizer.fit_transform([processed_conversation])
-#
-#     # Fit the LDA model
-#     lda = LatentDirichletAllocation(n_components=num_topics, random_state=42)
-#     lda.fit(X)
-#
-#     # Add the user's pin to the dictionary
-#     lda_topics_summ['pin'] = session['login_pin']
-#
-#     # Store topics and their top words in lda_topics_summ dictionary
-#     for topic_idx, topic in enumerate(lda.components_):
-#         topic_key = f"Topic{topic_idx + 1}"
-#         lda_topics_summ[topic_key] = [vectorizer.get_feature_names_out()[i] for i in
-#                                       topic.argsort()[:-n_top_words - 1:-1]]
-#
-#     # Emit the dictionary which now includes the pin
-#     socketio.emit('lda_topics_summ', lda_topics_summ)
 
 def perform_lda____summ(senti_text_summ, num_topics=1, n_top_words=3):
     """
@@ -1564,14 +1048,12 @@ def create_pie_chart():
          dict: A dictionary containing labels, values, percentages, and text for the pie chart segments.
      """
     if session['total_files_list'] != 0:
-        # print('pie chart value inside fuction:', session['total_files_list'], session['successful_list'],
-        #       session['failed_list'], session['progress_list'])
-
         total_files_list = session['total_files_list']
         successful_list = session['successful_list']
         progress_list = session['progress_list']
         failed_list = session['failed_list']
         pin = session['login_pin']
+
     else:
         total_files_list = 1
         successful_list = 0
@@ -1621,454 +1103,64 @@ def gauge_chart_auth():
     return gauge_fig
 
 
-# def gauge_chart_auth():
-#     """
-#     Generates data for a gauge chart representing authentication success rate.
-#
-#     Returns:
-#         dict: A dictionary containing x and y values for the gauge chart.
-#     """
-#     if 'total_success_rate' in session and 'over_all_readiness' in session:
-#         over_all_readiness = round(session['over_all_readiness'], 2)
-#         if over_all_readiness != 0:
-#             success_rate = round((session['total_success_rate'] / over_all_readiness) * 100, 2)
-#             pin = session['login_pin']
-#         else:
-#             success_rate = 0
-#             pin = session['login_pin']
-#     else:
-#         success_rate = 0
-#         over_all_readiness = 0
-#         pin = session['login_pin']
-#
-#     # print("gauge-------->auth", success_rate, over_all_readiness)
-#
-#     gauge_fig = {'x': [success_rate], 'y': [over_all_readiness], 'pin': pin}
-#     return gauge_fig
-
-
 def log_out_forall():
     """
     Logs out the user and clears session data, including chat history, bar chart URLs, and other variables.
     """
-    global chat_history_list, bar_chart_url
-    global Source_URL, tot_file
-    bar_chart_url = {}
+    global tot_file
+    global chat_history_list
+
     chat_history_list = []
-    chat_history_list = []
-    Source_URL = ""
     tot_file = 0
     # Check if session login pin exists
     if 'login_pin' in session:
         # Define the folder path using session login pin
         folder_name = os.path.join('static', 'login', str(session['login_pin']))
 
-        # Define the file paths summary_chunkurl.pkl
-        # pickle_file_url = os.path.join(folder_name, 'summary_chunkurl.pkl')
-        # faiss_path_url = os.path.join(folder_name, 'faiss_index_url')
-        # pickle_file_path = os.path.join(folder_name, 'summary_chunk.pkl')
-        # pickle_faiss_path = os.path.join(folder_name, 'final_chunks.pkl')
-        # faiss_path = os.path.join(folder_name, 'faiss_index')
         wordcloud_image = os.path.join(folder_name, 'wordcloud.png')
 
-        # # Clear the ChatHistory table
-        # db.session.query(ChatHistory).delete()
-        # db.session.query(VectorEmbeddingsData).delete()
+        # db.session.query(DatabaseDetailsSave).filter_by(login_pin=session['login_pin']).delete()
         # db.session.commit()
-        # # # Remove 'final_chunks.pkl' if it exists within the session folder
-        # if os.path.exists(pickle_file_path):
-        #     os.remove(pickle_file_path)
-
-        # # # Remove 'final_chunks.pkl' if it exists within the session folder
-        # if os.path.exists(pickle_faiss_path):
-        #     os.remove(pickle_faiss_path)
-
-        # # # Remove 'faiss_index' directory and its contents if it exists within the session folder
-        # if os.path.exists(faiss_path) and os.path.isdir(faiss_path):
-        #     shutil.rmtree(faiss_path)
-
-        # # # Remove 'final_chunks.pkl' if it exists within the session folder
-        # if os.path.exists(pickle_file_url):
-        #     os.remove(pickle_file_url)
-
-        # # # Remove 'faiss_index' directory and its contents if it exists within the session folder
-        # if os.path.exists(faiss_path_url) and os.path.isdir(faiss_path_url):
-        #     shutil.rmtree(faiss_path_url)
 
         if os.path.exists(wordcloud_image):
             os.remove(wordcloud_image)
         g.flag = 1
-        logger.info("User logged out successful")
+        logger.info(f"User {session['user_name']} logged out successful")
     session.clear()
 
 
-class CSVLogHandler(logging.Handler):
-    def __init__(self, filename, mode='a', encoding='utf-8'):
-        super().__init__()
-        self.filename = filename
-        self.mode = mode
-        self.encoding = encoding
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-        if not os.path.exists(filename):
-            with open(filename, mode='w', newline='', encoding=self.encoding) as csvfile:
-                writer = csv.DictWriter(csvfile,
-                                        fieldnames=['timestamp', 'category', 'user_id', 'function', 'line_number',
-                                                    'flag', 'message', 'exception'])
-                writer.writeheader()
+def generate_followup_question(answer, chat_history, context):
+    """
+        Generates a follow-up question based on a given answer, chat history, and context.
 
-    def emit(self, record):
-        log_entry = {
-            'timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'category': record.levelname,
-            'user_id': getattr(record, 'user_id', 'unknown_user'),
-            'function': record.funcName,
-            'line_number': record.lineno,
-            'flag': getattr(record, 'flag', ''),
-            'message': record.getMessage(),
-            'exception': ''
-        }
-        if record.exc_info:
-            log_entry['exception'] = self.format(record)
+        Args:
+        answer (str): The answer provided by the user in the conversation.
+        chat_history (str): The previous conversation history.
+        context (str): Additional context or topics from files to consider for generating the follow-up question.
 
-        with open(self.filename, self.mode, newline='', encoding=self.encoding) as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=log_entry.keys())
-            writer.writerow(log_entry)
+        Returns:
+        str: A follow-up question derived strictly from the content of the files and related to a topic not yet covered in the conversation.
+             If no new topics can be found in the files, returns: 'Sorry, I couldn't see anything relevant'.
+    """
 
+    deployment_name = set_model()
+    llm = AzureChatOpenAI(azure_deployment=deployment_name)
 
-class CustomLoggerAdapter(logging.LoggerAdapter):
-    def process(self, msg, kwargs):
-        kwargs['extra'] = kwargs.get('extra', {})
-        kwargs['extra']['user_id'] = self.extra['user_id']
-        kwargs['extra']['flag'] = g.get('flag', '')
-        return msg, kwargs
+    # Define the follow-up prompt template
+    follow_up_prompt_template = PromptTemplate(
+        input_variables=['answer', 'chat_history', 'context'],
+        template=("Given the answer: {answer} and the previous conversation context: {chat_history}, "
+                  "Your primary and only goal is to generate a follow-up question based on the topics from the files that have not been discussed yet using the{context}. "
+                  "The follow-up question should be in the form 'Do you also want to know this?'. "
+                  "Make sure the follow-up question is derived strictly from the content of the files and is related to a topic not yet covered in the conversation. "
+                  "If no new topics can be found in the files, respond with: 'Sorry, I couldn't see anything relevant'. "
+                  "Do not create any questions that are not directly based on the content of the files."
+                  )
+    )
+    follow_up_chain = LLMChain(llm=llm, prompt=follow_up_prompt_template)
+    follow_up_response = follow_up_chain.run(answer=answer, chat_history=chat_history, context=context)
+    return follow_up_response
 
-
-class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
-    def __init__(self, filename, when='midnight', interval=1, backupCount=7, encoding=None, delay=False, utc=False,
-                 atTime=None):
-        super().__init__(filename, when, interval, backupCount, encoding, delay, utc, atTime)
-        self.baseFilename = filename
-        self.encoding = encoding
-        self.csv_handler = CSVLogHandler(self.baseFilename, mode='a', encoding=self.encoding)
-        # Write header to the new file when initializing
-        with open(self.baseFilename, mode='w', newline='', encoding=self.encoding) as csvfile:
-            writer = csv.DictWriter(csvfile,
-                                    fieldnames=['timestamp', 'category', 'user_id', 'function', 'line_number', 'flag',
-                                                'message', 'exception'])
-            writer.writeheader()
-
-    def doRollover(self):
-        super().doRollover()
-        # Reinitialize the CSVLogHandler to write the header in the new file
-        self.csv_handler = CSVLogHandler(self.baseFilename, mode='a', encoding=self.encoding)
-        # Write header to the new file
-        with open(self.baseFilename, mode='w', newline='', encoding=self.encoding) as csvfile:
-            writer = csv.DictWriter(csvfile,
-                                    fieldnames=['timestamp', 'category', 'user_id', 'function', 'line_number', 'flag',
-                                                'message', 'exception'])
-            writer.writeheader()
-
-    def emit(self, record):
-        self.csv_handler.emit(record)
-
-
-def setup_csv_logger(user_id):
-    # log_file_name = f'logs/{user_id}/logfile_{user_id}_' + time.strftime('%Y-%m-%d_%H-%M-%S') +'.csv'
-    folder_name = os.path.join('static', 'login', str(session['login_pin']))
-    if not os.path.exists(folder_name):
-        os.makedirs(folder_name)
-    log_file_name = os.path.join(folder_name, f'logfile_{user_id}_' + time.strftime('%Y-%m-%d_%H-%M-%S') + '.csv')
-    logger = logging.getLogger(f'logger_{user_id}')
-    logger.setLevel(logging.INFO)
-
-    if not any(isinstance(handler, CustomTimedRotatingFileHandler) for handler in logger.handlers):
-        handler = CustomTimedRotatingFileHandler(log_file_name, when='midnight', interval=1, backupCount=7,
-                                                 encoding='utf-8')
-        logger.addHandler(handler)
-    return CustomLoggerAdapter(logger, {'user_id': user_id})
-
-
-env_mapping_dict = {"http://cognilink-prod.azurewebsites.net/": "prod",
-                    "http://cognilink-dev.azurewebsites.net/": "dev", "http://127.0.0.1:5000/": "dev"}
-
-with app.app_context():
-    db.create_all()
-print('Table created successful')
-@app.route("/", methods=["GET", "POST"])
-def home():
-    global logger
-    # print("request.url------>", request.base_url)
-    role_names = UserRole.query.with_entities(UserRole.name.distinct()).all()
-
-    if request.method == "POST":
-        pin = request.form.get('authpin')
-        group_user = request.form.get('Grp_usr')
-        engine = request.form.get('engine')
-        print(group_user, pin, engine)
-
-        role_id_mapping = {'Admin': 1, 'Guest': 2, 'ML Engine': 3}
-        role_id = role_id_mapping.get(group_user)
-        user_role = UserRole.query.filter_by(role_id=role_id).first()
-        user = UserDetails.query.filter_by(role_id=role_id, login_pin=pin, status='Active').first()
-
-        if role_id is not None and user_role and user:
-            log_out_forall()
-            session.modified = True
-            session['logged_in'] = True
-            # taking base url
-            # print("request.url------>", request.base_url)
-            session['env_map'] = env_mapping_dict.get(request.base_url)
-            # print("session['env_map']------>", session['env_map'])
-            session['login_pin'] = user.login_pin
-            session['user_name'] = f"{user.first_name.title()} {user.last_name.title()}"
-            session['engine'] = engine
-            session['bar_chart_ss'] = {}
-            session['over_all_readiness'] = 0
-            session['total_success_rate'] = 0
-            session['MB'] = 0.0
-            session['total_files_list'] = 0
-            session['successful_list'] = 0
-            session['failed_list'] = 0
-            session['progress_list'] = 0
-            session['lda_topics_summ'] = {}
-            session['lda_topics_Q_A'] = {}
-            session['senti_Positive_summ'] = 0
-            session['senti_Negative_summ'] = 0
-            session['senti_neutral_summ'] = 0
-            session['senti_Positive_Q_A'] = 0
-            session['senti_Negative_Q_A'] = 0
-            session['senti_neutral_Q_A'] = 0
-            session['chat_history_qa'] = []
-            session['summary_add'] = []
-            # session['summary_word_cpunt'] = 0
-            # Lists to store progress of files loading
-            session['embedding_not_created'] = []
-            session['failed_files'] = []
-            session['progress_files'] = []
-
-            session['stop_flag'] = []
-
-            folder_name = os.path.join('static', 'login', str(session['login_pin']))
-            if not os.path.exists(folder_name):
-                os.makedirs(folder_name)
-
-            if 'login_pin' in session:
-                logger = setup_csv_logger(session['login_pin'])
-            else:
-                g.flag = 0
-                logger.error("User Session Not Found!", exc_info=True)
-            # log_file_name = os.path.join(folder_name, 'logfile.csv')
-            # handler = CSVLogHandler(log_file_name)
-            # logger = logging.getLogger(__name__)
-            # logger.setLevel(logging.INFO)
-            # if logger.hasHandlers():
-            #     logger.handlers.clear()
-            # logger.addHandler(handler)
-            logger = CustomLoggerAdapter(logger, {'user_id': session['login_pin']})
-            create_or_pass_folder(container_client, session)
-            folder_files = os.path.join('static', 'files', str(session['login_pin']))
-            if not os.path.exists(folder_files):
-                os.makedirs(folder_files)
-
-            g.flag = 1
-            logger.info(f"User {str(session['login_pin'])} logged in successfully")
-            update_bar_chart_from_blob(session, blob_service_client, container_name)
-            create_or_update_index()
-            # print(session['user_name'])
-            # vector_store: AzureSearch = AzureSearch(
-            #     azure_search_endpoint=vector_store_address,
-            #     azure_search_key=vector_store_password,
-            #     index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
-            #     embedding_function=embeddings.embed_query,
-            # )
-
-            return jsonify({'redirect': url_for('data_source')})
-
-        g.flag = 0
-        flash('Invalid Group User or PIN Or Status Deactivate. Please try again.', 'error')
-        return jsonify({'redirect': url_for('home')})
-
-    return render_template('Login.html', role_names=role_names)
-
-
-# Route for logout button
-@app.route('/logout')
-def logout():
-    # g.flag = 1
-    # logger.info(f"User {str(session['login_pin'])} Logged out successfully")
-    log_out_forall()
-
-    flash('You have been successfully logged out!', 'success')
-    return redirect(url_for('home'))
-
-
-@app.route('/checksession')
-def check_session():
-    if 'login_pin' in session:
-        # Session is Valid
-        return jsonify({'sessionValid': True}), 200
-    else:
-        print("session is expired!!!")
-        # Session is expired or invalid
-        return jsonify({'sessionValid': False}), 401
-
-
-@app.route('/data_source', methods=['GET', 'POST'])
-def data_source():
-    update_bar_chart_from_blob(session, blob_service_client, container_name)
-    return render_template('DataSource.html')
-
-
-@socketio.on('connect')
-def handle_connect():
-    bar_chart_data = create_bar_chart()
-    gauge_source_chart_data = gauge_chart_auth()
-
-    # socketio.emit('update_pie_chart', pie_chart_data)
-    socketio.emit('update_bar_chart', bar_chart_data)
-    socketio.emit('update_gauge_chart', gauge_source_chart_data)
-    socketio.emit('userName', {'userName': session['user_name'], 'pin': session['login_pin']})
-
-
-@socketio.on('send_data')
-def handle_send_data(data):
-    min_date = data.get('minDate')
-    max_date = data.get('maxDate')
-
-    # Process the received data as needed
-    print(f"Received data: Min Date: {min_date}, Max Date: {max_date}")
-
-    # Emit an event to notify clients about the new data
-    emit('data_received', {
-        'min_date': min_date,
-        'max_date': max_date,
-        'message': 'Data received successfully!'
-    })
-
-
-@socketio.on('update_value')
-def handle_update_value(data):
-    global Limit_By_Size
-    Limit_By_Size = data.get('value')
-    print('Limit By Size(K/Count)', Limit_By_Size)
-
-    # Emit an event to notify clients about the updated value
-    emit('size_value_updated', {'value': Limit_By_Size, 'message': 'Value updated successfully'})
-
-
-# def extract_text_from_image(file_obj, language):
-#     # Upload image to Azure Blob Storage
-#     f_name = file_obj.filename
-#     image_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}"
-#     image_blob_client = blob_service_client.get_blob_client(container=container_name, blob=image_blob_name)
-#
-#     # Read the image file for OCR
-#     file_obj.seek(0)  # Reset file pointer after upload
-#     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-#         temp_path = temp_file.name
-#         temp_file.write(file_obj.read())
-#         temp_file.flush()  # Ensure all data is written to the temporary file
-#
-#     with open(temp_path, "rb") as image_stream:
-#         # Initiate the OCR process using the read API
-#         ocr_result = computervision_client.read_in_stream(image_stream, language=language, raw=True)
-#
-#         # Extract the operation ID from the response
-#         operation_location = ocr_result.headers["Operation-Location"]
-#         operation_id = operation_location.split("/")[-1]
-#
-#         # Poll for the result
-#         while True:
-#             result = computervision_client.get_read_result(operation_id)
-#             if result.status not in ['notStarted', 'running']:
-#                 break
-#             time.sleep(1)
-#
-#         # Extract text from the result
-#         text = ""
-#         if result.status == OperationStatusCodes.succeeded:
-#             for page in result.analyze_result.read_results:
-#                 for line in page.lines:
-#                     text += line.text + '\n'
-#
-#         doc = docx.Document()
-#         doc.add_paragraph(text)
-#
-#         # Save DOCX to a BytesIO object
-#         doc_output = io.BytesIO()
-#         doc.save(doc_output)
-#         doc_output.seek(0)
-#         f_name_parts = f_name.split('.')  # Split the filename
-#         base_name = f_name_parts[0]  # Take the base name (first part)
-#         doc_blob_name = f"cognilink-dev/{str(session['login_pin'])}/{base_name}.docx"
-#         doc_blob_client = blob_service_client.get_blob_client(container=container_name, blob=doc_blob_name)
-#         doc_blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
-#
-#     return doc_blob_name
-
-# def extract_text_from_pdf(file_obj):
-#     try:
-#
-#         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-#             temp_path = temp_file.name
-#             temp_file.write(file_obj.read())
-#
-#         # Read the file from the local path
-#         with open(temp_path, "rb") as pdf_file:
-#             read_operation = computervision_client.read_in_stream(pdf_file, language="en", raw=True)
-#
-#         # Check if the operation was successful
-#         if not read_operation or not read_operation.headers:
-#             raise Exception("Failed to initiate read operation.")
-#
-#         # Get the operation location (URL with an ID at the end) from the response
-#         read_operation_location = read_operation.headers["Operation-Location"]
-#         if not read_operation_location:
-#             raise Exception("Failed to get operation location.")
-#
-#         # Grab the ID from the URL
-#         operation_id = read_operation_location.split("/")[-1]
-#
-#         # Wait for the operation to complete
-#         while True:
-#             result = computervision_client.get_read_result(operation_id)
-#             if result.status not in [OperationStatusCodes.not_started, OperationStatusCodes.running]:
-#                 break
-#             time.sleep(1)
-#
-#         # Print the detected text from each page
-#         text = ''
-#         if result.status == OperationStatusCodes.succeeded:
-#             read_results = result.analyze_result.read_results
-#             for page in read_results:
-#                 for line in page.lines:
-#                     print(line.text)
-#                     text += line.text + '\n'
-#
-#             # save the text of scand pdf in container
-#             doc = docx.Document()
-#             doc_para = doc.add_paragraph(text)
-#
-#             # Save DOCX to a BytesIO object
-#             doc_output = io.BytesIO()
-#             doc.save(doc_output)
-#             doc_output.seek(0)
-#             # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
-#
-#             f_name = file_obj.filename
-#             f_name = f_name.split('.')[0]
-#
-#             # Upload the PDF file to Azure Blob Storage
-#             blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
-#             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-#             # with open(pdf_file_path, "rb") as pdf_file:
-#             blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
-#
-#         else:
-#             print("The operation did not succeed.")
-#
-#     except Exception as e:
-#         print(f"An error occurred: {e}")
 
 def extract_text_from_image(file_obj, language):
     try:
@@ -2090,7 +1182,6 @@ def extract_text_from_image(file_obj, language):
                 result = computervision_client.get_read_result(operation_id)
                 if result.status not in ['notStarted', 'running']:
                     break
-                time.sleep(1)
 
             # Extract text from the result
             text = ""
@@ -2106,15 +1197,15 @@ def extract_text_from_image(file_obj, language):
             doc_output = io.BytesIO()
             doc.save(doc_output)
             doc_output.seek(0)
-            # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
 
             f_name = file_obj.filename
             f_name = f_name.split('.')[0]
 
+            f_name = clean_filename(f_name)
+
             # Upload the PDF file to Azure Blob Storage
             blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{f_name}.docx"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            # with open(pdf_file_path, "rb") as pdf_file:
             blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
 
             elapsed_time = time.time() - start_time
@@ -2155,7 +1246,6 @@ def extract_text_from_pdf(file_obj, language):
             result = computervision_client.get_read_result(operation_id)
             if result.status not in [OperationStatusCodes.not_started, OperationStatusCodes.running]:
                 break
-            time.sleep(1)
 
         # Print the detected text from each page
         text = ''
@@ -2166,7 +1256,7 @@ def extract_text_from_pdf(file_obj, language):
                     # print(line.text)
                     text += line.text + '\n'
 
-            # save the text of scand pdf in container
+            # save the text of scanned pdf in container
             doc = docx.Document()
             doc_para = doc.add_paragraph(text)
 
@@ -2174,20 +1264,21 @@ def extract_text_from_pdf(file_obj, language):
             doc_output = io.BytesIO()
             doc.save(doc_output)
             doc_output.seek(0)
-            # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
 
             f_name = file_obj.filename
             f_name = f_name.split('.')[0]
 
+            f_name = clean_filename(f_name)
+
             # Upload the PDF file to Azure Blob Storage
             blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{f_name}.docx"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            # with open(pdf_file_path, "rb") as pdf_file:
             blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
 
             elapsed_time = time.time() - start_time
             g.flag = 1
             logger.info(f"Extracted text from pdf in {elapsed_time} seconds")
+
         else:
             g.flag = 0
             logger.error(f"Text not extracted from pdf", exc_info=True)
@@ -2199,153 +1290,110 @@ def extract_text_from_pdf(file_obj, language):
         print(f"An error occurred: {e}")
 
 
-# def extract_text_from_pdf(file_obj):
-#     try:
-#
-#         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-#             temp_path = temp_file.name
-#             temp_file.write(file_obj.read())
-#
-#         # Read the file from the local path
-#         with open(temp_path, "rb") as pdf_file:
-#             read_operation = computervision_client.read_in_stream(pdf_file, language="en", raw=True)
-#
-#         # Check if the operation was successful
-#         if not read_operation or not read_operation.headers:
-#             raise Exception("Failed to initiate read operation.")
-#
-#         # Get the operation location (URL with an ID at the end) from the response
-#         read_operation_location = read_operation.headers["Operation-Location"]
-#         if not read_operation_location:
-#             raise Exception("Failed to get operation location.")
-#
-#         # Grab the ID from the URL
-#         operation_id = read_operation_location.split("/")[-1]
-#
-#         # Wait for the operation to complete
-#         while True:
-#             result = computervision_client.get_read_result(operation_id)
-#             if result.status not in [OperationStatusCodes.not_started, OperationStatusCodes.running]:
-#                 break
-#             time.sleep(1)
-#
-#         # Print the detected text from each page
-#         text = ''
-#         if result.status == OperationStatusCodes.succeeded:
-#             read_results = result.analyze_result.read_results
-#             for page in read_results:
-#                 for line in page.lines:
-#                     print(line.text)
-#                     text += line.text + '\n'
-#
-#             # save the text of scand pdf in container
-#             doc = docx.Document()
-#             doc_para = doc.add_paragraph(text)
-#
-#             # Save DOCX to a BytesIO object
-#             doc_output = io.BytesIO()
-#             doc.save(doc_output)
-#             doc_output.seek(0)
-#             # doc.save("C:\\Users\\shyam\\OneDrive\\Desktop\\Multiple-file-summarize\\HRTS-Act-Hindi123.docx")
-#
-#             f_name = file_obj.filename
-#             f_name = f_name.split('.')[0]
-#
-#             # Upload the PDF file to Azure Blob Storage
-#             blob_name = f"cognilink-dev/{str(session['login_pin'])}/{f_name}.docx"
-#             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-#             # with open(pdf_file_path, "rb") as pdf_file:
-#             blob_client.upload_blob(doc_output, blob_type="BlockBlob", overwrite=True)
-#
-#         else:
-#             print("The operation did not succeed.")
-#
-#     except Exception as e:
-#         print(f"An error occurred: {e}")
-
-
 # Function to check if a URL is valid
 def is_url_valid(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+
     try:
-        response = requests.get(url)
+        response = requests.get(url, headers=headers, timeout=10)
+        # print("response_URL--->", response)
         # Check if the response status code is 200 (OK)
+        time.sleep(0.5)
         if response.status_code == 200:
             return True
         else:
             return False
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
         return False
 
 
-# @app.route('/popup_form', methods=['POST'])
-# def popup_form():
-#     global mb_pop, file_size_bytes
-#     global Limit_By_Size, Source_URL
-#     if request.method == 'POST':
-#         if 'myFile' in request.files:
-#             # if 'myFile' in request.files or 'audio_file' in request.files:
-#             #     print('Not Any File Fond')
-#             #     return jsonify({'message': 'File not Fond'}), 400
-#             # mb_pop = 0  # Initialize mb_pop before the loop
-#             files = request.files.getlist('myFile')
-#             if not len(files):
-#                 return jsonify({'message': 'File not Fond'}), 400
-#             print('name of file is', files)
-#             # for file in files:
-#             #     file.seek(0, os.SEEK_END)  # Move the cursor to the end of the file
-#             #     file_size_bytes = file.tell()  # Get the current cursor position, which is the file size in bytes
-#             #     file.seek(0)  # Reset the cursor back to the beginning of the file
-#             #     mb_pop += file_size_bytes / (1024 * 1024)
-#             #
-#             # mb_p = int(mb_pop)  # Move this line here
-#             # Limit_By_Size = int(Limit_By_Size)
-#             #
-#             # # print('Limit By Size(K/Count) file size exceeds', Limit_By_Size, mb_p)
-#             # if mb_p >= Limit_By_Size != 0:
-#             #     print('Limit By Size(K/Count) file size exceeds')
-#             #     return jsonify({'message': 'Limit By Size(K/Count) file size exceeds'}), 400
-#             #     # Convert bytes to megabytes
-#             # session['MB'] += float("{:.2f}".format(mb_pop))
-#             # Calculate total number of files
-#             # for file in files:
-#             #     upload_to_blob(file, session, blob_service_client, container_name)
-#
-#             for file in files:
-#                 scan_source = False
-#                 if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg', '.pdf']):
-#                     lang = request.form.get('selected_language', False)
-#                     print("lang------>", lang)
-#                     if lang and '.pdf' in file.filename:
-#                         extract_text_from_pdf(file, lang)
-#                         scan_source = True
-#                     elif lang:
-#                         extract_text_from_image(file, lang)
-#
-#                 if not scan_source:
-#                     upload_to_blob(file, session, blob_service_client, container_name)
-#         else:
-#             if not request.form.get('Source_URL', ''):
-#                 print('No Source_URL Fond')
-#                 return jsonify({'message': 'No Source_URL Fond'}), 400
-#             Source_URL = request.form.get('Source_URL', '')
-#
-#             # Validate the URL
-#             if not is_url_valid(Source_URL):
-#                 print("Source URL not valid")
-#                 return jsonify({'message': 'Source URL not valid'}), 400
-#
-#             blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{Source_URL}"
-#             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-#             blob_client.upload_blob(Source_URL, blob_type="BlockBlob", overwrite=True)
-#
-#         update_bar_chart_from_blob(session, blob_service_client, container_name)
-#         g.flag = 1
-#         logger.info('Data Uploaded Successfully')
-#         return jsonify({'message': 'Data uploaded successfully'}), 200
-#     else:
-#         g.flag = 0
-#         logger.error('Invalid Request Method')
-#         return jsonify({'message': 'Invalid request method'}), 405
+@app.route('/checksession')
+def check_session():
+    if 'login_pin' in session:
+        # Session is Valid
+        return jsonify({'sessionValid': True}), 200
+    else:
+        print("session is expired!!!")
+        # Session is expired or invalid
+        return jsonify({'sessionValid': False}), 401
+
+
+@socketio.on('connect')
+def handle_connect():
+    bar_chart_data = create_bar_chart()
+    gauge_source_chart_data = gauge_chart_auth()
+
+    # socketio.emit('update_pie_chart', pie_chart_data)
+    socketio.emit('update_bar_chart', bar_chart_data)
+    socketio.emit('update_gauge_chart', gauge_source_chart_data)
+    socketio.emit('userName', {'userName': session['user_name'], 'pin': session['login_pin']})
+
+    chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+    chat_history = [{"question": chat.question,
+                     "answer": chat.answer,
+                     "source": chat.source,
+                     "page_number": chat.page_number}
+                    for chat in chat_history_from_db]
+    emit('chat_history', {'chat_history': chat_history[::-1]})
+
+    database_details = DatabaseDetailsSave.query.filter_by(login_pin=session['login_pin']).all()
+    database = [{"database_name": chat.db_name,}
+                    for chat in database_details]
+    db_name = set()
+    for db in database:
+        db_name.add(db['database_name'])
+        print("Database Names:------------------>", db['database_name'])
+    print("set:------------------>", db_name)
+    # Code to fetch draft data from storage
+    container_client_ = blob_service_client.get_container_client(container_name)
+    blob_list = container_client_.list_blobs(
+        name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
+
+    blobs = []
+    for blob in blob_list:
+        if (blob.name.split('/')[2].endswith('.csv') or
+                blob.name.split('/')[2].endswith('.xlsx') or
+                blob.name.split('/')[2].endswith('.xlscd') or
+                blob.name.split('/')[2].endswith('.xls')):
+            blobs.append({
+                'name': blob.name.split('/')[-1],
+                'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
+                # 'draftType': draft_type,
+                'status': 'Uploaded'  # or other status based on your logic
+            })
+
+    emit('updateAnalystTable', {'blobs':blobs, 'database_name': list(db_name)})
+
+
+@socketio.on('send_data')
+def handle_send_data(data):
+    min_date = data.get('minDate')
+    max_date = data.get('maxDate')
+
+    # Process the received data as needed
+    print(f"Received data: Min Date: {min_date}, Max Date: {max_date}")
+
+    # Emit an event to notify clients about the new data
+    emit('data_received', {
+        'min_date': min_date,
+        'max_date': max_date,
+        'message': 'Data received successfully!'
+    })
+
+
+@socketio.on('update_value')
+def handle_update_value(data):
+    global Limit_By_Size
+    Limit_By_Size = data.get('value')
+    print('Limit By Size(K/Count)', Limit_By_Size)
+
+    # Emit an event to notify clients about the updated value
+    emit('size_value_updated', {'value': Limit_By_Size, 'message': 'Value updated successfully'})
+
+
 
 @app.route('/popup_form', methods=['POST'])
 def popup_form():
@@ -2357,6 +1405,7 @@ def popup_form():
         files = request.files.getlist('myFile')
         source_url = request.form.get('Source_URL', '')
         mb_pop = 0  # Initialize mb_pop before the loop
+
         # Check if neither files nor Source_URL are provided
         if not files and not source_url:
             return jsonify({'message': 'No data provided'}), 400
@@ -2373,13 +1422,11 @@ def popup_form():
                 mb_pop += file_size_bytes / (1024 * 1024)
 
             mb_p = int(mb_pop)  # Move this line here
-            # session['Limit_By_Size'] = int(session['Limit_By_Size'])
             session['Limit_By_Size'] = int(request.form.get('sizeValue'))
 
-            # print('Limit By Size(K/Count) file size exceeds', Limit_By_Size, mb_p)
             if mb_p >= session['Limit_By_Size'] != 0:
                 print('Limit By Size(K/Count) file size exceeds')
-                return jsonify({'message': 'Limit By Size(K/Count) file size exceeds'})
+                return jsonify({'message': 'Limit by size(k/count) file size exceeds'})
                 # Convert bytes to megabytes
             session['MB'] += float("{:.2f}".format(mb_pop))
 
@@ -2387,24 +1434,83 @@ def popup_form():
                 scan_source = False
                 if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg', '.pdf']):
                     lang = request.form.get('selected_language', False)
-                    print("lang------>", lang)
+                    # print("lang------>", lang)
                     if lang and '.pdf' in file.filename:
                         extract_text_from_pdf(file, lang)
                         scan_source = True
                     elif lang:
                         extract_text_from_image(file, lang)
 
+                if file.filename.endswith('.mp3'):
+                    # print("mp3--------->file received", file.filename)
+                    folder_name = os.path.join('static', 'login', str(session['login_pin']))
+                    # Ensure the folder exists
+                    os.makedirs(folder_name, exist_ok=True)
+
+                    # Save the uploaded file to a temporary location
+                    filename = secure_filename(clean_filename(file.filename))
+                    temp_file_path = os.path.join(folder_name, filename)
+                    file.save(temp_file_path)
+
+                    # Upload the original MP3 file to blob storage
+                    blob_name_mp3 = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{filename}"
+                    blob_client_mp3 = blob_service_client.get_blob_client(container=container_name, blob=blob_name_mp3)
+                    with open(temp_file_path, "rb") as mp3_file:
+                        blob_client_mp3.upload_blob(mp3_file, blob_type="BlockBlob",
+                                                    content_settings=ContentSettings(content_type="audio/mpeg"),
+                                                    overwrite=True)
+
+                    loader = AssemblyAIAudioTranscriptLoader(temp_file_path, api_key="5bbe5761b36b4ff885dbd18836c3c723")
+                    chunks = loader.load_and_split()
+
+                    file_name_without_extension = filename.rsplit('.', 1)[0]  # Use filename instead of file.file_name
+                    temp_pdf_path = os.path.join(folder_name, f"{file_name_without_extension}.pdf")
+
+                    doc = SimpleDocTemplate(temp_pdf_path, pagesize=letter)
+                    styles = getSampleStyleSheet()
+                    flowables = []
+
+                    # Add a single heading for all chunks
+                    heading = "<font size=14><b>{}</b></font><br/><br/>".format(file_name_without_extension)
+                    flowables.append(Paragraph(heading, style=styles["Normal"]))
+
+                    # Combine all chunks' text into a single string
+                    combined_text = ""
+                    for i, chunk in enumerate(chunks):
+                        combined_text += chunk.page_content + "\n\n"
+
+                    # Add the combined text under the heading
+                    ptext = "<font size=12>{}</font>".format(combined_text)
+                    paragraph = Paragraph(ptext, style=styles["Normal"])
+                    flowables.append(paragraph)
+
+                    doc.build(flowables)
+                    file_name = os.path.basename(temp_pdf_path)
+
+                    with open(temp_pdf_path, "rb") as file:
+                        content = file.read()
+                    blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{file_name}"
+                    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+                    blob_client.upload_blob(content, blob_type="BlockBlob",
+                                            content_settings=ContentSettings(content_type="application/pdf"),
+                                            overwrite=True)
+
+                    # Remove the temporary PDF and MP3 files
+                    os.remove(temp_pdf_path)
+                    os.remove(temp_file_path)  # Remove the MP3 file
+
                 if not scan_source:
                     upload_to_blob(file, session, blob_service_client, container_name)
+
         else:
             if not source_url:
                 print('No Source_URL found')
-                return jsonify({'message': 'No Source_URL found'}), 400
+                return jsonify({'message': 'No source URL found'}), 400
 
             # Validate the URL
             if not is_url_valid(source_url):
                 print("Source URL not valid")
-                return jsonify({'message': 'Source URL not valid'}), 400
+                return jsonify({'message': 'Source URL is not valid'}), 400
 
             blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{source_url}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
@@ -2416,11 +1522,110 @@ def popup_form():
         g.flag = 1
         logger.info(f'Data Uploaded Successfully in {elapsed_time} seconds')
         return jsonify({'message': 'Data uploaded successfully'}), 200
+
     else:
         g.flag = 0
         logger.error('Invalid request method')
         return jsonify({'message': 'Invalid request method'}), 405
 
+
+# @socketio.on('run_query')
+# def run_query(data):
+#     db_type = data['dbType']
+#     hostname = data['hostname']
+#     port = data['port']
+#     username = data['username']
+#     password = data['password']
+#     query = data['query']
+#     database = 'master'
+#     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+#     folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
+#     file_name = f"query_results_{timestamp}.csv"
+#
+#     try:
+#         start_time = time.time()
+#
+#         if db_type == 'MySQL':
+#             conn = mysql.connector.connect(
+#                 host=hostname,
+#                 user=username,
+#                 password=password,
+#                 port=port,
+#                 database="extremum-db"
+#             )
+#             cursor = conn.cursor()
+#             cursor.execute(query)
+#             columns = [desc[0] for desc in cursor.description]
+#             results = cursor.fetchall()
+#             cursor.close()
+#             conn.close()
+#
+#             df = pd.DataFrame(results, columns=columns)
+#             csv_buffer = io.StringIO()
+#             df.to_csv(csv_buffer, index=False)
+#             csv_buffer.seek(0)
+#
+#             blob_name = f"{folder_name_azure}/{file_name}"
+#             blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+#             blob_client_.upload_blob(
+#                 csv_buffer.getvalue(),
+#                 blob_type="BlockBlob",
+#                 content_settings=ContentSettings(content_type="text/csv"),
+#                 overwrite=True
+#             )
+#             elapsed_time = time.time() - start_time
+#             g.flag = 1
+#             logger.info(f'Fetched MySQL Data in {elapsed_time} seconds')
+#             emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
+#
+#         elif db_type == 'MongoDB':
+#             client = pymongo.MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
+#             db = client[database]
+#             result = db.command('eval', query)
+#
+#             elapsed_time = time.time() - start_time
+#             g.flag = 1
+#             logger.info(f'Fetched MongoDB Data in {elapsed_time} seconds')
+#             emit('query_success', {'message': 'Data fetched and uploaded successfully.', 'result': str(result)})
+#
+#         elif db_type == 'SQLServer':
+#             conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE=master;UID={username};PWD={password};TrustServerCertificate=yes;'
+#             conn = pyodbc.connect(conn_str)
+#             cursor = conn.cursor()
+#             cursor.execute(query)
+#             columns = [desc[0] for desc in cursor.description]
+#             results = cursor.fetchall()
+#             cursor.close()
+#             conn.close()
+#
+#             df_data = pd.DataFrame(results, columns=columns)
+#             csv_buffer = io.StringIO()
+#             df_data.to_csv(csv_buffer, index=False)
+#             csv_buffer.seek(0)
+#
+#             blob_name = f"{folder_name_azure}/{file_name}"
+#             blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+#             blob_client_.upload_blob(
+#                 csv_buffer.getvalue(),
+#                 blob_type="BlockBlob",
+#                 content_settings=ContentSettings(content_type="text/csv"),
+#                 overwrite=True
+#             )
+#             elapsed_time = time.time() - start_time
+#             g.flag = 1
+#             logger.info(f'Fetched SQL Server Data in {elapsed_time} seconds')
+#             emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
+#
+#         else:
+#             g.flag = 0
+#             logger.error('Unsupported database type or connection error.')
+#             emit('query_error', {'error': 'Unsupported database type or connection error'})
+#
+#     except Exception as e:
+#         g.flag = 0
+#         logger.error('Unsupported database type', exc_info=True)
+#         emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
+#
 
 @socketio.on('run_query')
 def run_query(data):
@@ -2429,143 +1634,129 @@ def run_query(data):
     port = data['port']
     username = data['username']
     password = data['password']
-    query = data['query']
-    database = 'master'
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    database_name =data['db_name']
+    session['database_name'].append(database_name)
     folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
-    file_name = f"query_results_{timestamp}.csv"
+    start_time = time.time()
 
-    try:
-        start_time = time.time()
+    new_chat = DatabaseDetailsSave(
+        login_pin=session['login_pin'],
+        database_type=db_type,
+        hostname=hostname,
+        db_name=database_name,
+        port=port,
+        username=username,
+        password=password,
+    )
+    db.session.add(new_chat)
+    db.session.commit()
 
-        if db_type == 'MySQL':
-            conn = mysql.connector.connect(
-                host=hostname,
-                user=username,
-                password=password,
-                port=port
-            )
-            cursor = conn.cursor()
-            cursor.execute(query)
-            columns = [desc[0] for desc in cursor.description]
-            results = cursor.fetchall()
-            cursor.close()
-            conn.close()
+    if db_type == 'MySQL':
+        try:
+            conn_string = f"mysql+pymysql://{username}:{password}@{hostname}:{port}/{database_name}"
 
-            df = pd.DataFrame(results, columns=columns)
-            csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
-            csv_buffer.seek(0)
+            engine = create_engine(conn_string)
+            inspector = inspect(engine)
 
-            blob_name = f"{folder_name_azure}/{file_name}"
+            schema_with_descriptions = []
+
+            for table_name in inspector.get_table_names():
+                for column in inspector.get_columns(table_name):
+                    column_info = {
+                        'Table': table_name,
+                        'Column': column['name'],
+                        'Type': str(column['type']),
+                        'Description': ''  # Add your descriptions here
+                    }
+                    schema_with_descriptions.append(column_info)
+
+            df = pd.DataFrame(schema_with_descriptions)
+
+            excel_buffer = io.BytesIO()
+            df.to_excel(excel_buffer, engine='openpyxl', index=False)
+            excel_buffer.seek(0)
+            excel_filename = f'{database_name}_schema.xlsx'
+            blob_name = f"{folder_name_azure}/{excel_filename}"
             blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
             blob_client.upload_blob(
-                csv_buffer.getvalue(),
+                excel_buffer,
                 blob_type="BlockBlob",
-                content_settings=ContentSettings(content_type="text/csv"),
+                content_settings=ContentSettings(
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
                 overwrite=True
             )
-            elapsed_time = time.time() - start_time
+            excel_file_path = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{session['env_map']}/{session['login_pin']}/{excel_filename}"
             g.flag = 1
-            logger.info(f'Fetched MySQL Data in {elapsed_time} seconds')
-            emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
-
-        elif db_type == 'MongoDB':
-            client = pymongo.MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
-            db = client[database]
-            result = db.command('eval', query)
-
             elapsed_time = time.time() - start_time
-            g.flag = 1
-            logger.info(f'Fetched MongoDB Data in {elapsed_time} seconds')
-            emit('query_success', {'message': 'Data fetched and uploaded successfully.', 'result': str(result)})
+            logger.info(f'Fetched data from database in {elapsed_time} seconds')
+            emit('excel_response', {'message': f'Database {database_name} connected successfully!! ', 'url': excel_file_path})
 
-        elif db_type == 'SQLServer':
-            conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE=master;UID={username};PWD={password};TrustServerCertificate=yes;'
-            conn = pyodbc.connect(conn_str)
-            cursor = conn.cursor()
-            cursor.execute(query)
-            columns = [desc[0] for desc in cursor.description]
-            results = cursor.fetchall()
-            cursor.close()
-            conn.close()
-
-            df = pd.DataFrame(results, columns=columns)
-            csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
-            csv_buffer.seek(0)
-
-            blob_name = f"{folder_name_azure}/{file_name}"
-            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client.upload_blob(
-                csv_buffer.getvalue(),
-                blob_type="BlockBlob",
-                content_settings=ContentSettings(content_type="text/csv"),
-                overwrite=True
-            )
-            elapsed_time = time.time() - start_time
-            g.flag = 1
-            logger.info(f'Fetched SQL Server Data in {elapsed_time} seconds')
-            emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
-
-        else:
+        except Exception as ex:
+            print(ex)
             g.flag = 0
-            logger.error('Unsupported database type or Conection error.')
-            emit('query_error', {'error': 'Unsupported database type or Connection error'})
+            emit('excel_response', {'message': 'Unable to connect with database'})
 
+    elif db_type == 'MongoDB':
+        client = pymongo.MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
+        # db = client[database_name]
+        # # result = db.command('eval',query)
+        #
+        # elapsed_time = time.time() - start_time
+        # g.flag = 1
+        # logger.info(f'Fetched MongoDB Data in {elapsed_time} seconds')
+        # emit('query_success', {'message': 'Data fetched and uploaded successfully.', 'result': str(result)})
 
-    except Exception as e:
-        import traceback
+    elif db_type == 'SQLServer':
+        conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE={database_name};UID={username};PWD={password};TrustServerCertificate=yes;'
+        try:
+            engine = create_engine(conn_str)
+            inspector = inspect(engine)
+            print("Information-------------->", inspector)
+
+            schema_with_descriptions = []
+
+            for table_name in inspector.get_table_names():
+                for column in inspector.get_columns(table_name):
+                    column_info = {
+                        'Table': table_name,
+                        'Column': column['name'],
+                        'Type': str(column['type']),
+                        'Description': ''  # Add your descriptions here
+                    }
+                    schema_with_descriptions.append(column_info)
+
+            df = pd.DataFrame(schema_with_descriptions)
+            print("Data Formed--------->", df)
+
+            excel_buffer = io.BytesIO()
+            df.to_excel(excel_buffer, engine='openpyxl', index=False)
+            excel_buffer.seek(0)
+            excel_filename = f'{database_name}_schema.xlsx'
+            blob_name = f"{folder_name_azure}/{excel_filename}"
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            blob_client.upload_blob(
+                excel_buffer,
+                blob_type="BlockBlob",
+                content_settings=ContentSettings(
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                overwrite=True
+            )
+            upload_time=time.time()
+            excel_file_path = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{session['env_map']}/{session['login_pin']}/{excel_filename}"
+            g.flag = 1
+            elapsed_time = time.time() - start_time
+            logger.info(f'Fetched data from database in {elapsed_time} seconds')
+            emit('excel_response', {'message': 'Schema uploaded successfully ', 'url': excel_file_path,'upload time':upload_time})
+
+        except Exception as ex:
+            print(ex)
+            g.flag = 0
+            emit('excel_response', {'message': 'Unable to connect with database'})
+
+    else:
         g.flag = 0
-        logger.error('Unsupported database type', exc_info=True)
-        emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
-
-
-# Helper function to write stop flag status to CSV
-flag_csv_file = os.path.join('static', 'files', 'stop_flag_status.csv')
-
-
-def write_stop_flag_to_csv(login_pin, flag):
-    # Read the existing data from the CSV
-    existing_data = []
-    try:
-        with open(flag_csv_file, mode='r') as csvfile:
-            reader = csv.DictReader(csvfile)
-            existing_data = [row for row in reader]
-    except FileNotFoundError:
-        pass
-
-    # Update the stop flag for the given login pin
-    updated = False
-    for row in existing_data:
-        if row['login_pin'] == login_pin:
-            row['stop_flag'] = flag
-            updated = True
-            break
-
-    # If the login pin was not found, add a new row
-    if not updated:
-        existing_data.append({'login_pin': login_pin, 'stop_flag': flag})
-
-    # Write the updated data back to the CSV
-    with open(flag_csv_file, mode='w', newline='') as csvfile:
-        fieldnames = ['login_pin', 'stop_flag']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(existing_data)
-
-
-# Helper function to read stop flag status from CSV
-def read_stop_flag_from_csv(login_pin):
-    try:
-        with open(flag_csv_file, mode='r') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                if row['login_pin'] == login_pin:
-                    return row['stop_flag']
-    except FileNotFoundError:
-        return 'False'
-    return 'False'
+        logger.error('Unsupported database type or connection error.')
+        emit('excel_response', {'error': 'Unsupported database type or connection error'})
 
 
 @socketio.on('stop_process')
@@ -2580,7 +1771,7 @@ def stop_process(data):
         print('Stop Flag:', stop_flag)
 
         socketio.emit('stop_process_flag', {'flag': stop_flag, 'pin': login_pin})
-        # socketio.emit('button_response', {'message': 'Operation Cancelled', 'pin': session.get('login_pin')})
+        socketio.emit('button_response', {'message': 'Operation Cancelled', 'pin': session.get('login_pin')})
 
         g.flag = 1
         logger.info('Process is stopped or interrupted!!')
@@ -2588,20 +1779,7 @@ def stop_process(data):
     else:
         g.flag = 0
         logger.error('ERROR! Process is not stopped!!')
-        return jsonify({'message': 'ERROR! Process Not Stopped.'})
-
-
-def check_stop_flag():
-    login_pin = session.get('login_pin')
-    return read_stop_flag_from_csv(login_pin) == 'True'
-
-
-# # Example usage of check_stop_flag() in another function
-# def example_function():
-#     if check_stop_flag():
-#         print('Process stopped.')
-#         return
-#     # Continue with the function logic
+        return jsonify({'message': 'ERROR! Process not stopped.'})
 
 
 @app.route('/Cogni_button', methods=['GET'])
@@ -2623,7 +1801,6 @@ def Cogni_button():
             g.flag = 1
             logger.info(f"Load Data Function executed in {elapsed_time} seconds")
             socketio.emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-            time.sleep(0.5)
             write_stop_flag_to_csv(session['login_pin'], 'False')
             socketio.emit('button_response', {'message': 'Data loaded successfully', 'pin': session['login_pin']})
         return response
@@ -2634,180 +1811,25 @@ def Cogni_button():
         return jsonify({'message': str(e)}), 500
 
 
-@app.route("/Summary", methods=['GET', 'POST'])
-def summary():
-    session['summary_word_cpunt'] = 0
-    return render_template('summary.html')
-
-
-# # Define the Document namedtuple
-# Document = namedtuple('Document', ['page_content', 'metadata'])
-#
-#
-# def merge_documents(doc_list):
-#     """
-#     Merges the content and metadata of documents with the same 'documents' key.
-#
-#     Args:
-#         doc_list (list of dict): A list of dictionaries where each dictionary contains
-#                                  'content', 'metadata', and 'documents' keys.
-#
-#     Returns:
-#         dict: A dictionary where keys are document names and values are dictionaries containing
-#               merged 'content', 'metadata', and the original 'documents' name.
-#     """
-#     merged_dict = defaultdict(lambda: {'content': '', 'metadata': '', 'documents': ''})
-#     for doc in doc_list:
-#         doc_name = doc['documents']
-#         merged_dict[doc_name]['content'] += doc['content'] + '\n'
-#         merged_dict[doc_name]['metadata'] += doc['metadata'] + '\n'
-#         merged_dict[doc_name]['documents'] = doc_name
-#
-#     # Renaming documents if there are duplicates
-#     final_docs = {}
-#     for i, (doc_name, doc_data) in enumerate(merged_dict.items()):
-#         if doc_name in final_docs:
-#             new_doc_name = f"{os.path.splitext(doc_name)[0]}_{i}{os.path.splitext(doc_name)[1]}"
-#         else:
-#             new_doc_name = doc_name
-#         final_docs[new_doc_name] = doc_data
-#
-#     return final_docs
-#
-#
-# def split_into_chunks(text, chunk_size):
-#     """
-#     Splits text into chunks of a given size.
-#
-#     Args:
-#         text (str): The text to split.
-#         chunk_size (int): The maximum size of each chunk.
-#
-#     Returns:
-#         list: A list of text chunks.
-#     """
-#     words = text.split()
-#     chunks = []
-#     current_chunk = []
-#
-#     for word in words:
-#         if len(' '.join(current_chunk + [word])) <= chunk_size:
-#             current_chunk.append(word)
-#         else:
-#             chunks.append(' '.join(current_chunk))
-#             current_chunk = [word]
-#
-#     if current_chunk:
-#         chunks.append(' '.join(current_chunk))
-#
-#     return chunks
-#
-#
-# @socketio.on('summary_input')
-# def handle_summary_input(data):
-#     global text_word_cloud
-#     session['summary_add'] = []
-#     start_time = time.time()
-#     emit('progress', {'percentage': 10, 'pin': session['login_pin']})
-#
-#     try:
-#         custom_p = data.get('summary_que')
-#         session['summary_word_cpunt'] = data['value']
-#
-#         if int(session['summary_word_cpunt']) == 0:
-#             emit('summary_response', {'message': 'summary word count is zero'})
-#             return
-#         else:
-#             custom_p = custom_p + ' and summary in ' + str(session['summary_word_cpunt']) + ' word'
-#
-#         index_name = str(session['login_pin'])
-#         search_client = SearchClient(
-#             endpoint=vector_store_address,
-#             index_name="cognilink-" + index_name,
-#             credential=AzureKeyCredential(vector_store_password)
-#         )
-#
-#         document_dict = []
-#         results = search_client.search(search_text="*", select="*", include_total_count=True)
-#         for rel in results:
-#             metadata = json.loads(rel['metadata'])
-#             document_name = metadata['documents']
-#             combined_dict = {
-#                 'content': rel['content'],
-#                 'documents': document_name,
-#                 'metadata': rel['metadata']
-#             }
-#             document_dict.append(combined_dict)
-#
-#         merged_documents = merge_documents(document_dict)
-#
-#         structured_documents = []
-#         emit('progress', {'percentage': 40, 'pin': session['login_pin']})
-#         for file_name, file_info in merged_documents.items():
-#             page_content = file_info['content']
-#             raw_metadata = file_info['metadata']
-#
-#             json_objects = raw_metadata.strip().split('\n')
-#             parsed_metadata_list = [json.loads(obj) for obj in json_objects if obj.strip()]
-#
-#             metadata = {}
-#             for d in parsed_metadata_list:
-#                 metadata.update(d)
-#
-#             # Split page_content into chunks of max 8000 words
-#             chunks = split_into_chunks(page_content, 8000)
-#             documents = [Document(page_content=chunk, metadata=metadata) for chunk in chunks]
-#
-#             structured_documents.append((file_name, documents))
-#
-#         summ = []
-#         counter = 1
-#         for filename, documents in structured_documents:
-#             summary = custom_summary(documents, custom_p, chain_type)
-#             key = f'{filename}--{counter}--'
-#             summary_dict = {'key': key, 'value': summary}
-#             summ.append(summary_dict)
-#             counter += 1
-#
-#         session['summary_add'].extend(summ)
-#         emit('progress', {'percentage': 75, 'pin': session['login_pin']})
-#         senti_text_summ = ' '.join(entry['value'] for entry in summ)
-#         analyze_sentiment_summ(senti_text_summ)
-#
-#         generate_word_cloud(senti_text_summ)
-#         perform_lda____summ(senti_text_summ)
-#
-#         elapsed_time = time.time() - start_time
-#         g.flag = 1
-#         logger.info(f'Summary Generated in {elapsed_time} seconds')
-#         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-#         time.sleep(0.5)
-#         emit('summary_response', session['summary_add'][::-1])
-#     except Exception as e:
-#         g.flag = 0
-#         logger.error('Summary generation error', exc_info=True)
-#         emit('summary_response', {'message': 'No data Load'})
-
 @socketio.on('summary_input')
 def handle_summary_input(data):
     global text_word_cloud
     session['summary_add'] = []
     start_time = time.time()
-    emit('progress', {'percentage': 10, 'pin': session['login_pin']})
+    error_messages = []
 
     try:
-        session['summary_word_cpunt'] = data['value']
-
+        session['summary_word_count'] = data['value']
         custom_p = data.get('summary_que')
+        session['summary_word_count'] = data['value']
 
-        session['summary_word_cpunt'] = data['value']
-
-        if int(session['summary_word_cpunt']) == 0:
-            emit('summary_response', {'message': 'summary word count is zero'})
+        if int(session['summary_word_count']) == 0:
+            emit('summary_response', {'message': 'Summary word count is zero!'})
             return
+
         else:
-            word_count = int(session['summary_word_cpunt'])
-            custom_p = custom_p + ' and summary in ' + str(session['summary_word_cpunt']) + ' words'
+            word_count = int(session['summary_word_count'])
+            emit('progress', {'percentage': 10, 'pin': session['login_pin']})
 
         # Initialize the search client
         search_client = SearchClient(
@@ -2820,8 +1842,11 @@ def handle_summary_input(data):
         results = search_client.search(search_text="*", select="*", include_total_count=True)
 
         # Initialize the list for old_structure documents
-        old_structure = []
         filename_to_docs = {}
+
+        # Function to split content into chunks of a specified size
+        def split_content(content, size=8000):
+            return [content[i:i + size] for i in range(0, len(content), size)]
 
         # Process each result
         for result in results:
@@ -2830,35 +1855,46 @@ def handle_summary_input(data):
                 filename = result['file_name']
                 content = result['content']
 
-                # Create a Document object with metadata
-                doc = Document(page_content=content, metadata={'source': filename})
+                # Split the content into chunks of 8000 characters
+                content_chunks = split_content(content, size=8000)
 
-                # Add the document to the corresponding filename key
+                # Create Document objects with metadata for each chunk
+                docs = [Document(page_content=chunk) for chunk in content_chunks]
+
+                # Add the document chunks to the corresponding filename key
                 if filename in filename_to_docs:
-                    filename_to_docs[filename].append(doc)
+                    filename_to_docs[filename].extend(docs)
                 else:
-                    filename_to_docs[filename] = [doc]
+                    filename_to_docs[filename] = docs
+
             except KeyError as e:
-                print(f"KeyError: {e}. Result: {result}")
+                error_messages.append(f"KeyError: {e}. Result: {result}")
             except Exception as e:
-                print(f"An unexpected error occurred while processing result: {e}")
+                error_messages.append(f"An unexpected error occurred while processing result: {str(e)}")
 
         # Convert the dictionary to a list of tuples
         old_structure = [(filename, docs) for filename, docs in filename_to_docs.items()]
-
-        # Print the old_structure documents
-        print("old_structure----------->", old_structure)
 
         # Generate summaries with the required structure
         summ = []
         counter = 1
 
         for filename, documents in old_structure:
-            summary = custom_summary(documents, custom_p, chain_type, word_count)
-            key = f'{filename}--{counter}--'
-            summary_dict = {'key': key, 'value': summary}
-            summ.append(summary_dict)
-            counter += 1
+            try:
+                summary_list = custom_summary(documents, custom_p, chain_type, word_count)
+                key = f'{filename}--{counter}--'
+                summary_dict = {'key': key, 'value': summary_list}
+                summ.append(summary_dict)
+                counter += 1
+                emit('summary_response', summ)
+            except ValueError as ve:
+                error_message = f"Azure content filter triggered for file {filename}: {str(ve)}"
+                error_messages.append(error_message)
+                logger.error('Summary generation error: ' + error_message, exc_info=True)
+            except Exception as e:
+                error_message = f"An unexpected error occurred for file {filename}: {str(e)}"
+                error_messages.append(error_message)
+                logger.error('Summary generation error: ' + error_message, exc_info=True)
 
         session['summary_add'].extend(summ)
 
@@ -2874,90 +1910,18 @@ def handle_summary_input(data):
         g.flag = 1
         logger.info(f'Summary Generated in {elapsed_time} seconds')
         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-        time.sleep(0.5)
-        emit('summary_response', session['summary_add'][::-1])
+
     except Exception as e:
         g.flag = 0
-        logger.error('Summary generation error', exc_info=True)
-        # emit('summary_response', {'message': 'No data Load'})
-        emit('summary_response', {'message': e})
+        error_message = f"An unexpected error occurred: {str(e)}"
+        error_messages.append(error_message)
+        logger.error('Summary generation error: ' + error_message, exc_info=True)
 
-
-# @socketio.on('summary_input')
-# def handle_summary_input(data):
-#     global text_word_cloud
-#     session['summary_add'] = []
-#     start_time = time.time()
-#     emit('progress', {'percentage': 10, 'pin': session['login_pin']})
-#
-#     try:
-#         folder_name = os.path.join('static', 'login', str(session['login_pin']))
-#
-#         # Load the pickle file from the folder
-#         pickle_file_path = os.path.join(folder_name, 'summary_chunk.pkl')
-#
-#         # Check if the pickle file exists
-#         if not os.path.isfile(pickle_file_path):
-#             emit('summary_response', {'message': 'No Data Load'})
-#             return
-#
-#         with open(pickle_file_path, 'rb') as f:
-#             all_summary = pickle.load(f)
-#         lenth_sum = len(all_summary)
-#         print(f"myEntry ::: {lenth_sum}")
-#         if int(lenth_sum) == 0:
-#             emit('summary_response', {'message': 'Please load data'})
-#             return
-#
-#         custom_p = data.get('summary_que')
-#
-#         session['summary_word_cpunt'] = data['value']
-#
-#         if int(session['summary_word_cpunt']) == 0:
-#             emit('summary_response', {'message': 'summary word count is zero'})
-#             return
-#         else:
-#             word_count = int(session['summary_word_cpunt'])
-#             # custom_p = f"{custom_p}"
-#             # print("custom_p---------->", custom_p)
-#             # custom_p = custom_p + ' and summary in ' + str(session['summary_word_cpunt']) + ' words'
-#             # print("custom_p---------->", custom_p)
-#
-#         summ = []
-#         counter = 1
-#
-#         # Flatten the nested structure of myEntry
-#         flattened_entries = [(filename, document) for entry in all_summary for filename, documents_list in entry.items()
-#                              for
-#                              document in documents_list]
-#
-#         for filename, document in flattened_entries:
-#             # summary = custom_summary(document, custom_p, chain_type)
-#             summary = custom_summary(document, custom_p, chain_type, word_count)
-#             key = f'{filename}--{counter}--'
-#             summary_dict = {'key': key, 'value': summary}
-#             summ.append(summary_dict)
-#             counter += 1
-#         session['summary_add'].extend(summ)
-#
-#         emit('progress', {'percentage': 75, 'pin': session['login_pin']})
-#         senti_text_summ = ' '.join(entry['value'] for entry in summ)
-#         analyze_sentiment_summ(senti_text_summ)
-#
-#         generate_word_cloud(senti_text_summ)
-#         perform_lda____summ(senti_text_summ)
-#
-#         elapsed_time = time.time() - start_time
-#         g.flag = 1
-#         logger.info(f'Summary Generated in {elapsed_time} seconds')
-#         emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-#         time.sleep(0.1)
-#         emit('summary_response', session['summary_add'][::-1])
-#     except Exception as e:
-#         g.flag = 0
-#         logger.error('Summary generation error', exc_info=True)
-#         print('Exception of summary_input:', str(e))
-#         emit('summary_response', {'message': str(e)})
+    finally:
+        if error_messages:
+            emit('summary_response', {'errors': error_messages})
+            emit('summary_response', {'message': 'No data load'})
+        emit('progress', {'percentage': 100, 'pin': session['login_pin']})
 
 
 @socketio.on('clear_chat_summ')
@@ -2975,7 +1939,7 @@ def handle_clear_chat_summ(data):
         socketio.emit('analyze_sentiment_summ', senti)
 
         text_word_cloud = ''
-        session['summary_word_cpunt'] = 0
+        session['summary_word_count'] = 0
         session['lda_topics_summ'] = {}
         session['senti_Positive_summ'] = 0
         session['senti_Negative_summ'] = 0
@@ -2985,6 +1949,7 @@ def handle_clear_chat_summ(data):
         g.flag = 1  # Set flag to 1 on success
         logger.info(f"Summary chat cleared")
         emit('clear_chat_response', {'message': 'Summary cleared successfully'})
+
     except Exception as e:
         g.flag = 0
         logger.info(f"Summary chat not cleared. ERROR!", exc_info=True)
@@ -2992,145 +1957,243 @@ def handle_clear_chat_summ(data):
         emit('clear_chat_response', {'message': str(e)})
 
 
-@app.route('/Ask_Question', methods=['GET', 'POST'])
-def ask():
-    return render_template('ask.html')
-
-
 @socketio.on('ask_question')
 def handle_ask_question(data):
     # Update progress to 10%
     emit('progress', {'percentage': 10, 'pin': session['login_pin']})
-    global senti_text_Q_A
+    global senti_text_q_a
     start_time = time.time()
     try:
+        source = data['source']
         question = data['question']
-        Source = data['source']
-        # faiss_index_path = os.path.join(folder_name, 'faiss_index')
-        vector_store: AzureSearch = AzureSearch(
-            azure_search_endpoint=vector_store_address,
-            azure_search_key=vector_store_password,
-            index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
-            embedding_function=embeddings.embed_query)
 
-        # Update progress to 25%
-        emit('progress', {'percentage': 25, 'pin': session['login_pin']})
+        if source == "webInternet":
+            llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
 
-        # new_db = FAISS.load_local(faiss_index_path, embeddings, allow_dangerous_deserialization=True)
+            # Web search tool
+            wrapper = DuckDuckGoSearchAPIWrapper(max_results=25)
+            emit('progress', {'percentage': 25, 'pin': session['login_pin']})
+            web_search_tool = DuckDuckGoSearchRun(api_wrapper=wrapper)
 
-        # Create the conversation chain handler
-        conversation_chain_handler = get_conversation_chain(vector_store, Source)
-        response = conversation_chain_handler(question)
+            context = web_search_tool.invoke({"query": question})
 
-        # print(response)
+            # print("context generated---------->",context)
+            generate_prompt = PromptTemplate(
+                template="""
 
-        # Update progress to 50%
-        emit('progress', {'percentage': 50, 'pin': session['login_pin']})
-        sorry_phrases = ['No information available to answer the question.']
+                <|begin_of_text|>
 
-        # Check if the response starts with any sorry phrases or has no source documents or if the first source document is empty
-        if (
-                any(response["answer"].startswith(phrase) for phrase in sorry_phrases) or
-                not response.get("source_documents") or
-                (response.get("source_documents") and not response["source_documents"][0])
-        ):
-            doc_source = ["N|A"]
-            doc_page_num = ["N|A"]
-        else:
-            # Initialize a set to track seen pages and lists for sources and page numbers
-            seen_pages = set()
-            doc_source = []
-            doc_page_num = []
-            docx_sources = []
-            docx_page = []
+                <|start_header_id|>system<|end_header_id|> 
 
-            # Iterate over source documents in the response
-            for doc in response["source_documents"]:
-                source = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/" + doc.metadata.get(
-                    "source", "N/A")
-                page = doc.metadata.get("page", "N|A")
+                You are an AI assistant for Web surfing, that synthesizes web search results. 
+                Strictly use the following pieces of web search context to answer the question. If you don't know the answer, just say that you don't know. 
+                keep the answer concise, and in a human friendly way. 
+                Only make direct references to material if provided in the context.
 
-                # Add the source to the set of sources
-                if source.endswith('.docx'):
-                    docx_sources.append(source)
-                    docx_page.append(page)
+                <|eot_id|>
 
-                # Adjust the page number to start from 1 if it starts from 0
-                if isinstance(page, int) and page == 0:
-                    page = 1
-                elif isinstance(page, int):
-                    page += 1
+                <|start_header_id|>user<|end_header_id|>
 
-                page_str = str(page)
+                Question: {question} 
+                Web Search Context: {context} 
+                Answer: 
 
-                # Add source and page to the lists if the page has not been seen before
-                # if page_str == "N|A" or page_str not in seen_pages:
-                if page_str not in seen_pages and page_str != 'N|A':
-                    seen_pages.add(page_str)
-                    doc_source.append(source)
-                    doc_page_num.append(page_str)
+                <|eot_id|>
 
-                    # if source.endswith('.docx'):
-                    #     doc_source = docx_sources
-                    #     doc_page_num.append(page_str)
-            doc_source.extend(list(set(docx_sources)))
-            doc_page_num.extend(docx_page)
-        if Source == "webInternet":
-            doc_source = ["Web|Internet"]
-            doc_page_num = ["N|A"]
-
-        if Source == "all":
-            doc_source.append("Web|Internet")
-            doc_page_num.append("N|A")
-
-        # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
-        final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
-                            response['chat_history'][i + 1].content if response['chat_history'][i + 1] else "",
-                            ", ".join(doc_source), ", ".join(doc_page_num))
-                           for i in range(0, len(response['chat_history']), 2)]
-
-        # Create a list of dictionaries for the chat history
-        chat_history_list = [{"question": chat_pair[0],
-                              "answer": chat_pair[1],
-                              "source": chat_pair[2],
-                              "page_number": chat_pair[3]}
-                             for chat_pair in final_chat_hist]
-
-        senti_text_Q_A = ' '.join(entry['answer'] for entry in chat_history_list)
-
-        # Update progress to 75%
-        emit('progress', {'percentage': 75, 'pin': session['login_pin']})
-
-        analyze_sentiment_Q_A(senti_text_Q_A)
-        perform_lda___Q_A(senti_text_Q_A)
-
-        # Save chat history to the database
-        for entry in chat_history_list:
-            new_chat = ChatHistory(
-                login_pin=session['login_pin'],
-                question=entry['question'],
-                answer=entry['answer'],
-                source=entry['source'],
-                page_number=entry['page_number']
+                <|start_header_id|>assistant<|end_header_id|>""",
+                input_variables=["question", "context"],
             )
-            db.session.add(new_chat)
-        db.session.commit()
 
-        # Update progress to 100%
-        emit('progress', {'percentage': 100, 'pin': session['login_pin']})
-        elapsed_time = time.time() - start_time
-        g.flag = 1
-        logger.info(f'Answer Generated in {elapsed_time} seconds')
+            # Chain
+            generate_chain = generate_prompt | llm
+            emit('progress', {'percentage': 50, 'pin': session['login_pin']})
 
-        # Retrieve chat history from the database
-        chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
-        chat_history = [{"question": chat.question,
-                         "answer": chat.answer,
-                         "source": chat.source,
-                         "page_number": chat.page_number}
-                        for chat in chat_history_from_db]
+            answer = generate_chain.invoke({"question": question, "context": context})
+            response_content = answer.content if isinstance(answer, AIMessage) else str(answer)
 
-        emit('response', {'chat_history': chat_history[::-1]})
+            chat_history_list = [{"question": question,
+                                  "answer": response_content,
+                                  "source": "Web/Internet",
+                                  "page_number": "N/A", }]
+            # print("chat_history_list--->", chat_history_list)
+
+            # Save chat history to the database
+            for entry in chat_history_list:
+                new_chat = ChatHistory(
+                    login_pin=session['login_pin'],
+                    question=entry['question'],
+                    answer=entry['answer'],
+                    source=entry['source'],
+                    page_number=entry['page_number']
+                )
+                db.session.add(new_chat)
+            db.session.commit()
+            emit('progress', {'percentage': 75, 'pin': session['login_pin']})
+
+            senti_text_q_a = ' '.join(entry['answer'] for entry in chat_history_list)
+            analyze_sentiment_q_a(senti_text_q_a)
+            perform_lda___Q_A(senti_text_q_a)
+
+            # Retrieve chat history from the database
+            chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+            chat_history = [{"question": chat.question,
+                             "answer": chat.answer,
+                             "source": chat.source,
+                             "page_number": chat.page_number,
+                             "index": chat.id}
+                            for chat in chat_history_from_db]
+            emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+            emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
+
+
+        else:
+            question_embeddings = embeddings.embed_query(question)
+
+            search_client = SearchClient(
+                endpoint=vector_store_address,
+                index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
+                credential=AzureKeyCredential(vector_store_password)
+            )
+
+            # Perform the search
+            results = search_client.search(search_text=question_embeddings, select="*", top=5)
+            documents = []
+            for result in results:
+                doc = {
+                    'content': result['content'],
+                    'score': result['@search.score']  # Access the relevance score
+                }
+                documents.append(doc)
+
+            sorted_documents = sorted(documents, key=lambda x: x['score'], reverse=True)
+            # print("sorted documents------------>", sorted_documents)
+
+            vector_store: AzureSearch = AzureSearch(
+                azure_search_endpoint=vector_store_address,
+                azure_search_key=vector_store_password,
+                index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
+                embedding_function=embeddings.embed_query,
+            )
+
+            # Update progress to 25%
+            emit('progress', {'percentage': 25, 'pin': session['login_pin']})
+
+            # Create the conversation chain handler
+            retriever = vector_store.as_retriever(sorted_documents=sorted_documents)
+            conversation_chain_handler = get_conversation_chain(retriever, source)
+            response = conversation_chain_handler(question)
+            print("Conversational result----------->", response)
+
+            # Update progress to 50%
+            emit('progress', {'percentage': 50, 'pin': session['login_pin']})
+            sorry_phrases = ['Sorry, there is no information available.', 'Sorry', 'I am sorry',
+                             "I can't see anyting relevant", "I'm sorry"]
+
+            if (
+                    any(response["answer"].startswith(phrase) for phrase in sorry_phrases) or
+                    not response.get("source_documents") or
+                    (response.get("source_documents") and not response["source_documents"][0])
+            ):
+                doc_source = ["N|A"]
+                doc_page_num = ["N|A"]
+
+            else:
+                # Initialize a set to track seen pages and lists for sources and page numbers
+                seen_pages = set()
+                doc_source = []
+                doc_page_num = []
+                docx_sources = []
+                docx_page = []
+
+                if source == "all":
+                    doc_source.append("Web|Internet")
+                    doc_page_num.append("N|A")
+
+                # Iterate over source documents in the response
+                for doc in response["source_documents"]:
+                    source = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/" + doc.metadata.get(
+                        "source", "N/A")
+                    page = doc.metadata.get("page", "N|A")
+
+                    # Add the source to the set of sources
+                    if source.endswith('.docx') or page == "N|A":
+                        docx_sources.append(source)
+                        docx_page.append(page)
+
+                    else:
+                        # Adjust the page number to start from 1 if it starts from 0
+                        if isinstance(page, int) and page == 0:
+                            page = 1
+                        elif isinstance(page, int):
+                            page += 1
+
+                        page_str = str(page)
+
+                        # Add source and page to the lists if the page has not been seen before
+                        if page_str != 'N|A' and page_str not in seen_pages:
+                            seen_pages.add(page_str)
+                            doc_source.append(source)
+                            doc_page_num.append(page_str)
+                print('Before docx source-----------',doc_source)
+                doc_source.extend(list(set(docx_sources)))
+                print('After--------------------',doc_source)
+                doc_page_num.extend(docx_page)
+
+            # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
+            final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
+                                response['chat_history'][i + 1].content if response['chat_history'][i + 1] else "",
+                                ", ".join(doc_source), ", ".join(doc_page_num))
+                               for i in range(0, len(response['chat_history']), 2)]
+
+            # Create a list of dictionaries for the chat history
+            chat_history_list = [{"question": chat_pair[0],
+                                  "answer": chat_pair[1],
+                                  "source": chat_pair[2],
+                                  "page_number": chat_pair[3]}
+                                 for chat_pair in final_chat_hist]
+
+            # Generate follow-up question
+            chat_history = conversation_chain_handler.memory.chat_memory.messages
+            context = "Use the following pieces of context from the provided files only. Do not use any information from the internet to answer the question at the end."
+            follow_up_question = generate_followup_question(response['answer'], chat_history, context)
+            # print("Followup_question------------->", follow_up_question)
+
+            senti_text_q_a = ' '.join(entry['answer'] for entry in chat_history_list)
+
+            # Update progress to 75%
+            emit('progress', {'percentage': 75, 'pin': session['login_pin']})
+
+            analyze_sentiment_q_a(senti_text_q_a)
+            perform_lda___Q_A(senti_text_q_a)
+
+            # Save chat history to the database
+            for entry in chat_history_list:
+                new_chat = ChatHistory(
+                    login_pin=session['login_pin'],
+                    question=entry['question'],
+                    answer=entry['answer'],
+                    source=entry['source'],
+                    page_number=entry['page_number']
+                )
+                db.session.add(new_chat)
+            db.session.commit()
+
+            # Update progress to 100%
+            emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+            elapsed_time = time.time() - start_time
+            g.flag = 1
+            logger.info(f'Answer Generated in {elapsed_time} seconds')
+
+            # Retrieve chat history from the database
+            chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+            chat_history = [{"question": chat.question,
+                             "answer": chat.answer,
+                             "source": chat.source,
+                             "page_number": chat.page_number,
+                             "index": chat.id}
+                            for chat in chat_history_from_db]
+            emit('response', {'chat_history': chat_history[::-1], 'follow_up': follow_up_question})
+
     except Exception as e:
         g.flag = 0
         logger.error('Ask CogniLink answer generation error', exc_info=True)
@@ -3150,23 +2213,24 @@ def handle_clear_chat():
         session['senti_Negative_Q_A'] = 0
         session['senti_neutral_Q_A'] = 0
         session['chat_history_qa'] = []
-        senti_Q_A = {'pin': session['login_pin']}
-        socketio.emit('analyze_sentiment_Q_A', senti_Q_A)
-        lda_topics_Q_A = {'pin': session['login_pin'], 'keywords': []}
-        socketio.emit('lda_topics_QA', lda_topics_Q_A)
+        senti_q_a = {'pin': session['login_pin']}
+        socketio.emit('analyze_sentiment_q_a', senti_q_a)
+        lda_topics_q_a = {'pin': session['login_pin'], 'keywords': []}
+        socketio.emit('lda_topics_QA', lda_topics_q_a)
         g.flag = 1  # Set flag to 1 on success
         logger.info(f"clear_chat for ask_question route")
         emit('chat_cleared', {'message': 'Chat history cleared successfully'})
+
     except Exception as e:
         g.flag = 0  # Set flag to 0 on failure
         logger.error(f"clear_chat for ask_question route error", exc_info=True)
         emit('chat_cleared', {'message': str(e)})
 
 
-async def delete_blob_async(blob_name, container_client):
+async def delete_blob_async(blob_name, container_client_):
     try:
-        blob_client = container_client.get_blob_client(blob_name)
-        await blob_client.delete_blob()
+        blob_client_ = container_client_.get_blob_client(blob_name)
+        await blob_client_.delete_blob()
         logger.info(f"Successfully deleted blob: {blob_name}")
     except Exception as e:
         logger.error(f"Error deleting blob: {blob_name}, {str(e)}")
@@ -3181,28 +2245,10 @@ async def delete_files():
         if not file_names:
             return jsonify({'message': 'No files specified for deletion'}), 400
 
-        login_pin_folder = str(session['login_pin'])
-        folder_name = os.path.join('static', 'login', login_pin_folder)
-        file_path = os.path.join(folder_name, 'summary_chunk.pkl')
-
-        if os.path.exists(file_path):
-            with open(file_path, 'rb') as f:
-                try:
-                    existing_data = pickle.load(f)
-                except EOFError:
-                    existing_data = []
-        else:
-            existing_data = []
-
-        updated_data = [entry for entry in existing_data if not any(file_name in entry for file_name in file_names)]
-
-        with open(file_path, 'wb') as f:
-            pickle.dump(updated_data, f)
-
         delete_documents_from_vectordb(file_names)
 
-        container_client = blob_service_client.get_container_client(container_name)
-        blobs = container_client.list_blobs(
+        container_client_ = blob_service_client.get_container_client(container_name)
+        blobs = container_client_.list_blobs(
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
 
         blob_names_to_delete = [blob.name for blob in blobs if any(file_name in blob.name for file_name in file_names)]
@@ -3218,146 +2264,13 @@ async def delete_files():
         g.flag = 1
         logger.info(f"Selected vault files deleted successfully in {elapsed_time} seconds")
         return jsonify({'message': f'Files {file_names} deleted successfully'})
+
     except Exception as e:
         g.flag = 0
         logger.error("Error in delete route", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
-# @app.route("/delete", methods=["DELETE"])
-# def delete_files():
-#     try:
-#         # emit('progress_del', {'percentage': 15, 'pin': session['login_pin']})
-#         # time.sleep(0.1)
-#
-#         data = request.get_json()
-#         file_names = data.get('file_names', [])
-#         print("delete file_names-->", file_names)
-#         login_pin_folder = str(session['login_pin'])
-#         folder_name = os.path.join('static', 'login', login_pin_folder)
-#         file_path = os.path.join(folder_name, 'summary_chunk.pkl')
-#
-#         # Load existing data if the file exists
-#         if (file_exists := os.path.exists(file_path)):
-#             with open(file_path, 'rb') as f:
-#                 try:
-#                     existing_data = pickle.load(f)
-#                 except EOFError:
-#                     existing_data = []
-#             # print("Existing data loaded:", existing_data)
-#         else:
-#             existing_data = []
-#
-#         # Remove the entries with specified file names
-#         updated_data = [entry for entry in existing_data if not any(file_name in entry for file_name in file_names)]
-#
-#         # Save the updated list back to the file
-#         with open(file_path, 'wb') as f:
-#             pickle.dump(updated_data, f)
-#
-#         if not file_names:
-#             return jsonify({'message': 'No files specified for deletion'}), 400
-#
-#         # # Update progress to 75%
-#         # emit('progress_del', {'percentage': 30, 'pin': session['login_pin']})
-#         # time.sleep(0.1)
-#         delete_documents_from_vectordb(file_names)
-#         # folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
-#         deleted_files = []
-#         for file_name in file_names:
-#             blobs = container_client.list_blobs(
-#                 name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
-#
-#             # Find the blob with the matching file name
-#             target_blob = next(
-#                 (blob for blob in blobs if blob.name.split('/')[-1] or 'https://' or 'http://' == file_name), None)
-#             if target_blob:
-#                 blob_client = container_client.get_blob_client(target_blob.name)
-#                 blob_client.delete_blob()
-#                 deleted_files.append(file_name)
-#                 socketio.emit('delete_selected_file_response', {'message': 'Successfully File Deleted'})
-#
-#             else:
-#                 g.flag = 0
-#                 logger.error(f"delete for delete route: {file_name} not found", exc_info=True)
-#                 return jsonify({'error': f'File {file_name} not found'}), 404
-#         update_bar_chart_from_blob(session, blob_service_client, container_name)
-#         g.flag = 1  # Set flag to 1 on success
-#         logger.info(f"Selected vault files deleted successfully")
-#         return jsonify({'message': f'Files {deleted_files} deleted successfully'})
-#     except Exception as e:
-#         g.flag = 0  # Set flag to 0 on error
-#         logger.error(f"delete for delete route error", exc_info=True)
-#         return jsonify({'error': str(e)}), 500
-
-
-# @app.route("/delete", methods=["DELETE"])
-# def delete_files():
-#     try:
-#         data = request.get_json()
-#         file_names = data.get('file_names', [])
-#         delete_documents_from_vectordb(file_names)
-#
-#         # folder_name_azure = str(session['login_pin'])
-#         # folder_name = os.path.join('static', 'login', folder_name_azure)
-#         # file_path = os.path.join(folder_name, 'summary_chunk.pkl')
-#         #
-#         # # Load the pickle file from the folder
-#         # pickle_file_path = os.path.join(folder_name, 'summary_chunk.pkl')
-#         # with open(pickle_file_path, 'rb') as f:
-#         #     all_summary = pickle.load(f)
-#
-#         if not file_names:
-#             return jsonify({'message': 'No files specified for deletion'}), 400
-#
-#             # folder_name = session.get('login_pin')  # Make sure 'login_pin' is set in the session
-#             # deleted_files = []
-#             # test_var = all_summary[0][0]
-#             # print("test_var-->", test_var)
-#             #
-#             # for file_name in file_names:
-#             #     del test_var[file_name]
-#
-#             blobs = container_client.list_blobs(name_starts_with="cognilink/" + folder_name)
-#
-#             # Find the blob with the matching file name
-#             target_blob = next((blob for blob in blobs if blob.name.split('/')[-1] == file_name), None)
-#             if target_blob:
-#                 blob_client = container_client.get_blob_client(target_blob.name)
-#                 blob_client.delete_blob()
-#                 deleted_files.append(file_name)
-#                 socketio.emit('delete_selected_file_response', {'message': 'Successfully File Deleted'})
-#
-#             else:
-#                 g.flag = 0
-#                 logger.error(f"delete for delete route: {file_name} not found", exc_info=True)
-#                 return jsonify({'error': f'File {file_name} not found'}), 404
-#         print(test_var)
-#         update_bar_chart_from_blob(session, blob_service_client, container_name)
-#         g.flag = 1  # Set flag to 1 on success
-#         logger.info(f"Selected vault files deleted successfully")
-#         return jsonify({'message': f'Files {deleted_files} deleted successfully'})
-#     except Exception as e:
-#         g.flag = 0  # Set flag to 0 on error
-#         logger.error(f"delete for delete route error", exc_info=True)
-#         return jsonify({'error': str(e)}), 500
-
-# Define timezones
-utc_zone = pytz.utc
-ist_zone = pytz.timezone('Asia/Kolkata')
-
-
-def convert_to_ist(date):
-    # Ensure the date is timezone aware, if it is naive, set it to UTC first
-    if date.tzinfo is None:
-        date = utc_zone.localize(date)
-    # Convert to IST
-    date_ist = date.astimezone(ist_zone)
-    # Convert the date object to an ISO 8601 string
-    return date_ist.isoformat()
-
-
-# @app.route("/table_update", methods=['GET'])
 @socketio.on('table_update')
 def table_update(search_term=None):
     try:
@@ -3369,7 +2282,7 @@ def table_update(search_term=None):
             credential=AzureKeyCredential(vector_store_password)
         )
         results = search_client.search(search_text="*", select="*", include_total_count=True)
-        VecTor_liSt = []
+        vector_list = []
 
         unique_documents = set()
 
@@ -3377,7 +2290,7 @@ def table_update(search_term=None):
             embeddings_dict = json.loads(result['metadata'])
             document = embeddings_dict.get('documents')
             if document and document not in unique_documents:
-                VecTor_liSt.append(document)
+                vector_list.append(document)
                 unique_documents.add(document)
 
         blobs = container_client.list_blobs(
@@ -3386,10 +2299,8 @@ def table_update(search_term=None):
         # Exclude files from blobs_chart based on criteria
         blobs_chart = container_client.list_blobs(
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
-        blob_list = [blob for blob in blobs_chart if not (blob.name.lower().endswith('.csv'))]
-        mp3_files = {blob.name[:-4] for blob in blob_list if blob.name.endswith('.mp3')}
-        new_blob_list = [blob for blob in blob_list if not (blob.name.endswith('.pdf') and blob.name[:-4] in mp3_files)]
-        new_blob_list_jpg = [blob for blob in new_blob_list if
+        blob_list = [blob for blob in blobs_chart if not (blob.name.lower().endswith('.csv') or blob.name.lower().endswith('.mp3'))]
+        new_blob_list_jpg = [blob for blob in blob_list if
                              not (blob.name.lower().endswith('.jpg') or blob.name.lower().endswith(
                                  '.png') or blob.name.lower().endswith('.jpeg'))]
 
@@ -3416,11 +2327,11 @@ def table_update(search_term=None):
                 # Convert the date to IST
                 date = blob['last_modified']
                 date_str = convert_to_ist(date)
-                print("date--------->", date_str)
+                # print("date--------->", date_str)
 
             if blob.name.split('/')[2] != 'draft':
                 file_name = blob.name.split('/')[2]
-                if file_name and name_source in VecTor_liSt:
+                if file_name and name_source in vector_list:
                     status = 'U | EC'
                 elif file_name in deleted_files_list:
                     status = 'U | N/A'
@@ -3448,11 +2359,11 @@ def table_update(search_term=None):
         blob_lent = len(new_blob_list_jpg)
         session['over_all_readiness'] = blob_lent
 
-        Tot_Suc = len(VecTor_liSt)
-        if Tot_Suc > blob_lent:
-            Tot_Suc = blob_lent
+        tot_succ = len(vector_list)
+        if tot_succ > blob_lent:
+            tot_succ = blob_lent
 
-        session['total_success_rate'] = Tot_Suc
+        session['total_success_rate'] = tot_succ
         gauge_source_chart_data = gauge_chart_auth()
         socketio.emit('update_gauge_chart', gauge_source_chart_data)
 
@@ -3482,6 +2393,7 @@ def webcrawler_start(data):
     # Create a unique folder for each user's downloaded files
     folder_name = os.path.join('static', 'files', str(login_pin))
     os.makedirs(folder_name, exist_ok=True)
+
     try:
         print("Received URL:", url)
         session['current_status'] = "Website URL Received"
@@ -3496,11 +2408,26 @@ def webcrawler_start(data):
         for pdf_name, pdf_link in pdf_info_list:
             if check_stop_flag():
                 write_stop_flag_to_csv(session['login_pin'], 'False')
+                session['current_status'] = "Crawling stopped!"
+                socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
+                socketio.emit('update_progress', {
+                    'current_status': session['current_status'],
+                    'total_files': total_files,
+                    'files_downloaded': session['files_downloaded'],
+                    'progress_percentage': session['progress_percentage'],
+                    'current_file': current_file,
+                    'pin': login_pin
+                })
                 print("Crawling Cancelled")
-                break
+                return jsonify({'message': 'Webcrawler stopped!'})
+
             try:
                 pdf_url = pdf_link
-                name = pdf_name.replace('/', '-')
+
+                temp_filename = re.sub(r'[^\w\s.-]', '', pdf_name)
+                cleaned_filename = re.sub(r'\s+', '-', temp_filename)
+
+                name = cleaned_filename.replace('/', '-')
                 if not name:
                     name = os.path.basename(urlparse(pdf_url).path)
                 download_pdf(pdf_url, folder_name, name)
@@ -3517,6 +2444,7 @@ def webcrawler_start(data):
                 })
             except Exception as e:
                 print(f"Error occurred: {e}")
+
         if not check_stop_flag():
             session['current_status'] = "File downloaded successfully"
             socketio.emit('update_progress', {
@@ -3532,7 +2460,8 @@ def webcrawler_start(data):
             write_stop_flag_to_csv(login_pin, 'False')
             logger.info(f"Web Crawling done successfully in {elapsed_time} seconds")
             socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
-            return jsonify({'message': 'Files Downloaded Successfully'})
+            return jsonify({'message': 'Files downloaded successfully'})
+
         else:
             session['current_status'] = "File Downloading Stopped"
             socketio.emit('update_progress', {
@@ -3547,14 +2476,15 @@ def webcrawler_start(data):
             g.flag = 0
             logger.error("Web Crawling Stopped!")
             socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
-            return jsonify({'message': 'Process Stopped!'})
+            return jsonify({'message': 'Process stopped!'})
+
     except Exception as e:
         session['current_status'] = "Error occurred"
         socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
         g.flag = 0
         logger.error("Web crawling error", exc_info=True)
         print("Exception of web crawling:", str(e))
-        return jsonify({'message': 'URL Not found'})
+        return jsonify({'message': 'URL not found'})
 
 
 def extract_pdf_info_from_table(html_content):
@@ -3623,7 +2553,6 @@ def handle_fetch_pdf_files():
     emit('pdf_files', {"pdf_files": pdf_files})
 
 
-# This function should contain your file deletion logic
 def delete_file(directory_path, file_name):
     """
     Deletes a specified file from a given directory.
@@ -3651,6 +2580,7 @@ def delete_file(directory_path, file_name):
             logger.error(f"Function delete_file error File does not exist", exc_info=True)
             print("File does not exist:", file_path)
             return False
+
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
         logger.error(f"Function delete_file error", exc_info=True)
@@ -3673,9 +2603,9 @@ def delete_pdf_file(data):
             # Delete the file
             if res is True:
                 print("file deleted")
-                return socketio.emit('delete_response', {'message': 'Successfully File Deleted'})
+                return socketio.emit('delete_response', {'message': 'Successfully file deleted'})
             else:
-                return socketio.emit('delete_response', {'message': 'Failed To Delete'})
+                return socketio.emit('delete_response', {'message': 'Failed to delete'})
         else:
             # Assuming you have the folder name for Azure stored in `folder_name_azure`
             blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/{file_name}"
@@ -3695,15 +2625,15 @@ def delete_pdf_file(data):
 
         # Delete the file
         if res is True:
-            print("file deleted from temp")
+            # print("file deleted from temp")
             g.flag = 1  # Set flag to 1 on success1
             logger.info(f"Successfully webcrawler File Loaded In Cognilink Application")
-            socketio.emit('delete_response', {'message': 'Successfully File Loaded In CogniLink Application'})
+            socketio.emit('delete_response', {'message': 'Successfully file loaded in CogniLink application'})
             socketio.emit('update_table_vault', {'message': 'update_table'})
         else:
             g.flag = 0
             logger.error(f"Failed To Loaded In Cognilink Application", exc_info=True)
-            socketio.emit('delete_response', {'message': 'Failed To Load File In CogniLink Application'})
+            socketio.emit('delete_response', {'message': 'Failed to load file in CogniLink application'})
     except Exception as e:
         g.flag = 0  # Set flag to 1 on success1
         logger.error(f"Error in webcrawler File Loaded In Cognilink Application --select_pdf_file route error is::{e}",
@@ -3725,8 +2655,8 @@ def handle_eda_process(data):
                 name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
             for blob in blob_list_eda:
                 if blob.name in file_url:
-                    blob_client = container_client.get_blob_client(blob)
-                    blob_data = blob_client.download_blob().readall()
+                    blob_client_ = container_client.get_blob_client(blob)
+                    blob_data = blob_client_.download_blob().readall()
                     data_stream = BytesIO(blob_data)
 
                     if file_url.endswith('.xlsx') or file_url.endswith('.xls'):
@@ -3739,11 +2669,10 @@ def handle_eda_process(data):
                     data_load_time = time.time() - start_time
                     g.flag = 1
                     logger.info(f"SocketIO Eda_Process Data Loaded Successfully in {data_load_time} seconds")
-                    emit('eda_response', {'message': 'Data Loaded Successfully. Ask Virtual Analyst!', 'success': True})
+                    emit('eda_response', {'message': 'Data loaded successfully. Ask Virtual Analyst!', 'success': True})
                     return
 
         question = data.get('question')
-        print("question----->", question)
         if question:
             g.flag = 1
             logger.info("SocketIO Eda_Process Question received.")
@@ -3801,7 +2730,7 @@ def handle_eda_process(data):
 
             response = {
                 'success': True,
-                'message': 'Question Processed Successfully!',
+                'message': 'Question processed successfully!',
                 'output_any': output_json,
                 'output_type': output_type,
                 'image': img_base64
@@ -3813,21 +2742,15 @@ def handle_eda_process(data):
         else:
             g.flag = 0
             logger.info('No Question Provided!')
-            emit('eda_response', {'success': False, 'message': 'No Question Provided!'})
+            emit('eda_response', {'success': False, 'message': 'No question provided!'})
     except Exception as e:
         g.flag = 0
         logger.error(f"Error in Eda_Process: {e}", exc_info=True)
         emit('eda_response', {'message': f'Error occurred while EDA process: {str(e)}', 'success': False})
 
 
-# db_user = "extremumadmin"
-# db_password = "Welcome!#34"
-# db_host = "extremum-mysql-db.mysql.database.azure.com"
-# db_name = "extremum-db"
-# conn_string = f"mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}"
-
-@socketio.on('eda_db_process')
-def question_answer_on_structure_data(data):
+@socketio.on('eda_db_setup')
+def create_schema():
     start_time = time.time()
 
     db_user = "extremumadmin"
@@ -3835,154 +2758,223 @@ def question_answer_on_structure_data(data):
     db_host = "extremum-mysql-db.mysql.database.azure.com"
     db_name = "extremum-db"
     conn_string = f"mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}"
+    print(conn_string)
+    folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
+
+    try:
+        engine = create_engine(conn_string)
+        inspector = inspect(engine)
+        print("Information-------------->", inspector)
+
+        schema_with_descriptions = []
+
+        for table_name in inspector.get_table_names():
+            for column in inspector.get_columns(table_name):
+                column_info = {
+                    'Table': table_name,
+                    'Column': column['name'],
+                    'Type': str(column['type']),
+                    'Description': ''  # Add your descriptions here
+                }
+                schema_with_descriptions.append(column_info)
+
+        df = pd.DataFrame(schema_with_descriptions)
+        print("Data Formed--------->", df)
+
+        excel_buffer = io.BytesIO()
+        df.to_excel(excel_buffer, engine='openpyxl', index=False)
+        excel_buffer.seek(0)
+        excel_filename = 'schema.xlsx'
+        blob_name = f"{folder_name_azure}/{excel_filename}"
+        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+        blob_client.upload_blob(
+            excel_buffer,
+            blob_type="BlockBlob",
+            content_settings=ContentSettings(
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            overwrite=True
+        )
+        print("File uploaded Successfully!!")
+        excel_file_path = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{session['env_map']}/{session['login_pin']}/{excel_filename}"
+        print("File-path----------->", excel_file_path)
+        g.flag=1
+        elapsed_time = time.time() - start_time
+        logger.info(f'Fetched data from database in {elapsed_time} seconds')
+        emit('excel_response', {'message':'Schema uploaded successfully ','url': excel_file_path})
+
+    except Exception as ex:
+        print(ex)
+        g.flag=0
+        emit('excel_response',{'message':'Unable to connect with database'})
+
+
+@socketio.on('eda_excel_to_json')
+def excel_to_json():
+
+    file_list=['schema.json','schema.xlsx','schema.xlx']
+    container_client_ = blob_service_client.get_container_client(container_name)
+    blob_list = container_client_.list_blobs()
+    for blob in blob_list:
+        if blob.name.split('/')[-1].split('_')[-1] in file_list:
+            print("yes")
+            if blob.name.split('/')[-1].split('_')[-1]=='schema.json':
+                emit('excel_to_json', {'message': 'Schema received'})
+
+
+            else:
+                if(blob['last_modified']!=blob['creation_time']):
+                    excel_file_path = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{session['env_map']}/{session['login_pin']}/{blob.name.split('/')[-1]}"
+
+                    excel_file = pd.read_excel(excel_file_path)
+                    json_data = excel_file.to_json(orient='records', indent=4)
+
+                    folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
+                    blob_name = f"{folder_name_azure}/{blob.name.split('/')[-1].split('_schema')[0]}_{'schema.json'}"
+                    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+                    blob_client.upload_blob(
+                        json_data,
+                        blob_type="BlockBlob",
+                        content_settings=ContentSettings(
+                            content_type="application/json"),
+                        overwrite=True
+                    )
+
+                emit('excel_to_json',{'message':'Json Schema  created'})
+
+
+@socketio.on('eda_db_process')
+def question_answer_on_structure_data(data):
+    start_time = time.time()
+    database_name=data['database_name'].strip()
+
+    database_details = DatabaseDetailsSave.query.filter_by(login_pin=session['login_pin'],db_name=database_name).first()
+    db_user = database_details.username
+    db_password = database_details.password
+    db_host = database_details.hostname
+    db_name = database_details.db_name
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
     file_name = f"query_results_{timestamp}.csv"
 
     try:
-        db = SQLDatabase.from_uri(conn_string)
-    except Exception as ex:
-        print(ex)
-        g.flag = 0
-        logger.error(f"Error in connecting with database: {ex}", exc_info=True)
-        emit('eda_db_response',
-             {'message': "Database connection issue. Error in db connection no sql query generated!!"})
-        # return "Database connection issue.", "Error in db connection no sql query generated!!"
-
-    try:
         query_input = data.get('query_input')
-        template_text = """
-                Activity Table:
-                    - Call_ID(Integer): Unique identifier for each call.
-                    - Rep_ID(Integer): Identifier for the representative making the call.
-                    - Doc_ID(Integer): Identifier for the doctor receiving the call.
-                    - Date(Date): The date of the call.
-                    - Product_ID(Integer): Identifier for the product discussed.
-                    - Call_Duration_min(Integer): Duration of the call in minutes.
-                    - Outcome(Text): Description of the call outcome.
+        print("question_passed------>", query_input)
 
-                Rep Table:
-                    - Rep_ID(Integer): Unique identifier for each representative.
-                    - Rep_Name(Text): Name of the representative.
+        container_client_ = blob_service_client.get_container_client(container_name)
+        blob_list = container_client_.list_blobs()
 
-                Doctors Table:
-                    - Doc_ID(Integer): Unique identifier for each doctor.
-                    - Doc_Name(Text): Name of the doctor.
-                    - Specialty(Text): Medical specialty of the doctor.
+        expected_filename = f'{database_name}_schema.json'
+        file_found=False
+        for blob in blob_list:
+            if blob.name.split('/')[-1].endswith(expected_filename):
+                file_found=True
 
-                Sales Table:
-                    - Sales_ID(Integer): Unique identifier for each sales transaction.
-                    - Doc_ID(Integer): Identifier for the doctor associated with the sales transaction.
-                    - Date(Date): The date of the sales transaction.
-                    - Product_ID(Integer): Identifier for the product sold.
-                    - Sales(Integer): Amount of sales.
-
-                Natural Language Query Example: "Show me the total sales amount for each product discussed by Rep ID 1 in the last year."
-
-                Generated SQL Query Example:
-                    SELECT a.Product_ID, SUM(s.Sales) AS Total_Sales FROM Activity a JOIN Sales s ON a.Doc_ID = s.Doc_ID AND a.Date = s.Date AND a.Product_ID = s.Product_ID WHERE a.Rep_ID = 1 AND a.Date >= DATEADD(year, -1, GETDATE()) GROUP BY a.Product_ID;
-
-                Instructions for the LLM:
-                    Given the above database schema, convert the following natural language query into an SQL query:
-                        Answer the following questions as best you can. You have access to the following tools:
-                        {tools}
-                        Question: the input question you must answer
-                        Thought: you should always think about what to do
-                        Action: the action to take, should be one of [{tool_names}]
-                        Action Input: the input to the action
-                        Observation: the result of the action
-                        ... (this Thought/Action/Action Input/Observation can repeat N times)
-                        Thought: I now know the final answer
-                        Final Answer: the final answer to the original input question
-
-                        Begin!
-
-                        Question: {input}
-                        Thought:{agent_scratchpad}
-
-        """
-
-        template = PromptTemplate(
-            input_variables=["query_input"],
-            template=template_text,
-            # tool_names = ,
-            # tools =
-        )
-
-        llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
-
-        toolkit = SQLDatabaseToolkit(db=db, llm=llm, )
-        agent_executor = create_sql_agent(
-            llm=llm,
-            toolkit=toolkit,
-            verbose=True,
-            # prompt = template,
-            agent_executor_kwargs={"return_intermediate_steps": True, "handle_parsing_errors": True}
-        )
-
-        response = agent_executor.invoke(query_input)
-        print(response['output'])
-        queries = []
-        for (log, output) in response["intermediate_steps"]:
-            if log.tool == 'sql_db_query':
-                queries.append(log.tool_input)
-        print(queries)
-
-        if queries[-1] and queries[-1] != response['output']:
-            conn = mysql.connector.connect(
-                host=db_host,
-                user=db_user,
-                password=db_password,
-                database=db_name,
-                # port=port
+        if file_found==True:
+            schema_json = (
+                f"https://{blob_service_client.account_name}.blob.core.windows.net/"
+                f"{container_name}/cognilink-{session['env_map']}/"
+                f"{session['login_pin']}/{expected_filename}"
             )
 
-            cursor = conn.cursor()
-            cursor.execute(queries[-1])
-            columns = [desc[0] for desc in cursor.description]
-            results = cursor.fetchall()
-            cursor.close()
-            conn.close()
 
-            df = pd.DataFrame(results, columns=columns)
-            csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
-            csv_buffer.seek(0)
+            if schema_json:
+                json_link = requests.get(schema_json)
+                json_schema = json_link.json()
+                schema_str = "\n".join([
+                f"Table: {entry['Table']}, Column: {entry['Column']}, Type: {entry['Type']}, Description: {entry['Description']}"
+                for entry in json_schema])
 
-            blob_name = f"{folder_name_azure}/{file_name}"
-            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client.upload_blob(
-                csv_buffer.getvalue(),
-                blob_type="BlockBlob",
-                content_settings=ContentSettings(content_type="text/csv"),
-                overwrite=True
-            )
 
-            container_client = blob_service_client.get_container_client(container_name)
-            blob_list = container_client.list_blobs()
-            for blob in blob_list:
-                if file_name in blob.name:
-                    csv_file_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
-                    g.flag = 1
-                    logger.info(f'CSV File URL: {csv_file_url}')  # Log the draft URL
-                    # emit('draft_response', {'url': csv_file_url})
-                else:
-                    g.flag = 0
-                    logger.error('CSV file URL not found!')
+            template = '''Based on the database schema:
+                    {schema}
+                    write a SQL query that would answer the user question. Return only the SQL query:
+    
+                    Question: "{question}"
+    
+                    SQL QUERY:
+                    '''
+            prompt = PromptTemplate.from_template(template)
 
-            elapsed_time = time.time() - start_time
-            g.flag = 1
-            logger.info(f'Fetched data from database in {elapsed_time} seconds')
+            def format_prompt(data):
+                return prompt.format(schema=data['schema'], question=data['question'])
 
-            emit('eda_query_success', {'message': 'Data fetched and uploaded successfully.'})
-            emit('eda_db_response', {'output': response['output'], 'query': queries[-1], 'url': csv_file_url})
+            llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
+            write_query_chain = (RunnablePassthrough()
+                                 | format_prompt
+                                 | llm
+                                 )
+            query_generated = write_query_chain.invoke({"schema": schema_str, "question": query_input})
+            query_to_run = query_generated.content
+            print("Query To Run---------->", query_to_run)
+
+            if query_to_run:
+                conn = mysql.connector.connect(
+                        host=db_host,
+                        user=db_user,
+                        password=db_password,
+                        database=db_name,
+                )
+
+                cursor = conn.cursor()
+                cursor.execute(query_to_run)
+
+                columns = [desc[0] for desc in cursor.description]
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+
+                answer_prompt = PromptTemplate.from_template(
+                    """Given the following  user question,corresponding sql query,and sql result 
+                    you have to formulate the sql result in an human friendly way.
+                    Question:{question}
+                    SQL Query:{query}
+                    SQL Result:{result}
+                    Answer:"""
+                )
+                llm_chain = LLMChain(prompt=answer_prompt, llm=llm)
+                answer = llm_chain.invoke({"question": query_input, "query": query_to_run, "result": results})
+                print("Answer----------------->", answer['text'])
+
+                df = pd.DataFrame(results, columns=columns)
+                df_table = df.head(5).to_html(index=False)
+                csv_buffer = io.StringIO()
+                df.to_csv(csv_buffer, index=False)
+                csv_buffer.seek(0)
+
+                blob_name = f"{folder_name_azure}/{file_name}"
+                blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+                blob_client.upload_blob(
+                    csv_buffer.getvalue(),
+                    blob_type="BlockBlob",
+                    content_settings=ContentSettings(content_type="text/csv"),
+                    overwrite=True
+                )
+
+                container_client_ = blob_service_client.get_container_client(container_name)
+                blob_list = container_client_.list_blobs()
+                for blob in blob_list:
+                    if file_name in blob.name:
+                        csv_file_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
+                        g.flag = 1
+                        logger.info(f'CSV File URL: {csv_file_url}')  # Log the draft URL
+                        emit('eda_db_response', {'output': answer['text'], 'query': query_to_run, 'url': csv_file_url, 'df_table': df_table})
+                    else:
+                        g.flag = 0
+                        logger.error('CSV file URL not found!')
+
+                elapsed_time = time.time() - start_time
+                g.flag = 1
+                logger.info(f'Fetched data from database in {elapsed_time} seconds')
+                emit('eda_query_success', {'message': 'Data fetched and uploaded successfully.'})
+
+            else:
+                g.flag = 0
+                logger.error("Error in db connection no sql query generated!!")
+                emit('eda_db_response', {'message': "Error in db connection no sql query generated!!"})
 
         else:
-            g.flag = 0
-            logger.error("Error in db connection no sql query generated!!")
-            emit('eda_db_response', {'message': "Error in db connection no sql query generated!!"})
-        # return response['output'], queries[-1]
+            emit('eda_db_response',{'message':f"No json file found for {database_name}"})
     except Exception as ex:
         print(ex)
         g.flag = 0
@@ -3995,17 +2987,18 @@ def question_answer_on_structure_data(data):
 def query_table_update():
     try:
         start_time = time.time()
-        # Your code to fetch draft data from storage
-        container_client = blob_service_client.get_container_client(container_name)
-        blob_list = container_client.list_blobs(
+        # Code to fetch draft data from storage
+        container_client_ = blob_service_client.get_container_client(container_name)
+        blob_list = container_client_.list_blobs(
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
 
         blobs = []
         for blob in blob_list:
-            if blob.name.split('/')[2].endswith('.csv'):
-                # Fetch draftType from metadata
-                # blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
-                # draft_type = blob_client.get_blob_properties().metadata.get('draftType', 'Unknown')
+            if (blob.name.split('/')[2].endswith('.csv') or
+                    blob.name.split('/')[2].endswith('.xlsx') or
+                    blob.name.split('/')[2].endswith('.xlscd') or
+                    blob.name.split('/')[2].endswith('.xls') or
+                    blob.name.split('/')[2].endswith('.json')):
                 blobs.append({
                     'name': blob.name.split('/')[-1],
                     'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
@@ -4016,17 +3009,124 @@ def query_table_update():
             elapsed_time = time.time() - start_time
             g.flag = 1  # Set flag to 1 on success
             logger.info(f"query_table_update route successfully sent data in {elapsed_time} seconds")
-        socketio.emit('updateTable', blobs)
+        # socketio.emit('updateAnalystTable', blobs)
         return jsonify(blobs)
+
     except Exception as e:
         g.flag = 0  # Set flag to 0 on error
         logger.error(f"query_table_update route error", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
+@app.route("/", methods=["GET", "POST"])
+def home():
+    # print("request.url------>", request.base_url)
+    global logger
+    role_names = UserRole.query.with_entities(UserRole.name.distinct()).all()
+
+    if request.method == "POST":
+        pin = request.form.get('authpin')
+        group_user = request.form.get('Grp_usr')
+        engine = request.form.get('engine')
+        print(group_user, pin, engine)
+
+        role_id_mapping = {'Admin': 1, 'Guest': 2, 'ML Engine': 3}
+        role_id = role_id_mapping.get(group_user)
+        user_role = UserRole.query.filter_by(role_id=role_id).first()
+        user = UserDetails.query.filter_by(role_id=role_id, login_pin=pin, status='Active').first()
+
+        if role_id is not None and user_role and user:
+            log_out_forall()
+            session.modified = True
+            session['logged_in'] = True
+            # taking base url
+            session['env_map'] = env_mapping_dict.get(request.base_url)
+            session['login_pin'] = user.login_pin
+            session['user_name'] = f"{user.first_name.title()} {user.last_name.title()}"
+            session['engine'] = engine
+            session['bar_chart_ss'] = {}
+            session['over_all_readiness'] = 0
+            session['total_success_rate'] = 0
+            session['MB'] = 0.0
+            session['total_files_list'] = 0
+            session['successful_list'] = 0
+            session['failed_list'] = 0
+            session['progress_list'] = 0
+            session['lda_topics_summ'] = {}
+            session['lda_topics_Q_A'] = {}
+            session['senti_Positive_summ'] = 0
+            session['senti_Negative_summ'] = 0
+            session['senti_neutral_summ'] = 0
+            session['senti_Positive_Q_A'] = 0
+            session['senti_Negative_Q_A'] = 0
+            session['senti_neutral_Q_A'] = 0
+            session['chat_history_qa'] = []
+            session['summary_add'] = []
+            # Lists to store progress of files loading
+            session['embedding_not_created'] = []
+            session['failed_files'] = []
+            session['progress_files'] = []
+            session['stop_flag'] = []
+            session['database_name']=[]
+
+            folder_name = os.path.join('static', 'login', str(session['login_pin']))
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name)
+
+            if 'login_pin' in session:
+                logger = setup_csv_logger(session['login_pin'])
+            else:
+                g.flag = 0
+                logger.error("User Session Not Found!", exc_info=True)
+
+            logger = CustomLoggerAdapter(logger, {'user_id': session['login_pin']})
+            create_or_pass_folder(container_client, session)
+            folder_files = os.path.join('static', 'files', str(session['login_pin']))
+            if not os.path.exists(folder_files):
+                os.makedirs(folder_files)
+
+            g.flag = 1
+            logger.info(f"User {str(session['login_pin'])} {session['user_name']} logged in successfully")
+            update_bar_chart_from_blob(session, blob_service_client, container_name)
+            create_or_update_index()
+
+            return jsonify({'redirect': url_for('data_source')})
+
+        g.flag = 0
+        flash('Invalid credentials! Please try again.', 'error')
+        return jsonify({'redirect': url_for('home')})
+
+    return render_template('login.html', role_names=role_names)
+
+
+# Route for logout button
+@app.route('/logout')
+def logout():
+    log_out_forall()
+    flash('You have been successfully logged out!', 'success')
+    return redirect(url_for('home'))
+
+
+@app.route('/data_source', methods=['GET', 'POST'])
+def data_source():
+    update_bar_chart_from_blob(session, blob_service_client, container_name)
+    return render_template('datasource.html')
+
+
+@app.route('/Ask_Question', methods=['GET', 'POST'])
+def ask():
+    return render_template('ask.html')
+
+
+@app.route("/Summary", methods=['GET', 'POST'])
+def summary():
+    session['summary_word_count'] = 0
+    return render_template('summary.html')
+
+
 @app.route('/Virtual_Analyst', methods=['GET', 'POST'])
 def virtual_analyst():
-    return render_template('Virtual_Analyst.html')
+    return render_template('virtual_analyst.html')
 
 
 @app.route('/signup')
@@ -4036,7 +3136,7 @@ def signup():
 
 @app.route('/file_manager')
 def file_manager():
-    return render_template('webCrawl_file_manager.html')
+    return render_template('webcrawl_file_manager.html')
 
 
 if __name__ == '__main__':

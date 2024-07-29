@@ -7,12 +7,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const socket = io();
 
     socket.on('connect', () => {
-        console.log('Connected to server');
+        // console.log('Connected to server');
         fetchPDFFiles();
     });
 
     socket.on('pdf_files', (data) => {
-        console.log(data); // Check the data received
+        // console.log(data); // Check the data received
         displayPDFFiles(data.pdf_files);
     });
 
@@ -34,14 +34,14 @@ function fetchPDFFiles() {
 
     // Listen for the 'pdf_files' event from the server
     socket.on('pdf_files', function(data) {
-        console.log(data); // Check the data received
+        // console.log(data); // Check the data received
         displayPDFFiles(data.pdf_files); // Pass the received data to displayPDFFiles
         socket.disconnect(); // Disconnect Socket.IO connection after receiving data
     });
 
     // Handle any errors
     socket.on('connect_error', function(error) {
-        console.error('Error connecting to server:', error);
+        // console.error('Error connecting to server:', error);
     });
 }
 
@@ -117,7 +117,7 @@ function uploadSelectedFiles() {
         const fileName = row.dataset.fileName;
         row.remove();
 
-        console.log('File name:', fileName);
+        // console.log('File name:', fileName);
 
         // Send a request to the Flask Socket.IO endpoint
         socket.emit('delete_pdf_file', {
@@ -129,21 +129,21 @@ function uploadSelectedFiles() {
             setTimeout(function() {
                 $('#messagedelopload').text('');
             }, 8000);
-            console.log(data.message);
+            // console.log(data.message);
         });
     });
 }
 
 function deletefilelocal() {
     const deletePopup = document.getElementsByName('deletepopupn3')[0].getAttribute('name');
-    console.log(deletePopup);
+    // console.log(deletePopup);
     const selectedRows = document.querySelectorAll('#pdfTable tbody tr.selected');
     selectedRows.forEach(row => {
         const fileName = row.dataset.fileName; // Get the file name from the row's data attribute
         row.remove();
 
         // Print the file name before sending the request
-        console.log('File name:', fileName);
+        // console.log('File name:', fileName);
 
         // Send a request to Flask route
         socket.emit('delete_pdf_file', {
@@ -157,7 +157,7 @@ function deletefilelocal() {
         setTimeout(function() {
             $('#messagedelopload').text('');
         }, 8000); // Clear the message after 8 seconds
-        console.log(data.message);
+        // console.log(data.message);
     });
 
 }

@@ -2,46 +2,59 @@
 var modal = document.getElementById("myModal");
 var span = document.getElementsByClassName("close")[0];
 var socket = io();
-
+let databaseName='';
+let selectedDB='';
 // Select Files to load
-socket.on('updateTable', function(data) {
-    var fileList = document.getElementById("fileList");
-
-    // Clear the fileList dropdown before adding new options
-    fileList.innerHTML = '';
-
-    // Creating a default db option
-    var option = document.createElement("option");
-    option.text = 'Select Data';
-    option.value = 'select';
-    fileList.appendChild(option);
-
-    const option2 = document.createElement("option");
-    option2.text = 'Use Database';
-    option2.value = 'database';
-    fileList.appendChild(option2);
-
-
-    var filteredData = data.filter(function(file) {
-        var fileExtension = file.name.split('.').pop().toLowerCase();
-        return fileExtension === 'xlsx' || fileExtension === 'csv';
+document.addEventListener('DOMContentLoaded', (event) => {
+    
+    socket.on('connect', function() {
+        console.log('Connected to the server');
     });
 
-    filteredData.forEach(function(file) {
-        var option = document.createElement("option");
-        option.text = file.name;
-        option.value = file.url;
-        fileList.appendChild(option);
+    socket.on('updateAnalystTable', function(data) {
+        var fileList = document.getElementById("fileList");
+
+        // Clear the fileList dropdown before adding new options
+        fileList.innerHTML = '';
+
+        // Creating a default 'select data' option
+        var option1 = document.createElement("option");
+        option1.text = 'Select Data';
+        option1.value = 'select';
+        fileList.appendChild(option1);
+
+        
+        data.database_name.forEach(function(db) {
+            var option2 = document.createElement("option");
+            console.log(db);
+            option2.text = `Use Database: ${db}`;
+            option2.value =`database:${db}` ;  // Use the database name as the value
+            databaseName = db;
+            console.log(db);
+            fileList.appendChild(option2);
+        });
+
+
+        var filteredData = data.blobs.filter(function(file) {
+            var fileExtension = file.name.split('.').pop().toLowerCase();
+            return fileExtension === 'xlsx' || fileExtension === 'csv';
+        });
+
+        filteredData.forEach(function(file) {
+            var option = document.createElement("option");
+            option.text = file.name;
+            option.value = file.url;
+            fileList.appendChild(option);
+        });
     });
 });
 
 function table_data_retrieve() {
     modal.style.display = "block";
-    $.ajax({
-        url: '/table_update',
-        type: 'GET',
-        success: function(data) {
-        }
+    // Listen for the 'table_update' event from the server
+    socket.on('table_update', function(data) {
+        // Handle the data received from the server
+        console.log(data); 
     });
 }
 
@@ -73,7 +86,11 @@ function loadData() {
         document.getElementById('message').textContent = '';
     }, 8000);
 
-    if(selectedFileUrl!='database'){
+    if(selectedFileUrl == 'select'){
+        alert('Please select the data!')
+    }
+
+    else if(!selectedFileUrl.startsWith('database:')){
         // Emit the eda_process event with the selected file URL
         socket.emit('eda_process', { fileUrl: selectedFileUrl });
 
@@ -86,18 +103,19 @@ function loadData() {
             document.getElementById('message').textContent = response.message;
         });
     }
-    else if(selectedFileUrl == 'database'){
+    else if(selectedFileUrl.startsWith('database:')){
         closeModal();
-        document.getElementById('message').textContent = 'Database Selected';
-    }
-    else{
-        alert('Please select the data!')
+        let dbName = selectedFileUrl.split(':')[1];
+        console.log(dbName);
+        selectedDB=dbName;
+        document.getElementById('message').textContent = `${dbName} Selected`;
     }
 }
 
 // Function to clear the chat content
 function clearChat() {
   document.getElementById('eda_questionAnswer').innerHTML = '';
+  document.getElementById('question_eda').value = '';
   $('#message').text('Chat cleared successful.');
   setTimeout(function() {
     $('#message').text('');
@@ -109,11 +127,11 @@ function sendQuestion() {
     const question = document.getElementById('question_eda').value;
     var selectedFileUrl = document.getElementById("fileList").value;
 
-    if(selectedFileUrl=='database'){
+    if(selectedFileUrl.startsWith('database:')){
         $("#waitImg").show(); // Show the loading image
 
         // Emit the 'eda_db_process' event with the question data
-        socket.emit('eda_db_process', {'query_input': question });
+        socket.emit('eda_db_process', {'query_input': question,'database_name':selectedDB });
 
         socket.on('eda_query_success', (data) =>{
             $("#waitImg").hide(); // Hide the loading image on success
@@ -128,8 +146,7 @@ function sendQuestion() {
             setTimeout(function() {
                 $('#message').text('');
             }, 8000); //delete after 8 seconds
-            console.log(data);
-            document.getElementById('eda_questionAnswer').innerHTML = `<p></p><b>Output:</b> ${data.output} <br><p></p> <b>Query:</b> ${data.query}<p></p> <b>Results:</b> <a href="${data.url}">Download Query Results</a>`;
+            document.getElementById('eda_questionAnswer').innerHTML = `<p></p><b>Output:</b> ${data.output} <br><p></p> <b>Query:</b> ${data.query}<p></p> ${data.df_table} <p></p> <b>Results:</b> <a href="${data.url}">Download Query Results</a>`;
             updateQueryTable();
         })
         updateQueryTable();
@@ -204,13 +221,12 @@ function sendQuestion() {
 
         // Handle errors
         socket.on('connect_error', (error) => {
-            console.error('Connection Error:', error);
+            // console.error('Connection Error:', error);
             $("#waitImg").hide();
             document.getElementById('eda_questionAnswer').textContent = 'Failed to send question';
         });
     }
 }
-
 
 function updateQueryTable(searchTerm) {
     $.ajax({
@@ -330,7 +346,7 @@ function deleteVaultFiles() {
 
 socket.on('delete_selected_file_response', function(msg){
     updateQueryTable();
-    console.log(msg)
+    // console.log(msg);
 });
 
 // Delete files from Vault
@@ -344,19 +360,43 @@ function deleteFile(fileNames) {
         data: JSON.stringify({ file_names: fileNames }),
         dataType: 'json',
         success: function(response) {
-            console.log(response.message) // Log success message
+            // console.log(response.message) // Log success message
             // Optionally, update UI or do something else after successful deletion
             updateQueryTable(); // Refresh the table after deletion
             $("#waitImg_del").hide(); // Show the loading image
         },
         error: function(xhr, status, error) {
-            console.error('Error deleting files:', error);
+            // console.error('Error deleting files:', error);
         }
     });
 }
 
+function closeUserModal(){
+    document.getElementById('userGuide').style.display = 'none';
+}
+
+
+// // Configurations setup
+// document.addEventListener('DOMContentLoaded', function() {
+//     socket.emit('eda_db_setup');
+//     socket.on('excel_response', (response) =>{
+//         if (response.message){
+//             console.log(response.url);
+//             document.getElementById('message').innerHTML = '<p>' + response.message + '</p>';
+//             setTimeout(function () {
+//                 document.getElementById('message').innerHTML = '';
+//             }, 5000);
+//             updateQueryTable();
+//             document.getElementById('userGuide').style.display = 'block';
+//         }
+//     });
+    
+
+// });
+
 // Virtual Analyst Voice Record Button
 document.addEventListener('DOMContentLoaded', function() {
+
     let recognition;
     const outputDiv = document.getElementById('message');
     const recordButton = document.getElementById('recordButton');
@@ -380,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function startRecording() {
         let SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
         if (!SpeechRecognition) {
-            console.error('Speech recognition not supported in this browser');
+            // console.error('Speech recognition not supported in this browser');
             outputDiv.textContent = 'Speech recognition not supported in this browser';
             clearTimeout(timeoutId); // Clear any existing timeout
             timeoutId = setTimeout(() => {
@@ -403,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         recognition.onerror = function(event) {
-            console.error('Speech recognition error:', event.error);
+            // console.error('Speech recognition error:', event.error);
         };
 
         recognition.onend = function() {
@@ -423,3 +463,85 @@ document.addEventListener('DOMContentLoaded', function() {
         recordButton.style.display = show ? 'block' : 'none';
     }
 });
+
+// function triggerFileInput() {
+//     const fileInput = document.getElementById('fileInput');
+//     fileInput.click();
+//     fileInput.onchange = uploadFile;
+// }
+
+function uploadFile() {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    var files;
+    
+    if (!file) {
+        alert('No file selected!');
+        return;
+    }
+
+    if (fileInput && fileInput.files.length > 0) {
+        files = fileInput.files;
+    } else {
+        files = []; // Placeholder action
+    }
+
+    var formData = new FormData();
+    formData.append('sizeValue',200);
+    for (var i = 0; i < files.length; i++) {
+        formData.append('myFile', files[i]);
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/popup_form');
+    console.log('popup form');
+    xhr.onload = function () {
+        if (xhr.status === 200) {
+            console.log('route called');
+            var response = JSON.parse(xhr.responseText);
+            document.getElementById('message').innerHTML = '<p>' + response.message + '</p>';
+            setTimeout(function () {
+                document.getElementById('message').innerHTML = '';
+            }, 8000);
+            $("#waitImg").hide(); // Hide the loading image on success
+            updateQueryTable();
+        } else {
+            var response = JSON.parse(xhr.responseText);
+            document.getElementById('message').innerHTML = '<p>' + response.message + '</p>';
+            setTimeout(function () {
+                document.getElementById('message').innerHTML = '';
+            }, 8000);
+            updateQueryTable();
+            $("#waitImg").hide(); // Hide the loading image on failure
+        }
+    };
+    xhr.send(formData);
+    document.getElementById('fileInput').value='';
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const data = event.target.result;
+
+        if (file.type === 'application/json') {
+            handleJSON(data);
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.type === 'application/vnd.ms-excel') {
+            handleExcel(data);
+        } else {
+            alert('Unsupported file type!');
+        }
+    };
+
+    reader.readAsBinaryString(file);
+   
+    
+}
+
+function handleJSON(data) {
+    const jsonData = JSON.parse(data);
+    console.log('JSON Data:', jsonData);
+}
+
+function handleExcel(data) {
+    const workbook = XLSX.read(data, { type: 'binary' });
+    console.log('Excel Data:', workbook);
+}

@@ -1,3 +1,7 @@
+const socket=io();
+var pin = localStorage.getItem('pin');
+socket.emit('table_update');
+
 // Progress Bar update
 function updateProgressBar(percentage) {
     const progressBar = document.getElementById('waitImg');
@@ -6,15 +10,13 @@ function updateProgressBar(percentage) {
     progressBar.setAttribute('width', percent);
     progressBar.innerText = percentage + '% ';
 }
-    
 
 function sendQuestion() {
-    const socket = io();
     var question = document.getElementById("question").value.trim(); // Trim the question
-    var source = document.getElementById("selectSource").value; 
+    var source = document.getElementById("selectSource").value;
 
-    if (source==='default'){
-        alert('Please select a source!')
+    if (source === 'default') {
+        alert('Please select a source!');
         return;
     }
 
@@ -29,36 +31,82 @@ function sendQuestion() {
     socket.on('progress', function(data) {
         if (data.pin === pin) {
             updateProgressBar(data.percentage);
-            console.log(data.percentage);
+            // console.log(data.percentage);
         }
     });
-
     socket.on('response', function(response) {
         updateProgressBar(100);
-        console.log('100');
+        // Hide the wait image after a delay
         setTimeout(() => {
             document.getElementById("waitImg").style.display = 'none';
         }, 1500);
-
-        if (response.message) {
-            document.getElementById('message').innerText = response.message;
-            setTimeout(function() {
-                document.getElementById('message').innerText = '';
-            }, 8000); // delete after 8 seconds
-        }
 
         // Display chat history
         var historyContainer = document.getElementById("questionAnswer");
         historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
 
         var historyList = document.getElementById("chatHistoryList");
-        response.chat_history.forEach(function(item) {
+        var chatHistory = response.chat_history;
+
+        // Find the item with the maximum id
+        var latestItem = chatHistory.reduce((maxItem, currentItem) =>
+            currentItem.index > maxItem.index ? currentItem : maxItem, chatHistory[0]);
+
+        chatHistory.forEach(function(item) {
+            // Create a list item for each history entry
             var listItem = document.createElement('li');
-            listItem.innerHTML = "<strong>Question:</strong> " + item.question + "<br>" +
-                "<strong>Answer:</strong> " + item.answer + "<br>" +
-                "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong> </a>";
+            // Set the question part
+            var question = "<b>" + "Question: " + "</b>" + item.question;
+
+            // Create a source link element
+            var sourceLink = "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong></a>";
+
+            // Create a preformatted text element
+            var preElement = document.createElement('pre');
+            preElement.classList.add('formatted-pre');
+
+            // Set CSS properties for overflow handling
+            preElement.style.whiteSpace = 'pre-wrap'; // Allows text to wrap
+            preElement.style.overflowX = 'hidden';    // Hides horizontal overflow
+            preElement.style.overflowY = 'auto';      // Allows vertical overflow
+            preElement.style.fontFamily = 'Times New Roman'; // Set font to Times New Roman
+            preElement.style.fontSize ='16px';
+
+            // Append the preformatted text element to the list item
+            listItem.appendChild(preElement);
             historyList.appendChild(listItem);
+
+            if (item.index === latestItem.index) {
+                // Handle the latest answer to be displayed word by word
+                preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>";
+
+
+                var words = item.answer.split(' ');
+                var word_index = 0;
+
+                var intervalId = setInterval(() => {
+                    if (word_index < words.length) {
+                        var wordSpan = document.createElement('span');
+                        wordSpan.innerText = words[word_index] + ' ';
+                        preElement.appendChild(wordSpan);
+                        word_index++;
+                    } else {
+                        clearInterval(intervalId);
+                        var sourceElement = document.createElement('div');
+                        sourceElement.innerHTML = sourceLink + "\n\n";
+                        preElement.appendChild(sourceElement);
+                        // Attach event listener to the dynamically added source link
+                        sourceElement.querySelector('.source-link').addEventListener('click', function () {
+                        openPopup(this.getAttribute('data-source').split(','), this.getAttribute('data-page').split(','));
+                        });
+                    }
+                }, 50); // Adjust the interval time (50ms) to control the speed of word display
+            } else {
+                // Handle previous answers to be displayed all at once
+                preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>" + item.answer + "<br>" + sourceLink + "\n\n";
+            }
         });
+
 
         // Attach event listeners to source links
         document.querySelectorAll('.source-link').forEach(function(link) {
@@ -67,21 +115,59 @@ function sendQuestion() {
             });
         });
 
+        // Follow-up question
+        var follow_up_question = document.getElementById("followUp");
+        follow_up_question.innerHTML = ""; // Clear previous follow-up question
+        if(response.follow_up === 'N/A'){
+           follow_up_question.style.display='none';
+        } else{
+            var followup_list = document.createElement('p');
+            follow_up_question.style.display='block';
+            follow_up_question.appendChild(followup_list);
+            followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + response.follow_up + "</button><br>";
+
+            // Attach event listener to follow-up button
+            document.getElementById('followUpButton').addEventListener('click', function() {
+                // Ensure response.follow_up is defined and replace the specified string
+                if (response && response.follow_up) {
+                    var strippedString = response.follow_up.replace("Do you also want to know", "").replace("Do you also want to know about", "");
+                    document.getElementById("question").value = strippedString.trim();
+                    sendQuestion(); // Call sendQuestion again with the follow-up question
+                } else {
+                    // console.error("response.follow_up is not defined");
+                }
+            });
+        }
         document.getElementById("question").value = ""; // Clear the question input
     });
 }
 
 function openFileInNewTab(url) {
     try {
-        // Ensure URL is fully encoded
-        var encodedUrl = encodeURIComponent(url.trim());
-        var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodedUrl;
-        console.log('Opening URL:', googleDocsUrl);
-        var win = window.open(googleDocsUrl, '_blank');
-        if (win) {
-            win.focus();
-        } else {
-            console.error("Failed to open new tab. Popup blocker might be enabled.");
+        const pattern = /https:\/\/.+\/https:\/\/.+/;
+        // console.log(url);
+        const match = url.match(pattern);
+        if(match){
+            const extractedUrl = match[0].split('https://').slice(2).join('https://');
+            const finalUrl = `https://${extractedUrl}`;
+            var win = window.open(finalUrl, '_blank');
+            if (win) {
+                win.focus();
+            } else {
+                console.error("Failed to open new tab. Popup blocker might be enabled.");
+            }
+        }
+        else{
+            // Ensure URL is fully encoded
+            var encodedUrl = encodeURIComponent(url.trim());
+            var googleDocsUrl = 'https://docs.google.com/viewer?url=' + encodedUrl;
+            // console.log('Opening URL:', googleDocsUrl);
+            var win = window.open(googleDocsUrl, '_blank');
+            if (win) {
+                win.focus();
+            } else {
+                console.error("Failed to open new tab. Popup blocker might be enabled.");
+            }
         }
     } catch (e) {
         console.error("Error opening file in new tab:", e);
@@ -90,7 +176,7 @@ function openFileInNewTab(url) {
 
 
 function openPopup(sources, pageNumbers) {
-    console.log("Opening popup with sources:", sources, "and page numbers:", pageNumbers);
+    // console.log("Opening popup with sources:", sources, "and page numbers:", pageNumbers);
 
     // Create the popup div
     var popupDiv = document.createElement('div');
@@ -98,7 +184,13 @@ function openPopup(sources, pageNumbers) {
 
     // Create the content div
     var popupContent = document.createElement('div');
+    var tableContent = document.createElement('div');
     popupContent.classList.add('popup-content');
+    tableContent.classList.add('table-content');
+    tableContent.style.maxHeight  = '500px'; // Allows text to wrap
+    tableContent.style.whiteSpace = 'pre-wrap'; // Allows text to wrap
+    tableContent.style.overflowX = 'hidden';    // Hides horizontal overflow
+    tableContent.style.overflowY = 'auto';      // Allows vertical overflow (optional)
 
     // Create the close button
     var closeButton = document.createElement('span');
@@ -124,7 +216,22 @@ function openPopup(sources, pageNumbers) {
 
     // Function to extract file name from URL
     function extractFileName(url) {
-        return url.split('/').pop();
+        // Regular expression to find the URL after the changeable part
+        const pattern = /https:\/\/.+\/https:\/\/.+/;
+
+        // Search for the pattern in the input string
+        const match = url.match(pattern);
+
+        if (match) {
+            // Extract the URL part after the last occurrence of 'https://'
+            const extractedUrl = match[0].split('https://').slice(2).join('https://');
+            // console.log("Extracted URL:", `https://${extractedUrl}`);
+            return extractedUrl;
+        }
+        else{
+            return url.split('/').pop();
+        }
+        
     }
 
     // Create and append the source rows
@@ -136,7 +243,12 @@ function openPopup(sources, pageNumbers) {
         var fileName = extractFileName(sources[i]);  // Extract the file name from the URL
 
         sourceLink.href = 'javascript:void(0)';  // Prevent default link behavior
-        sourceLink.textContent = fileName;
+        if(fileName.length>40){
+            sourceLink.textContent = fileName.substring(0, 40) + '...';
+        }
+        else{
+            sourceLink.textContent = fileName;
+        }
 
         // Add event listener to open the file in Google Viewer
         sourceLink.addEventListener('click', (function(url) {
@@ -155,7 +267,8 @@ function openPopup(sources, pageNumbers) {
 
     // Append the close button and table to the popup content
     popupContent.appendChild(closeButton);
-    popupContent.appendChild(table);
+    tableContent.appendChild(table);
+    popupContent.appendChild(tableContent);
 
     // Append the content to the popup div
     popupDiv.appendChild(popupContent);
@@ -170,11 +283,10 @@ function openPopup(sources, pageNumbers) {
 
 // Clear Chat
 function clearChat() {
-    const socket=io();
     socket.emit('clear_chat');
 
     socket.on('chat_cleared', function(data) {
-        console.log('response', data);
+        // console.log('response', data);
         $('#message').text(data.message);
         setTimeout(function() {
             $('#message').text('');
@@ -182,20 +294,20 @@ function clearChat() {
 
         if (data.message === 'Chat history cleared successfully') {
             var historyContainer = document.getElementById("questionAnswer");
+            var followup_list = document.getElementById("followUp");
             historyContainer.innerHTML = "";
+            followup_list.innerHTML = "";
         } else {
             alert("An error occurred while clearing chat history.");
         }
     });
 }
 
-const socket=io();
-var pin = localStorage.getItem('pin');
 
 socket.on('lda_topics_QA', function(data) {
     // Only update the UI if the data is for the current user
     if (data.pin === pin) {
-        console.log('Received LDA keywords:', data); // Debug
+        // console.log('Received LDA keywords:', data); // Debug
 
         // let htmlString = '';
         if (Array.isArray(data.keywords)) {
@@ -214,7 +326,6 @@ socket.on('lda_topics_QA', function(data) {
 
     // Overall Readiness Chart
     $(document).ready(function() {
-        const socket = io();
         const ctx2 = $("#readiness_chart").get(0).getContext("2d");
         const myChart2 = new Chart(ctx2,{
             type: "pie",
@@ -262,9 +373,11 @@ socket.on('lda_topics_QA', function(data) {
 
         // Function to update readiness chart
         function updateReadinessChart(data) {
+            // console.log(data);
+            var left = 100 - data.x;
             myChart2.data.datasets[0].data = [
                 data.x,
-                100 - data.x
+                left.toFixed(2)
             ];
             myChart2.update(); // Refresh the chart
         }
@@ -272,7 +385,6 @@ socket.on('lda_topics_QA', function(data) {
 
     // Ask Q/A Sentiment Chart
     $(document).ready(function() {
-        const socket = io();
 
         var ctx3 = $("#ask_qa_senti_chart").get(0).getContext("2d");
         var myChart3 = new Chart(ctx3, {
@@ -325,7 +437,7 @@ socket.on('lda_topics_QA', function(data) {
             plugins: [ChartDataLabels]
         });
 
-        socket.on('analyze_sentiment_Q_A', function(data) {
+        socket.on('analyze_sentiment_q_a', function(data) {
             // updateSummaryBarChart(data);
             if(data.pin==pin){
                 updateSummaryBarChart(data);
@@ -410,4 +522,3 @@ document.addEventListener('DOMContentLoaded', function() {
         recordButton.style.display = show ? 'block' : 'none';
     }
 });
-

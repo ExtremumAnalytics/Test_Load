@@ -1,11 +1,16 @@
 const socket = io();
 var pin = localStorage.getItem('pin');
+socket.emit('table_update');
+
+
 // Generate Summary Button
 document.addEventListener('DOMContentLoaded', function() {
     const fetchSummaryBtn = document.getElementById('fetchSummaryBtn');
     const summaryList = document.getElementById('summaryList');
     const slider = document.getElementById("mySlider");
     const valueBox = document.querySelector(".value-box");
+    const displayedSummaries = new Set(); // To keep track of displayed summaries
+    let errorMessages = [];
 
     function updateProgressBar(percentage) {
         $("#waitImg").css("width", percentage + "%");
@@ -23,45 +28,108 @@ document.addEventListener('DOMContentLoaded', function() {
         updateProgressBar(0);
         const summary_que = document.getElementById('summary_que').value; // Get the value of the input field
         
+        // Clear previous summaries and errors
+        clearOldData();
+
         socket.emit('summary_input', { summary_que: summary_que, value: slider.value });
     });
 
     socket.on('summary_response', function(data) {
-        console.log(data); // Add this line to check the structure of the data
-        displaySummaries(data);
-        $("#waitImg").hide(); // Hide the loading image on success
-        $('#message').text(data.message);
-        setTimeout(function() {
-            $('#message').text('');
-        }, 8000); // Clear message after 8 seconds
+        // Check if data contains errors
+        if (data.errors) {
+            errorMessages = data.errors;
+        } else if (Array.isArray(data) && data.length > 0) {
+            displaySummaries(data);
+        }
+
+        if (data.message) {
+            $('#message').text(data.message);
+            setTimeout(function() {
+                $('#message').text('');
+            }, 8000); // Clear message after 8 seconds
+        }
+        updateImage();
+
+        // Display errors at the bottom
+        if (errorMessages.length > 0) {
+            displayErrors(errorMessages);
+            errorMessages = []; // Clear error messages after displaying
+        }
     });
 
     socket.on('progress', function(data) {
-        if(data.pin==pin){
+        if(data.pin == pin){
             updateProgressBar(data.percentage);
-        } 
+        }
+        if(data.percentage == 100){
+            $("#waitImg").hide(); // Hide the loading image on success
+            updateImage();
+            socket.emit('table_update');
+        }
     });
-    
-    function displaySummaries(summaries) {
-        var summary = document.getElementById('summaryContainer');
-        summary.innerHTML = ''; // Assuming summaryContainer is the container element
 
-        // Check if summaries is an array
-        if (Array.isArray(summaries)) {
+    function clearOldData() {
+        const summaryContainer = document.getElementById('summaryContainer');
+        const errorContainer = document.getElementById('errorContainer');
+        summaryContainer.innerHTML = ''; // Clear the summary container
+        errorContainer.innerHTML = ''; // Clear the error container
+        displayedSummaries.clear(); // Clear the set of displayed summaries
+    }
+
+    function displaySummaries(summaries) {
+        const summaryContainer = document.getElementById('summaryContainer');
+
+        // Create or select the existing unordered list element
+        let list = summaryContainer.querySelector('ul');
+        if (!list) {
+            list = document.createElement('ul');
+            summaryContainer.appendChild(list);
+        }
+
+        summaries.forEach(summary => {
+            // Check if the summary has already been displayed
+            const summaryKey = `${summary.key}:${summary.value}`;
+            if (!displayedSummaries.has(summaryKey)) {
+                const listItem = document.createElement('li'); // Create a list item element
+                list.appendChild(listItem); // Append the list item to the list
+
+                const words = `<b>${summary.key}</b>: ${summary.value.replace(/- /g, "<br>- ")}`.split(' ');
+                let wordIndex = 0;
+
+                function typeWord() {
+                    if (wordIndex < words.length) {
+                        listItem.innerHTML += words[wordIndex] + ' ';
+                        wordIndex++;
+                        setTimeout(typeWord, 50); // Adjust the delay as needed (50ms in this case)
+                    } else {
+                        listItem.innerHTML += '<p></p>'; // Add the paragraph break after the summary
+                    }
+                }
+                typeWord(); // Start the typing effect
+                displayedSummaries.add(summaryKey); // Add to the set of displayed summaries
+            }
+        });
+    }
+
+    function displayErrors(errors) {
+        const errorContainer = document.getElementById('errorContainer');
+
+        if (Array.isArray(errors) && errors.length > 0) {
+            const errorHeader = document.createElement('h6');
+            errorHeader.textContent = "Errors occurred in the following files:";
+            errorContainer.appendChild(errorHeader);
+
             const list = document.createElement('ul'); // Create an unordered list element
 
-            summaries.forEach(summary => {
+            errors.forEach(error => {
                 const listItem = document.createElement('li'); // Create a list item element
-                
-                listItem.innerHTML = `<b>${summary.key}</b>: ${summary.value.replace(/- /g, "<br>- ")}`;
+                listItem.innerHTML = `<b>Error</b>: ${error}`;
                 list.appendChild(listItem); // Append the list item to the list
             });
 
-            summary.appendChild(list); // Append the list to the container
-            updateImage();
+            errorContainer.appendChild(list); // Append the list to the container
         } else {
-            // Handle the case where summaries is not an array (e.g., log an error)
-            console.error('Invalid data format. Expected an array.');
+            console.error('Invalid error data format. Expected an array.');
         }
     }
 });
@@ -75,9 +143,11 @@ function updateImage() {
 
 // Function to clear the chat summary using Socket.IO
 function clear_summ_Chat() {
-
+    
     // Emit event to the server to clear chat history
     socket.emit('clear_chat_summ', {});
+    socket.emit('table_update');
+
 }
 
 // Handle the response from the server
@@ -86,23 +156,26 @@ socket.on('clear_chat_response', function(data) {
     setTimeout(function() {
         $('#message').text('');
     }, 8000); // Clear message after 8 seconds
+    updateImage();
 
     // Clear the chat history container
     var historyContainer = document.getElementById("summaryContainer");
     historyContainer.innerHTML = "";
+    var errorContainer = document.getElementById("errorContainer");
+    errorContainer.innerHTML = "";
 });
 
 
 socket.on('lda_topics_summ', function(data) {
     if (data.pin === pin) {
-        console.log('Received LDA keywords:', data); // Debug
+        // console.log('Received LDA keywords:', data); // Debug
 
         // let htmlString = '';
         if (Array.isArray(data.keywords)) {
             let htmlString = data.keywords.map(keyword => `<span style="color: #0D076A">${keyword}</span>`).join(', ');
             document.getElementById('ldaSummText').innerHTML = htmlString;
         } else {
-            console.error('Expected an array of keywords, but received:', data.keywords);
+            // console.error('Expected an array of keywords, but received:', data.keywords);
         }
     }
 });
@@ -127,9 +200,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Handle the response from the server
   socket.on('cogservice_response', (data) => {
       if (data.message) {
-          console.log(data.message); // Log success message
+        //   console.log(data.message); // Log success message
       } else if (data.error) {
-          console.error(data.error); // Log error message
+        //   console.error(data.error); // Log error message
       }
   });
 });
@@ -159,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function startRecording() {
         let SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
         if (!SpeechRecognition) {
-            console.error('Speech recognition not supported in this browser');
+            // console.error('Speech recognition not supported in this browser');
             outputDiv.textContent = 'Speech recognition not supported in this browser';
             clearTimeout(timeoutId); // Clear any existing timeout
             timeoutId = setTimeout(() => {
@@ -182,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         recognition.onerror = function(event) {
-            console.error('Speech recognition error:', event.error);
+            // console.error('Speech recognition error:', event.error);
         };
 
         recognition.onend = function() {
@@ -213,8 +286,8 @@ function updateImage() {
     image.src = "../static/login/"+ pin +"/wordcloud.png?t=" + timestamp;
 }
 
-// Call updateImage function every 5 seconds
-setInterval(updateImage, 5000);
+// // Call updateImage function every 5 seconds
+// setInterval(updateImage, 5000);
 
 // Loading Updated wordcloud image
 document.addEventListener('DOMContentLoaded', function() {
@@ -242,135 +315,3 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(fullImageOverlay);
     });
 });
-
-(function ($) {
-
-    //Overall Readiness Chart
-    $(document).ready(function() {
-        const socket = io();
-        const ctx2 = $("#readiness_chart").get(0).getContext("2d");
-        const myChart2 = new Chart(ctx2,{
-            type: "pie",
-            data: {
-                labels: ['Total Readiness', 'Data Left'],
-                datasets: [{
-                    backgroundColor: [
-                        "rgba(0, 156, 255, 0.7)",
-                        "rgba(156, 0, 255, 0.7)",
-                        "rgba(0, 0, 255, 0.7)",
-                        "rgba(0, 0, 255, 0.1)",
-                    ],
-                    borderWidth: 1,
-                    circumference: 180,
-                    rotation : 270,
-                    aspectRatio : 2,
-                    borderRadius:8,
-                    cutout: 95,
-                    data: [75,25]
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: true
-                    },
-                    datalabels: {
-                        color: '#ffffff',
-                        display: true,
-                        align: 'center',
-                        anchor: 'center'
-                    }
-                }
-            },
-            plugins: [ChartDataLabels]
-        });
-
-        socket.on('update_gauge_chart', function(data) {
-            // updateReadinessChart(data);
-            if(data.pin==pin){
-                updateReadinessChart(data);
-                console.log(data);
-            }
-        });
-
-        // Function to update readiness chart
-        function updateReadinessChart(data) {
-            myChart2.data.datasets[0].data = [
-                data.x,
-                100 - data.x
-            ];
-            myChart2.update(); // Refresh the chart
-        }
-    });
-
-    // Summary Page Sentiment Bar Chart
-    $(document).ready(function() {
-        const socket = io();
-
-        var ctx3 = $("#sentiment_chart").get(0).getContext("2d");
-        var myChart3 = new Chart(ctx3, {
-            type: 'bar',
-            data: {
-                labels: ["Positive", "Negative", "Neutral"],
-                datasets: [{
-                    backgroundColor: [
-                        "rgba(0, 156, 255, 0.7)",
-                        "rgba(0, 156, 255, 0.5)",
-                        "rgba(0, 156, 255, 0.3)"
-                    ],
-                    data: [0, 0, 0]  // Start with empty data, which will be updated dynamically
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                scales: {
-                    x: {
-                        ticks: {
-                            beginAtZero: true,
-                            callback: function(value) {
-                                return value + "%"; // Appends a '%' sign after each value on the x-axis
-                            }
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    datalabels: {
-                        color: '#000',
-                        formatter: (value, ctx3) => {
-                            let sum = 0;
-                            let dataArr = ctx3.chart.data.datasets[0].data;
-                            dataArr.map(data => {
-                                sum += data;
-                            });
-                            let percentage = (value*100 / sum).toFixed(2)+"%";
-                            return percentage;
-                        },
-                        display: true,
-                        align: 'right',
-                        anchor: 'center'
-                    }
-                }
-            },
-            plugins: [ChartDataLabels]
-        });
-
-        socket.on('analyze_sentiment_summ', function(data) {
-            if(data.pin==pin){
-                updateSummaryBarChart(data);
-            }
-        });
-
-        // Function to update sentiment chart
-        function updateSummaryBarChart(data) {
-            myChart3.data.datasets[0].data = data.values;
-            myChart3.data.labels = data.labels;
-            myChart3.update(); // Refresh the chart
-        }
-    });
-
-})(jQuery);

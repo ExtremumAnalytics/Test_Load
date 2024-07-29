@@ -36,7 +36,6 @@ unstructured==0.11.8
 networkx==3.2.1
 openpyxl==3.1.2
 docx2txt==0.8
-faiss-cpu==1.7.4
 typing_extensions==4.9.0
 tzdata==2023.4
 urllib3==2.1.0
@@ -78,3 +77,8 @@ fpdf==1.7.2
 python-docx==1.1.0
 Flask[async]
 PyMySQL
+nltk~=3.8.1
+pandas~=1.5.3
+matplotlib~=3.8.3
+msrest~=0.7.1
+duckduckgo-search==6.2.1
