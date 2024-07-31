@@ -655,7 +655,7 @@ document.getElementById('dbForm').onsubmit = async (event) => {
         }, 8000); // Clear message after 8 seconds
         updateTable();
         $("#waitImg").hide(); 
-        pdfclosePopup()
+        pdfclosePopup();
         document.getElementById('userGuide').style.display = 'block';
     });  
 };

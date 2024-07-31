@@ -20,6 +20,7 @@ import tempfile
 # For Virtual Analyst DB integration
 from langchain.sql_database import SQLDatabase
 from langchain.chains import create_sql_query_chain
+from sqlalchemy import create_engine, inspect
 
 # sentiment and word cloud use only
 import nltk
