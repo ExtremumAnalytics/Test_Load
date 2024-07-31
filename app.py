@@ -10,7 +10,7 @@ import asyncio
 import pytz
 from werkzeug.utils import secure_filename
 
-from azure.search.documents._generated.models import SearchMode
+from azure.search.documents._generated.models import SearchMode, VectorizedQuery
 from azure.search.documents.indexes._generated.models import SemanticConfiguration, SemanticPrioritizedFields, \
     SemanticField, SemanticSearch, ScoringProfile, TextWeights
 from flask import Flask, jsonify, url_for, flash
@@ -99,7 +99,7 @@ import io
 
 # Import folder file
 from EA.Database.database import db, create_all_tables
-from EA.Database.database import UserRole, UserDetails, ChatHistory
+from EA.Database.database import UserRole, UserDetails, ChatHistory, DatabaseDetailsSave
 from EA.Config.configuration import (blob_service_client, container_client, computervision_client, embeddings, vector_store_address, vector_store_password, container_name, main_key)
 from EA.Logger.logging import setup_csv_logger, CustomLoggerAdapter
 from EA.Interrupt.flag import check_stop_flag, write_stop_flag_to_csv, read_stop_flag_from_csv
@@ -384,7 +384,11 @@ def update_when_file_delete():
             blob.name.endswith('.png') or
             blob.name.endswith('.text') or
             blob.name.endswith('.jpeg') or
-            blob.name.endswith('.mp3'))]
+            blob.name.endswith('.mp3') or
+            blob.name.endswith('.json')or
+            blob.name.endswith('_schema.xls')or
+            blob.name.endswith('_schema.xlsx')
+    )]
 
     # Update session counts for CSV files directly
     csv_files_count = len(all_blobs_list) - len(blob_list)
@@ -1333,6 +1337,14 @@ def handle_connect():
                     for chat in chat_history_from_db]
     emit('chat_history', {'chat_history': chat_history[::-1]})
 
+    database_details = DatabaseDetailsSave.query.filter_by(login_pin=session['login_pin']).all()
+    database = [{"database_name": chat.db_name,}
+                    for chat in database_details]
+    db_name = set()
+    for db in database:
+        db_name.add(db['database_name'])
+        print("Database Names:------------------>", db['database_name'])
+    print("set:------------------>", db_name)
     # Code to fetch draft data from storage
     container_client_ = blob_service_client.get_container_client(container_name)
     blob_list = container_client_.list_blobs(
@@ -1350,7 +1362,8 @@ def handle_connect():
                 # 'draftType': draft_type,
                 'status': 'Uploaded'  # or other status based on your logic
             })
-    emit('updateAnalystTable', blobs)
+
+    emit('updateAnalystTable', {'blobs':blobs, 'database_name': list(db_name)})
 
 
 @socketio.on('send_data')
@@ -1537,95 +1550,129 @@ def run_query(data):
     port = data['port']
     username = data['username']
     password = data['password']
-    query = data['query']
-    database = 'master'
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    database_name =data['db_name']
+    session['database_name'].append(database_name)
     folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
-    file_name = f"query_results_{timestamp}.csv"
+    start_time = time.time()
 
-    try:
-        start_time = time.time()
+    new_chat = DatabaseDetailsSave(
+        login_pin=session['login_pin'],
+        database_type=db_type,
+        hostname=hostname,
+        db_name=database_name,
+        port=port,
+        username=username,
+        password=password,
+    )
+    db.session.add(new_chat)
+    db.session.commit()
 
-        if db_type == 'MySQL':
-            conn = mysql.connector.connect(
-                host=hostname,
-                user=username,
-                password=password,
-                port=port,
-                database="extremum-db"
-            )
-            cursor = conn.cursor()
-            cursor.execute(query)
-            columns = [desc[0] for desc in cursor.description]
-            results = cursor.fetchall()
-            cursor.close()
-            conn.close()
+    if db_type == 'MySQL':
+        try:
+            conn_string = f"mysql+pymysql://{username}:{password}@{hostname}:{port}/{database_name}"
 
-            df = pd.DataFrame(results, columns=columns)
-            csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
-            csv_buffer.seek(0)
+            engine = create_engine(conn_string)
+            inspector = inspect(engine)
 
-            blob_name = f"{folder_name_azure}/{file_name}"
-            blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client_.upload_blob(
-                csv_buffer.getvalue(),
+            schema_with_descriptions = []
+
+            for table_name in inspector.get_table_names():
+                for column in inspector.get_columns(table_name):
+                    column_info = {
+                        'Table': table_name,
+                        'Column': column['name'],
+                        'Type': str(column['type']),
+                        'Description': ''  # Add your descriptions here
+                    }
+                    schema_with_descriptions.append(column_info)
+
+            df = pd.DataFrame(schema_with_descriptions)
+
+            excel_buffer = io.BytesIO()
+            df.to_excel(excel_buffer, engine='openpyxl', index=False)
+            excel_buffer.seek(0)
+            excel_filename = f'{database_name}_schema.xlsx'
+            blob_name = f"{folder_name_azure}/{excel_filename}"
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            blob_client.upload_blob(
+                excel_buffer,
                 blob_type="BlockBlob",
-                content_settings=ContentSettings(content_type="text/csv"),
+                content_settings=ContentSettings(
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
                 overwrite=True
             )
-            elapsed_time = time.time() - start_time
+            excel_file_path = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{session['env_map']}/{session['login_pin']}/{excel_filename}"
             g.flag = 1
-            logger.info(f'Fetched MySQL Data in {elapsed_time} seconds')
-            emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
-
-        elif db_type == 'MongoDB':
-            client = pymongo.MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
-            db = client[database]
-            result = db.command('eval', query)
-
             elapsed_time = time.time() - start_time
-            g.flag = 1
-            logger.info(f'Fetched MongoDB Data in {elapsed_time} seconds')
-            emit('query_success', {'message': 'Data fetched and uploaded successfully.', 'result': str(result)})
+            logger.info(f'Fetched data from database in {elapsed_time} seconds')
+            emit('excel_response', {'message': f'Database {database_name} connected successfully!! ', 'url': excel_file_path})
 
-        elif db_type == 'SQLServer':
-            conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE=master;UID={username};PWD={password};TrustServerCertificate=yes;'
-            conn = pyodbc.connect(conn_str)
-            cursor = conn.cursor()
-            cursor.execute(query)
-            columns = [desc[0] for desc in cursor.description]
-            results = cursor.fetchall()
-            cursor.close()
-            conn.close()
-
-            df_data = pd.DataFrame(results, columns=columns)
-            csv_buffer = io.StringIO()
-            df_data.to_csv(csv_buffer, index=False)
-            csv_buffer.seek(0)
-
-            blob_name = f"{folder_name_azure}/{file_name}"
-            blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client_.upload_blob(
-                csv_buffer.getvalue(),
-                blob_type="BlockBlob",
-                content_settings=ContentSettings(content_type="text/csv"),
-                overwrite=True
-            )
-            elapsed_time = time.time() - start_time
-            g.flag = 1
-            logger.info(f'Fetched SQL Server Data in {elapsed_time} seconds')
-            emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
-
-        else:
+        except Exception as ex:
+            print(ex)
             g.flag = 0
-            logger.error('Unsupported database type or connection error.')
-            emit('query_error', {'error': 'Unsupported database type or connection error'})
+            emit('excel_response', {'message': 'Unable to connect with database'})
 
-    except Exception as e:
+    elif db_type == 'MongoDB':
+        client = pymongo.MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
+        # db = client[database_name]
+        # # result = db.command('eval',query)
+        #
+        # elapsed_time = time.time() - start_time
+        # g.flag = 1
+        # logger.info(f'Fetched MongoDB Data in {elapsed_time} seconds')
+        # emit('query_success', {'message': 'Data fetched and uploaded successfully.', 'result': str(result)})
+
+    elif db_type == 'SQLServer':
+        conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE={database_name};UID={username};PWD={password};TrustServerCertificate=yes;'
+        try:
+            engine = create_engine(conn_str)
+            inspector = inspect(engine)
+            print("Information-------------->", inspector)
+
+            schema_with_descriptions = []
+
+            for table_name in inspector.get_table_names():
+                for column in inspector.get_columns(table_name):
+                    column_info = {
+                        'Table': table_name,
+                        'Column': column['name'],
+                        'Type': str(column['type']),
+                        'Description': ''  # Add your descriptions here
+                    }
+                    schema_with_descriptions.append(column_info)
+
+            df = pd.DataFrame(schema_with_descriptions)
+            print("Data Formed--------->", df)
+
+            excel_buffer = io.BytesIO()
+            df.to_excel(excel_buffer, engine='openpyxl', index=False)
+            excel_buffer.seek(0)
+            excel_filename = f'{database_name}_schema.xlsx'
+            blob_name = f"{folder_name_azure}/{excel_filename}"
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            blob_client.upload_blob(
+                excel_buffer,
+                blob_type="BlockBlob",
+                content_settings=ContentSettings(
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                overwrite=True
+            )
+            upload_time=time.time()
+            excel_file_path = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{session['env_map']}/{session['login_pin']}/{excel_filename}"
+            g.flag = 1
+            elapsed_time = time.time() - start_time
+            logger.info(f'Fetched data from database in {elapsed_time} seconds')
+            emit('excel_response', {'message': 'Schema uploaded successfully ', 'url': excel_file_path,'upload time':upload_time})
+
+        except Exception as ex:
+            print(ex)
+            g.flag = 0
+            emit('excel_response', {'message': 'Unable to connect with database'})
+
+    else:
         g.flag = 0
-        logger.error('Unsupported database type', exc_info=True)
-        emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
+        logger.error('Unsupported database type or connection error.')
+        emit('excel_response', {'error': 'Unsupported database type or connection error'})
 
 
 @socketio.on('stop_process')
@@ -1965,7 +2012,13 @@ def handle_ask_question(data):
             )
 
             # Perform the search
-            results = search_client.search(search_text=question_embeddings, select="*", top=5)
+            results = search_client.search(search_text=question_embeddings,
+                                           select="*",
+                                           top=5,
+                                           vector_queries=[VectorizedQuery(vector=question_embeddings,
+                                                                           k_nearest_neighbors=5,
+                                                                            fields="content_vector")]
+                                           )            
             documents = []
             for result in results:
                 doc = {
@@ -2656,115 +2709,173 @@ def handle_eda_process(data):
         emit('eda_response', {'message': f'Error occurred while EDA process: {str(e)}', 'success': False})
 
 
+@socketio.on('eda_excel_to_json')
+def excel_to_json():
+
+    file_list=['schema.json','schema.xlsx','schema.xlx']
+    container_client_ = blob_service_client.get_container_client(container_name)
+    blob_list = container_client_.list_blobs()
+    for blob in blob_list:
+        if blob.name.split('/')[-1].split('_')[-1] in file_list:
+            print("yes")
+            if blob.name.split('/')[-1].split('_')[-1]=='schema.json':
+                emit('excel_to_json', {'message': 'Schema received'})
+
+
+            else:
+                if(blob['last_modified']!=blob['creation_time']):
+                    excel_file_path = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{session['env_map']}/{session['login_pin']}/{blob.name.split('/')[-1]}"
+
+                    excel_file = pd.read_excel(excel_file_path)
+                    json_data = excel_file.to_json(orient='records', indent=4)
+
+                    folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
+                    blob_name = f"{folder_name_azure}/{blob.name.split('/')[-1].split('_schema')[0]}_{'schema.json'}"
+                    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+                    blob_client.upload_blob(
+                        json_data,
+                        blob_type="BlockBlob",
+                        content_settings=ContentSettings(
+                            content_type="application/json"),
+                        overwrite=True
+                    )
+
+                emit('excel_to_json',{'message':'Json Schema  created'})
+
+
 @socketio.on('eda_db_process')
 def question_answer_on_structure_data(data):
     start_time = time.time()
+    database_name=data['database_name'].strip()
 
-    db_user = "extremumadmin"
-    db_password = "Welcome!#34"
-    db_host = "extremum-mysql-db.mysql.database.azure.com"
-    db_name = "extremum-db"
-    conn_string = f"mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}"
+    database_details = DatabaseDetailsSave.query.filter_by(login_pin=session['login_pin'],db_name=database_name).first()
+    db_user = database_details.username
+    db_password = database_details.password
+    db_host = database_details.hostname
+    db_name = database_details.db_name
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
     file_name = f"query_results_{timestamp}.csv"
 
     try:
-
-        sql_db = SQLDatabase.from_uri(conn_string)
         query_input = data.get('query_input')
-        # print("question_passed--------->", query_input)
-        schema = sql_db.get_table_info()
-        # print("Schema----->", schema)
-        template = '''Based on the table schema:{schema} write a sql query that would answer user questions.return only sql query:
-        Question: "{question}"
+        print("question_passed------>", query_input)
 
-        SQL QUERY:
-        '''
-        prompt = PromptTemplate.from_template(template)
+        container_client_ = blob_service_client.get_container_client(container_name)
+        blob_list = container_client_.list_blobs()
 
-        # format_prompt=prompt.format(schema=schema,question=query_input)
-        # print("PROMPT AFTER FORMATTING--------->",format_prompt)
+        expected_filename = f'{database_name}_schema.json'
+        file_found=False
+        for blob in blob_list:
+            if blob.name.split('/')[-1].endswith(expected_filename):
+                file_found=True
 
-        def format_prompt(data):
-            return prompt.format(schema=data['schema'], question=data['question'])
-
-        llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
-        write_query_chain = (RunnablePassthrough()
-                             | format_prompt
-                             | llm
-                             )
-        # write_query = create_sql_query_chain(llm, sql_db)
-        query_generated = write_query_chain.invoke({"schema": schema, "question": query_input})
-        # print("Query generated---------->", query_generated)
-        query_to_run = query_generated.content
-        # print("Query To Run---------->", query_to_run)
-
-        if query_to_run:
-            conn = mysql.connector.connect(
-                host=db_host,
-                user=db_user,
-                password=db_password,
-                database=db_name,
+        if file_found==True:
+            schema_json = (
+                f"https://{blob_service_client.account_name}.blob.core.windows.net/"
+                f"{container_name}/cognilink-{session['env_map']}/"
+                f"{session['login_pin']}/{expected_filename}"
             )
 
-            cursor = conn.cursor()
-            cursor.execute(query_to_run)
 
-            columns = [desc[0] for desc in cursor.description]
-            results = cursor.fetchall()
-            cursor.close()
-            conn.close()
+            if schema_json:
+                json_link = requests.get(schema_json)
+                json_schema = json_link.json()
+                schema_str = "\n".join([
+                f"Table: {entry['Table']}, Column: {entry['Column']}, Type: {entry['Type']}, Description: {entry['Description']}"
+                for entry in json_schema])
 
-            answer_prompt = PromptTemplate.from_template(
-                """Given the following  user question,corresponding sql query,and sql result 
-                you have to formulate the sql result in an human friendly way.
-                Question:{question}
-                SQL Query:{query}
-                SQL Result:{result}
-                Answer:"""
-            )
-            llm_chain = LLMChain(prompt=answer_prompt, llm=llm)
-            answer = llm_chain.invoke({"question": query_input, "query": query_to_run, "result": results})
-            # print("Answer----------------->", answer['text'])
 
-            df = pd.DataFrame(results, columns=columns)
-            df_table = df.head(5).to_html(index=False)
-            csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
-            csv_buffer.seek(0)
+            template = '''Based on the database schema:
+                    {schema}
+                    write a SQL query that would answer the user question. Return only the SQL query:
+    
+                    Question: "{question}"
+    
+                    SQL QUERY:
+                    '''
+            prompt = PromptTemplate.from_template(template)
 
-            blob_name = f"{folder_name_azure}/{file_name}"
-            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client.upload_blob(
-                csv_buffer.getvalue(),
-                blob_type="BlockBlob",
-                content_settings=ContentSettings(content_type="text/csv"),
-                overwrite=True
-            )
+            def format_prompt(data):
+                return prompt.format(schema=data['schema'], question=data['question'])
 
-            container_client_ = blob_service_client.get_container_client(container_name)
-            blob_list = container_client_.list_blobs()
-            for blob in blob_list:
-                if file_name in blob.name:
-                    csv_file_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
-                    g.flag = 1
-                    logger.info(f'CSV File URL: {csv_file_url}')  # Log the draft URL
-                    emit('eda_db_response', {'output': answer['text'], 'query': query_to_run, 'url': csv_file_url, 'df_table': df_table})
-                else:
-                    g.flag = 0
-                    logger.error('CSV file URL not found!')
+            llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
+            write_query_chain = (RunnablePassthrough()
+                                 | format_prompt
+                                 | llm
+                                 )
+            query_generated = write_query_chain.invoke({"schema": schema_str, "question": query_input})
+            query_to_run = query_generated.content
+            print("Query To Run---------->", query_to_run)
 
-            elapsed_time = time.time() - start_time
-            g.flag = 1
-            logger.info(f'Fetched data from database in {elapsed_time} seconds')
-            emit('eda_query_success', {'message': 'Data fetched and uploaded successfully.'})
+            if query_to_run:
+                conn = mysql.connector.connect(
+                        host=db_host,
+                        user=db_user,
+                        password=db_password,
+                        database=db_name,
+                )
+
+                cursor = conn.cursor()
+                cursor.execute(query_to_run)
+
+                columns = [desc[0] for desc in cursor.description]
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+
+                answer_prompt = PromptTemplate.from_template(
+                    """Given the following  user question,corresponding sql query,and sql result 
+                    you have to formulate the sql result in an human friendly way.
+                    Question:{question}
+                    SQL Query:{query}
+                    SQL Result:{result}
+                    Answer:"""
+                )
+                llm_chain = LLMChain(prompt=answer_prompt, llm=llm)
+                answer = llm_chain.invoke({"question": query_input, "query": query_to_run, "result": results})
+                print("Answer----------------->", answer['text'])
+
+                df = pd.DataFrame(results, columns=columns)
+                df_table = df.head(5).to_html(index=False)
+                csv_buffer = io.StringIO()
+                df.to_csv(csv_buffer, index=False)
+                csv_buffer.seek(0)
+
+                blob_name = f"{folder_name_azure}/{file_name}"
+                blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+                blob_client.upload_blob(
+                    csv_buffer.getvalue(),
+                    blob_type="BlockBlob",
+                    content_settings=ContentSettings(content_type="text/csv"),
+                    overwrite=True
+                )
+
+                container_client_ = blob_service_client.get_container_client(container_name)
+                blob_list = container_client_.list_blobs()
+                for blob in blob_list:
+                    if file_name in blob.name:
+                        csv_file_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
+                        g.flag = 1
+                        logger.info(f'CSV File URL: {csv_file_url}')  # Log the draft URL
+                        emit('eda_db_response', {'output': answer['text'], 'query': query_to_run, 'url': csv_file_url, 'df_table': df_table})
+                    else:
+                        g.flag = 0
+                        logger.error('CSV file URL not found!')
+
+                elapsed_time = time.time() - start_time
+                g.flag = 1
+                logger.info(f'Fetched data from database in {elapsed_time} seconds')
+                emit('eda_query_success', {'message': 'Data fetched and uploaded successfully.'})
+
+            else:
+                g.flag = 0
+                logger.error("Error in db connection no sql query generated!!")
+                emit('eda_db_response', {'message': "Error in db connection no sql query generated!!"})
 
         else:
-            g.flag = 0
-            logger.error("Error in db connection no sql query generated!!")
-            emit('eda_db_response', {'message': "Error in db connection no sql query generated!!"})
+            emit('eda_db_response',{'message':f"No json file found for {database_name}"})
     except Exception as ex:
         print(ex)
         g.flag = 0
@@ -2787,7 +2898,8 @@ def query_table_update():
             if (blob.name.split('/')[2].endswith('.csv') or
                     blob.name.split('/')[2].endswith('.xlsx') or
                     blob.name.split('/')[2].endswith('.xlscd') or
-                    blob.name.split('/')[2].endswith('.xls')):
+                    blob.name.split('/')[2].endswith('.xls') or
+                    blob.name.split('/')[2].endswith('.json')):
                 blobs.append({
                     'name': blob.name.split('/')[-1],
                     'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
