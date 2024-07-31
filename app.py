@@ -2968,6 +2968,7 @@ def home():
             session['failed_files'] = []
             session['progress_files'] = []
             session['stop_flag'] = []
+            session['database_name']=[]
 
             folder_name = os.path.join('static', 'login', str(session['login_pin']))
             if not os.path.exists(folder_name):
