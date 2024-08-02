@@ -70,8 +70,7 @@ class DatabaseDetailsSave(db.Model):
     password = db.Column(db.Text, nullable=False)
     db_name = db.Column(db.Text,nullable=False,unique=True)
     created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
- 
- 
+
 # Function to create all tables
 def create_all_tables(app):
     with app.app_context():
