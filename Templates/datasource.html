@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>CogniLink</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="" name="keywords">
+    <meta content="" name="description">
+
+    <!-- EA logo -->
+    <link href="static/img/ea_symbol.png" style="width: 20px; height: 15px;" rel="icon">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="{{ url_for('static', filename='api/Google_web_fonts.css') }}" rel="stylesheet">
+
+    <!-- Icon Font Stylesheet -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="static/api/Icon_font.js"></script>
+
+    <!-- jQuery UI CSS -->
+    <link href="{{ url_for('static', filename='api/jquery-ui.css') }}" rel="stylesheet">
+
+    <!-- jQuery and jQuery UI JS -->
+    <script src="static/api/jquery-ui.js"></script>
+
+    
+    <!-- Socket IO library -->
+    <script src="static/api/socketio.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+
+
+
+    <!-- Libraries Stylesheet -->
+    <link href="{{ url_for('static', filename='lib/owlcarousel/assets/owl.carousel.min.css')}}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='lib/tempusdominus/css/tempusdominus-bootstrap-4.min.css')}}" rel="stylesheet" />
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+
+    <!-- Template Stylesheet -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container-xxl position-relative bg-white d-flex p-0">
+        <!-- Sidebar Start -->
+        <div class="sidebar pe-4 pb-2">
+            <nav class="navbar">
+                <a href="{{url_for('data_source')}}" class="navbar-brand mx-2 mb-2">
+                    <img class="logo" src="static/img/ea_logo.png" alt="EA Logo">
+                </a>
+                <ul class="navbar-nav">
+                    <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-database"></i>Data Source</a></li>
+                    <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-question-circle"></i>Ask Question</a></li>
+                    <li><a href="{{url_for('summary')}}" class="nav-link"><i class="fa fa-list-alt"></i>Summary</a></li>
+                    <li><a href="{{url_for('virtual_analyst')}}" class="nav-link"><i class="fa fa-chart-bar"></i>Virtual Analyst</a></li>
+                    <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-chart-pie"></i>Virtual Data Scientist</a></li>
+                </ul>
+            </nav>
+        </div>
+        <!-- Sidebar End -->
+
+
+        <!-- Content Start -->
+        <div class="content">
+            <!-- Navbar Start -->
+            <nav class="navbar navbar-expand bg-light navbar-light sticky-top px-4 py-0">
+                <a href="{{url_for('data_source')}}" class="navbar-brand d-flex d-lg-none me-4">
+                    <h2 class="text-primary mb-0"><img src="static/img/ea_symbol.png" style="width: 35px; height: 30px;"></h2>
+                </a>
+                <a href="#" class="sidebar-toggler flex-shrink-0">
+                    <i class="fa fa-bars"></i>
+                </a>
+                <form class="d-none d-md-flex ms-4">
+                    <input class="form-control border-0" type="search" placeholder="Search">
+                </form>
+                <div class="navbar-nav align-items-center ms-auto">
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                            <img class="rounded-2 me-lg-2" src="static/img/ea_symbol.png" alt="" style="width: 35px; height: 25px;">
+                            <span id="userName" class="d-none d-lg-inline-flex">
+                            </span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
+                            <a href="#" class="dropdown-item">My Profile</a>
+                            <a href="#" class="dropdown-item">Settings</a>
+                            <a href="{{url_for('logout')}}" class="dropdown-item">Log Out</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            <!-- Navbar End -->
+
+            <!-- Welcome container with halt button -->
+            <div class="container-welcome mt-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="welcome">Welcome to CogniLink!</h4>
+                    <button id="errorButton" class="trigger-btn btn btn-secondary m-2" style="color: #000000; background-color: #F7F723; display: none;" data-toggle="modal">&#9888;</button>
+                    <!-- HTML for the Popup Modal -->
+                    <div id="myModal" class="modal" style="display:none;">
+                        <div class="modal-content">
+                            <span class="close" onclick="closeModal()">&times;</span>
+                            <h4>Data Upload Error:</h4>
+                            <div class="modal-body" id="modalBody">
+                                <!-- Error message will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                    <button id="HelpButton" onclick="openUserModal()" class="btn btn-secondary m-2"><i class="fa fa-info-circle"></i></button>
+                    <!-- HTML for the Popup Modal USer Guide -->
+                    <div id="userGuide" class="modal" style="display:none;">
+                        <div class="modal-content">
+                            <span class="close-guide" onclick="closeUserModal()">&times;</span>
+                            <h2 class="d-flex justify-content-center ">USER GUIDE</h2>
+                            <ul>
+                                <li>Connect your database by selecting database option then clicking Link data source button</li>
+                                <li>Fill in all the details then click Submit</li>
+                                <li>For better results upload the schema of your database preferably in excel or json format using documets option </li>
+                                <li>If you don't have the schema for your database ,Scroll page down to see the vault where you will find schema file named 'your databaseName_schema.xlsx', just download it and fill in the description fields and then upload the updated file using documents option</li>
+                                <li>Note : Name your database file as 'databaseName_schema' before uploading</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button id="stopButton" onclick="stop_all()" class="btn btn-danger m-2">&#10006;</button>
+                </div>
+                <hr class="dropdown-divider">
+            </div>
+            
+            <div id="warningpopup" class="pop_box" style="display: none;">
+                <div class="m-box">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="logo">
+                    <h5>| Welcome to CogniLink |</h5>
+                    <div class="form-l"><label ></label></div><br>
+                    <div class="dbfile">
+                        <p>Your session will expire soon. Do you want to continue?</p>
+                        <button class="submitpop" onclick="hideWarning()">Continue</button>
+                        <button class="closepop" id="logout" onclick="logout()">Logout</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Source buttons Start -->
+            <div class="container-fluid pt-2 px-4">
+                <label class="mb-2" style="color: #000000;">Select Data Source:</label>
+                <div class="row g-2">
+                    <div class="col-auto">
+                        <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Documents')">
+                            <i class="fa fa-solid fa-file "></i>
+                            <div class="ms-2">
+                                <p class="mb-0" style="color: #000000;"><a href="#">Documents</a></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Audio File')">
+                            <i class="fa fa-regular fa-file-audio"></i>
+                            <div class="ms-2">
+                                <p class="mb-0" style="color: #000000;"><a href="#">Audio File</a></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Web Crawling')">
+                            <i class="fa fa-solid fa-file "></i>
+                            <div class="ms-2">
+                                <p class="mb-0" style="color: #000000;"><a href="#">Web Crawling</a></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Source URL')">
+                            <i class="fa fa-solid fa-file "></i>
+                            <div class="ms-2">
+                                <p class="mb-0" style="color: #000000;"><a href="#">Source URL</a></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Database')">
+                            <i class="fa fa-solid fa-database "></i>
+                            <div class="ms-2">
+                                <p class="mb-0" style="color: #000000;"><a href="#">Database</a></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Upload Images')">
+                            <i class="fa fa-solid fa-image "></i>
+                            <div class="ms-2">
+                                <p class="mb-0" style="color: #000000;"><a href="#">Scanner Queue</a></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto disabled-div">
+                        <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Email Server')">
+                            <i class="fa fa-solid fa-file "></i>
+                            <div class="ms-2">
+                                <p class="mb-0" style="color: #000000;"><a href="#">Email Server</a></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto disabled-div">
+                        <div class="bg-light rounded d-flex justify-content-center align-items-center p-1" style="font-size: 14px;" onclick="selectDataSource(this, 'Share Point')">
+                            <i class="fa fa-solid fa-file"></i>
+                            <div class="ms-2">
+                                <p class="mb-0" style="color: #000000;"><a href="#">Share Point</a></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Data Source End -->
+
+            <!-- Message Alerts -->
+            <div class="flash_msg">
+                <div id="message" style="text-align: center;"></div>
+                <div id="warning" class="warningtxt" style="display: none;">Warning: Please Choose Source First!</div>
+            </div>
+
+            
+            <!-- Link, Load, Vault Buttons Start-->
+            <div class="tri-button-container d-flex flex-row justify-content-center align-items-center m-4">
+                <div class="tri-button d-flex flex-column">
+                    <button type="button" id="linkData" class="btn btn-primary m-2 p-2" style="font-size: 14px;" onclick="linkSelectedDataSource()">Link Data Source</button>
+                    <button type="button" id="loadCogniLink" class="btn btn-primary m-2 p-2" style="font-size: 14px;">Load CogniLink</button>
+                    <button type="button" class="btn btn-primary m-2 p-2" style="font-size: 14px;" onclick="scrollToVault()">Explore Digital Vault</button>
+                    <div class="d-flex align-content-center justify-content-center">
+                        <i id="waitImg" class="fa fa-spinner fa-spin" style="display: none; color: var(--primary); font-size: 64px;"></i>
+                    </div>
+                </div>
+                
+                <!-- Source Load Container -->
+                <div class="lds d-flex m-2 p-2" id="sourceContainer">
+                    <p id="defaultMsg" style="display: block;">Please Select Any Data Sources!</p>
+                    
+                    <!-- Link Cogni_link -->
+                    <div id="close" class="p-2" style="display: none;">
+                        <p style="color:#000000;">Linking Successful. Please Load the CogniLink!</p>
+                    </div>
+
+                    <!-- Load Cogni_Link -->
+                    <div id="loadData" class="p-2" style="display: none;">
+                        <p style="color:#000000;">Load CogniLink Successful!</p>
+                    </div>
+
+                    <!-- Data Base Container -->
+                    <div id="databaseForm" class="database-container p-2" style="display: none;">
+                        <label class="mb-2" style="color:#000000;" for="database">Database Connection:</label>
+                        <form id="dbForm" style="text-align: center;">
+                            <select name="dbType" class="form-control">
+                                <option value="MySQL">MySQL</option>
+                                <option value="SQLServer">SQLServer</option>
+                                <option value="MongoDB">MongoDB</option>
+                            </select><br>
+                            <input type="text" name="hostname" id="hostname" class="form-control mb-2" placeholder="Enter Hostname" required>
+                            <input type="text" name="port" id="port" class="form-control mb-2" placeholder="Enter Port Number" required>
+                            <input type="text" name="username" id="username" class="form-control mb-2" placeholder="Enter Username" required>
+                            <input type="password" name="password" id="password" class="form-control mb-2" placeholder="Enter Password" required>
+                            <input type="text" name="db_name" id="dbname" class="form-control mb-2" placeholder="Enter Database Name" required>                        
+                            <!-- Button Group -->
+                            <div class="row mt-4">
+                                <div class="col-lg-12 d-flex justify-content-center">
+                                    <div class="button-group">
+                                        <button type="submit" class="btn btn-primary m-2" style="font-size: 14px;">Submit</button>
+                                        <button type="button" class="btn btn-secondary m-2" onclick="pdfclosePopup()" style="font-size: 14px;">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>              
+
+                    <!-- Source URL Container -->
+                    <div id="SourceURL" class="source-url-container p-2" style="display: none;">
+                        <label class="mb-2" style="color:#000000;" for="sourceUrl">Source URL Connection:</label>
+                        <input type="text" name="Source_URL" id="sourceUrl" class="form-control mb-2" placeholder="Enter URL">
+                        
+                        <!-- Button Group -->
+                        <div class="row mt-4">
+                            <div class="col-lg-12 d-flex justify-content-center">
+                                <div class="button-group">
+                                    <button type="button" class="btn btn-primary m-2" onclick="submitForm('SourceURL')" style="font-size: 14px;">Submit</button>
+                                    <button type="button" class="btn btn-secondary m-2" onclick="pdfclosePopup()" style="font-size: 14px;">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Webcrawl Container -->
+                    <div id="Web_Crawling" class="webcrawl-container p-2" style="display: none;">
+                        <!-- First Container (Input URL) -->
+                        <div class="d-flex flex-row justify-content-center align-content-center">
+                            <div class="col-lg-4 input-container d-flex flex-column justify-content-center align-content-center rounded border p-2 m-2">
+                                <label for="webCrawlingInput" class="m-1" style="font-size: 14px;">Web Crawling URL Connection:</label>
+                                <input type="text" id="webCrawlingInput" class="form-control" placeholder="Web Crawling URL" style="font-size: 14px;">
+                            </div>
+                            <!-- Second Container (Progress) -->
+                            <div class="col-lg-8 progress-container rounded border p-2 m-2">
+                                <div id="progress" class="d-flex flex-column p-2" style="font-size: 10px;">
+                                    <label id="status" style="font-size: 10px;">Current Status:</label>
+                                    <label id="totalFiles" style="font-size: 10px;">Total Files:</label>
+                                    <label id="filesDownloaded" style="font-size: 10px;">Files Downloaded:</label>
+                                    <label id="progressPercentage" style="font-size: 10px;">Download Percentage:</label>
+                                    <label id="currentFileName" style="font-size: 10px;">Current File Name:</label>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <!-- Button Group -->
+                        <div class="row mt-4">
+                            <div class="col-lg-12 d-flex flex-column justify-content-center align-items-center">
+                                <div class="button-group">
+                                    <button type="button" class="btn btn-primary m-2" onclick="submitForm('webcrawler')" style="font-size: 14px;">Submit</button>
+                                    <button type="button" id="fileManagerBtn" class="btn btn-primary m-2" onclick="displayWebCrawFileManager()" style="font-size: 14px;">
+                                        <!-- <a href="{{url_for('file_manager')}}">File Manager</a> -->
+                                        File Manager
+                                    </button>
+                                    <button type="button" class="btn btn-primary text-center m-2" onclick="stop_all()" style="font-size: 14px;">Stop Crawling</button>
+
+                                    <button type="button" class="btn btn-secondary m-2" onclick="pdfclosePopup()" style="font-size: 14px;">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Document UI -->
+                    <!-- Templates -->
+                    <div id="fileForm" style="display: none;">
+                        <div class="doc-container p-2">
+                            <label class="mb-2" style="color:#000000;" for="docFile">Please Upload Files: (Eg. Docs, Excel, etc.)</label>
+                            <input type="file" id="fileInput" name="myFile" class="form-control mb-2" accept=".pdf, .xls, .xlsx, .docx, .csv, .json" multiple>
+                            <!-- Button Group -->
+                            <div class="row mt-4">
+                                <div class="col-lg-12 d-flex justify-content-center">
+                                    <div class="button-group">
+                                        <button type="button" class="btn btn-primary m-2" onclick="submitForm('fileForm')" style="font-size: 14px;">Submit</button>
+                                        <button type="button" class="btn btn-secondary m-2" onclick="pdfclosePopup()" style="font-size: 14px;">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MP3 Container -->
+                    <div id="audio_file" class="mp3-container p-2" style="display: none;">
+                        <label class="mb-2" style="color:#000000;" for="mp3File">Please Upload Audio Files:</label>
+                        <input type="file" id="mp3Input" name="file" class="form-control mb-2" accept=".mp3" multiple>
+                                        
+                        <!-- Button Group -->
+                        <div class="row mt-4">
+                                <div class="col-lg-12 d-flex justify-content-center">
+                                    <div class="button-group">
+                                        <button type="button" class="btn btn-primary m-2" onclick="submitForm('audioFile')" style="font-size: 14px;">Submit</button>
+                                        <button type="button" class="btn btn-secondary m-2" onclick="pdfclosePopup()" style="font-size: 14px;">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                    
+                    <!-- Image Container -->
+                    <div id="image_file" class="Image-container p-2" style="display: none;">
+                        <label class="mb-2" style="color:#000000;" for="mp3File">Please Upload OCR Files:</label>
+                        <input type="file" id="input_image" name="file" class="form-control mb-2" accept=".jpg, .JPG, .png, .PNG, JPEG, .jpeg, .pdf, .PDF" multiple>
+                        <select class="dropdown form-control" id ="lang"><option value = "en">English</option><option value = "hi">Hindi</option></select>
+                        <!-- Button Group-->
+                        <div class="row mt-4">
+                                <div class="col-lg-12 d-flex justify-content-center">
+                                    <div class="button-group">
+                                        <button type="button" class="btn btn-primary m-2" onclick="submitForm('image_file')" style="font-size: 14px;">Submit</button>
+                                        <button type="button" class="btn btn-secondary m-2" onclick="pdfclosePopup()" style="font-size: 14px;">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                <div id="waitImg" class="progress progress-bar progress-bar-info progress-bar-striped bg-dark" style=" display:none; width:0%;"  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" >0% </div>
+                <!-- Ingestion Status -->
+                <div class="row-md-2">
+                    <div class="box col-lg-12 bg-white border rounded p-2">
+                        <div class="d-flex flex-column align-items-center justify-content-center mb-2">
+                            <h6 class="mb-2">Data Ingestion Status</h6>
+                        </div>
+                        <canvas id="ingestion_chart" style="width: 250px; height: 100px;"></canvas>
+                    </div>
+                </div>
+            </div>
+            <!-- Progress Bar -->
+            <div class="progress" style="width: 400px; margin: auto; display: none; ">
+                <div id="waitImg1" class="progress progress-bar progress-bar-info progress-bar-striped" style=" display:none; width:0%;"  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" >0% </div>
+            </div>
+            
+            <div class="d-flex flex-row align-content-center justify-content-center rounded border m-4">
+                <!-- Data Pipeline Filters -->
+                <div class="data-pipeline-filter m-2">
+                    <div class="data-source-title align-items-center justify-content-center">
+                        <h6 style="text-align: center;">Data Pipeline Filter</h6>
+                        <div id="dataSlider" class="input-group d-flex flex-row mb-2">
+                            <!-- Min Date -->
+                            <label class="m-1" style="color: #000000;">Min Date</label>
+                            <input type="date" id="minDate" class="form-control rounded" placeholder="Min Date">
+                            <!-- Max Date -->
+                            <label class="m-1" style="color: #000000;">Max Date</label>
+                            <input type="date" id="maxDate" class="form-control rounded">
+                        </div>
+                    </div>
+                </div>
+                <!-- Data Size Slider -->
+                <div class="limit-by-size m-2">
+                    <div class="data-source-title">
+                        <h6 style="text-align: center;">Limit By Size (K-Count)</h6>
+                    </div>
+                    <div class="slider-container">
+                        <div class="slidebox">
+                            <div class="value-box" style="text-align: center;" id="sliderValue">0 MB</div>
+                            <input type="range" min="0" max="200" value="0" class="slider" id="mySlider">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Status Chart Start -->
+            <div class="container-fluid pt-2 px-4">
+            <!-- <div class="container-fluid rounded border m-4"> -->
+                <div class="data">
+                    <label><b>Data Connectivity Status</b></label>
+                </div>
+                <hr>
+                <div class="d-flex flex-row">
+                    <div class="box d-flex flex-column col-lg-8 bg-light rounded p-2">
+                        <div class="d-flex justify-content-center mb-2">
+                            <h6 class="mb-0">Load Data Status</h6>
+                        </div>
+                        <canvas id="bar_file_chart"></canvas>
+                    </div>
+                    <div class="box d-flex flex-column col-lg-4 bg-light rounded p-2">
+                        <div class="d-flex flex-column justify-content-center mb-2">
+                            <h6 class="mb-0">Overall Readiness</h6>
+                        </div>
+                        <canvas id="readiness_chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Digital vault -->
+            <div id="vault_container" class="container-fluid pt-4 px-4">
+                <div class="bg-light justify-content-center rounded p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <h6 class="mb-0">Explore Vault</h6>
+                        <div class="col-md-3"> <!-- Column for the search bar -->
+                            <div class="input-group">
+                                <input type="text" class="rounded mx-2 form-control" id="searchInput" placeholder="Search Files">
+                                <button class="btn rounded btn-outline-secondary" id="searchButton" type="button">Search</button>
+                            </div>
+                        </div>
+                        <!-- <a href="">Show All</a> -->
+                    </div>
+                    <div id="table-container" class="table-responsive d-flex flex-column bg-white rounded-2" >
+                        <table id="data-table" class="table text-start align-middle table-bordered table-hover m-0">
+                            <thead class="table-header" style="text-align: center;">
+                                <tr class="text-dark">
+                                    <th scope="col" style="text-align: center;"><input type="checkbox" id="select-checkbox" onclick="toggleSelectAll(this)"></th>
+                                    <th scope="col" style="text-align: center;">Name</th>
+                                    <th scope="col" style="text-align: center;">View File</th>
+                                    <th scope="col" style="text-align: center;">Download</th>
+                                    <th scope="col" style="text-align: center;">Status</th>
+                                    <th scope="col" style="text-align: center;">Date & Time</th> <!-- Add this line for the date column header -->
+                                </tr> 
+                            </thead>
+                            <tbody id="table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center">
+                        <button class="btn btn-primary mt-2" onclick="deleteSelectedFiles()">Delete Files</button>
+                    </div>
+                    <p></p>
+                    <div class="d-flex align-content-center justify-content-center">
+                        <i id="waitImg_del" class="fa fa-spinner fa-spin" style="display: none; color: var(--primary); font-size: 64px;"></i>
+                    </div>
+                    <div class="p-2">
+                        <label>Status Abbreviations:</label>
+                        <p>U : Uploaded, F : Fail, EC : Embeddings Created, ENC : Embeddings Not Created, N/A : Not Applicable</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Start -->
+            <div class="container-fluid pt-4 px-4">
+                <div class="bg-light rounded-top p-4">
+                    <div class="row">
+                        <div class="col-12 col-sm-6 text-center text-sm-start">
+                            &copy; <a href="{{url_for('data_source')}}">CogniLink</a>, All Right Reserved. 
+                        </div>
+                        <div class="col-12 col-sm-6 text-center text-sm-end">
+                            Powered By <a href="www.extremumanalytics.com">Extremum Analytics</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Footer End -->
+        </div>
+        <!-- Content End -->
+
+        <!-- Back to Top -->
+        <a href="#" class="btn btn-lg btn-primary btn-lg-square back-to-top"><i class="bi bi-arrow-up"></i></a>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="static/api/jquery-3.4.1.min.js"></script>
+    <script src="static/api/bootstrap.bundle.min.js"></script>
+    <script src="static/lib/chart/chart.min.js"></script>
+    <script src="static/lib/easing/easing.min.js"></script>
+    <script src="static/lib/waypoints/waypoints.min.js"></script>
+    <script src="static/lib/owlcarousel/owl.carousel.min.js"></script>
+    <script src="static/lib/tempusdominus/js/moment.min.js"></script>
+    <script src="static/lib/tempusdominus/js/moment-timezone.min.js"></script>
+    <script src="static/lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js"></script>
+    <script src="static/api/chartjs-plugin-datalabels.min.js"></script>
+
+
+    <!-- Template Javascript -->
+    <script src="{{ url_for('static', filename='js/Layout.js')}}"></script>
+    <script src="{{ url_for('static', filename='js/popup.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Session_warning.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Data_Source.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/user_details.js') }}"></script>
+
+</body>
+
+</html>
