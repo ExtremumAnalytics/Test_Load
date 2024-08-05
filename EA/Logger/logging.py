@@ -37,6 +37,7 @@ def create_user_log_class(user_id):
 
     return UserLog
 
+
 # Setup database engine
 DATABASE_URI = f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}/{LOG_DB_NAME}"
 engine = create_engine(DATABASE_URI)

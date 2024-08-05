@@ -49,14 +49,18 @@ class ChatHistory(db.Model):
     answer = db.Column(db.Text, nullable=False)
     source = db.Column(db.Text, nullable=False)
     page_number = db.Column(db.Text, nullable=False)
-    created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
- 
-# class VectorEmbeddingsData(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     login_pin = db.Column(db.String(20), nullable=False)
-#     vector_id = db.Column(db.Text, nullable=False)
-#     filename = db.Column(db.Text, nullable=False, unique=True)
-#     created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
+    chat_date = db.Column(db.DateTime(timezone=True))
+
+
+#  Define Summary History table
+class SummaryHistory(db.Model):
+    __tablename__ = 'summary_history'
+    id = db.Column(db.Integer, primary_key=True)
+    login_pin = db.Column(db.String(20), nullable=False)
+    filename = db.Column(db.Text, nullable=False)
+    summary = db.Column(db.Text, nullable=False)
+    summary_date = db.Column(db.DateTime(timezone=True))
+
  
 # Define DatabaseDetails table
 class DatabaseDetailsSave(db.Model):
@@ -68,7 +72,7 @@ class DatabaseDetailsSave(db.Model):
     port = db.Column(db.Text, nullable=False)
     username = db.Column(db.Text, nullable=False)
     password = db.Column(db.Text, nullable=False)
-    db_name = db.Column(db.Text,nullable=False,unique=True)
+    db_name = db.Column(db.Text, nullable=False, unique=True)
     created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 # Function to create all tables
