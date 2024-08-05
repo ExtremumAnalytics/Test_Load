@@ -136,10 +136,14 @@
                         </div>
                     </div>
                     <div class="response col-lg-12 bg-light rounded p-4">
-                        <h6 class="mb-2">Response</h6>
+                        <div class="d-flex flex-row">
+                            <h6 class="m-2 col-lg-6">Response</h6>
+                            <input type="date" id="chatDate" class="form-control rounded m-2" placeholder="Date Filter">
+                            <button class="btn btn-primary m-2" onclick="requestChatHistory()">Fetch</button>
+                        </div>
                         <div id="waitImg" class="progress progress-bar progress-bar-info progress-bar-striped" style=" display:none; width:0%;"  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" >0% </div>
                         <div class="Answer" id="followUp"></div>
-                        <div class="Answer" id="questionAnswer" style="overflow-y: auto; height: 500px;">
+                        <div class="Answer m-2" id="questionAnswer" style="overflow-y: auto; height: 500px;">
                             <!-- Response will be produced here using JS -->
                         </div>
 

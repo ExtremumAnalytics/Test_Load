@@ -96,7 +96,7 @@ import io
 
 # Import folder file
 from EA.Database.database import db, create_all_tables
-from EA.Database.database import UserRole, UserDetails, ChatHistory, DatabaseDetailsSave
+from EA.Database.database import UserRole, UserDetails, ChatHistory, DatabaseDetailsSave, SummaryHistory
 from EA.Config.configuration import (blob_service_client, container_client, computervision_client,
                                      embeddings, vector_store_address, vector_store_password, container_name,
                                      main_key, DB_USERNAME, DB_PASSWORD, DB_HOST, DB_NAME)
@@ -1316,6 +1316,34 @@ def check_session():
         return jsonify({'sessionValid': False}), 401
 
 
+@socketio.on('request_chat_history')
+def handle_request_chat_history(data):
+    date_str = data.get('date')
+
+    if date_str:
+        selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+        # Filter chat history by date
+        chat_histories = ChatHistory.query.filter(
+            ChatHistory.login_pin == session['login_pin'],
+            db.func.date(ChatHistory.chat_date) == selected_date.date()
+        ).all()
+    else:
+        # Retrieve all chat history
+        chat_histories = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+
+    # Convert chat history objects to a list of dictionaries
+    chat_history_data = [
+        {
+            'question': chat.question,
+            'answer': chat.answer,
+            'source': chat.source,
+            'page_number': chat.page_number,
+        }
+        for chat in chat_histories
+    ]
+    emit('chat_history', {'chat_history': chat_history_data[::-1]})
+
+
 @socketio.on('connect')
 def handle_connect():
     bar_chart_data = create_bar_chart()
@@ -1340,8 +1368,6 @@ def handle_connect():
     db_name = set()
     for db in database:
         db_name.add(db['database_name'])
-        print("Database Names:------------------>", db['database_name'])
-    print("set:------------------>", db_name)
     # Code to fetch draft data from storage
     container_client_ = blob_service_client.get_container_client(container_name)
     blob_list = container_client_.list_blobs(
@@ -1824,6 +1850,19 @@ def handle_summary_input(data):
         for filename, documents in old_structure:
             try:
                 summary_list = custom_summary(documents, custom_p, chain_type, word_count)
+                summary_text = '\n'.join(summary_list)
+
+                # Create summary history record
+                summary_record = SummaryHistory(
+                    login_pin=session['login_pin'],
+                    filename=filename,  # Assuming filename represents the question or context
+                    summary=summary_text,
+                    summary_date=datetime.datetime.now()
+                )
+                # Add record to session
+                db.session.add(summary_record)
+                db.session.commit()
+
                 key = f'{filename}--{counter}--'
                 summary_dict = {'key': key, 'value': summary_list}
                 summ.append(summary_dict)
@@ -1969,7 +2008,8 @@ def handle_ask_question(data):
             chat_history_list = [{"question": question,
                                   "answer": response_content,
                                   "source": "Web/Internet",
-                                  "page_number": "N/A", }]
+                                  "page_number": "N/A",
+                                  "date": datetime.datetime.now()}]
             # print("chat_history_list--->", chat_history_list)
 
             # Save chat history to the database
@@ -1979,7 +2019,8 @@ def handle_ask_question(data):
                     question=entry['question'],
                     answer=entry['answer'],
                     source=entry['source'],
-                    page_number=entry['page_number']
+                    page_number=entry['page_number'],
+                    chat_date=entry['date']
                 )
                 db.session.add(new_chat)
             db.session.commit()
@@ -2108,7 +2149,8 @@ def handle_ask_question(data):
             chat_history_list = [{"question": chat_pair[0],
                                   "answer": chat_pair[1],
                                   "source": chat_pair[2],
-                                  "page_number": chat_pair[3]}
+                                  "page_number": chat_pair[3],
+                                  "date": datetime.datetime.now()}
                                  for chat_pair in final_chat_hist]
 
             # Generate follow-up question
@@ -2132,7 +2174,8 @@ def handle_ask_question(data):
                     question=entry['question'],
                     answer=entry['answer'],
                     source=entry['source'],
-                    page_number=entry['page_number']
+                    page_number=entry['page_number'],
+                    chat_date=entry['date']
                 )
                 db.session.add(new_chat)
             db.session.commit()
