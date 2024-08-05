@@ -2,12 +2,6 @@ const socket = io();
 var pin = localStorage.getItem('pin');
 socket.emit('table_update');
 
-document.getElementById('errorButton').onclick = function() {
-    var modal = document.getElementById("myModal");
-    modal.style.display = "block";
-    $('#errorModal').modal('show');
-}
-
 // Close the select menu
 function closeModal() {
     document.getElementById('myModal').style.display = 'none';
@@ -16,7 +10,6 @@ function closeModal() {
 // Generate Summary Button
 document.addEventListener('DOMContentLoaded', function() {
     const fetchSummaryBtn = document.getElementById('fetchSummaryBtn');
-    const summaryList = document.getElementById('summaryList');
     const slider = document.getElementById("mySlider");
     const valueBox = document.querySelector(".value-box");
     const displayedSummaries = new Set(); // To keep track of displayed summaries
@@ -50,15 +43,14 @@ document.addEventListener('DOMContentLoaded', function() {
             errorMessages = data.errors;
             console.log(errorMessages);
         } else if (Array.isArray(data) && data.length > 0) {
+            console.log(data);
             displaySummaries(data);
         }
 
         if (data.message) {
             $('#message').text(data.message);
-            // document.getElementById('error').style.display='block';
             setTimeout(function() {
                 $('#message').text('');
-                // document.getElementById('error').style.display='none';
             }, 5000); // Clear message after 5 seconds
         }
         updateImage();
@@ -87,9 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function clearOldData() {
         const summaryContainer = document.getElementById('summaryContainer');
-        const errorContainer = document.getElementById('errorContainer');
         summaryContainer.innerHTML = ''; // Clear the summary container
-        errorContainer.innerHTML = ''; // Clear the error container
         displayedSummaries.clear(); // Clear the set of displayed summaries
     }
 
@@ -129,21 +119,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayErrors(errors) {
-        // const errorContainer = document.getElementById('errorContainer');
         const error = document.getElementById('modalBody');
-        // document.getElementById('errorButton').style.display='block';
         if (Array.isArray(errors) && errors.length > 0) {
 
             const list = document.createElement('ul'); // Create an unordered list element
 
             errors.forEach(error => {
                 const listItem = document.createElement('li'); // Create a list item element
-                // listItem.innerHTML = `<b>Error</b>: ${error}`;
                 listItem.innerHTML = `${error}`;
                 list.appendChild(listItem); // Append the list item to the list
             });
 
-            // errorContainer.appendChild(list); // Append the list to the container
             error.appendChild(list); // Append the list to the container
             document.getElementById('myModal').style.display='block';
 
@@ -162,11 +148,9 @@ function updateImage() {
 
 // Function to clear the chat summary using Socket.IO
 function clear_summ_Chat() {
-    
     // Emit event to the server to clear chat history
     socket.emit('clear_chat_summ', {});
     socket.emit('table_update');
-
 }
 
 // Handle the response from the server
@@ -180,8 +164,6 @@ socket.on('clear_chat_response', function(data) {
     // Clear the chat history container
     var historyContainer = document.getElementById("summaryContainer");
     historyContainer.innerHTML = "";
-    var errorContainer = document.getElementById("errorContainer");
-    errorContainer.innerHTML = "";
 });
 
 
