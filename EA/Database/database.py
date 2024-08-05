@@ -8,13 +8,13 @@ db = SQLAlchemy()
  
  
 # Define FileStorage table
-class FileStorage(db.Model):
-    __tablename__ = 'file_storage'
-    id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(255), nullable=False)
-    file_data = db.Column(db.LargeBinary)
-    file_description = db.Column(db.Text)
-    created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
+# class FileStorage(db.Model):
+#     __tablename__ = 'file_storage'
+#     id = db.Column(db.Integer, primary_key=True)
+#     filename = db.Column(db.String(255), nullable=False)
+#     file_data = db.Column(db.LargeBinary)
+#     file_description = db.Column(db.Text)
+#     created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
  
  
 # Define UserRoles table
@@ -72,7 +72,7 @@ class DatabaseDetailsSave(db.Model):
     port = db.Column(db.Text, nullable=False)
     username = db.Column(db.Text, nullable=False)
     password = db.Column(db.Text, nullable=False)
-    db_name = db.Column(db.Text, nullable=False, unique=True)
+    db_name = db.Column(db.String(100), nullable=False, unique=True)
     created_date = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 # Function to create all tables

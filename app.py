@@ -1327,9 +1327,16 @@ def handle_request_chat_history(data):
             ChatHistory.login_pin == session['login_pin'],
             db.func.date(ChatHistory.chat_date) == selected_date.date()
         ).all()
+
+        # Filter summary history by date
+        summary_histories = SummaryHistory.query.filter(
+            SummaryHistory.login_pin == session['login_pin'],
+            db.func.date(SummaryHistory.summary_date) == selected_date.date()
+        ).all()
     else:
         # Retrieve all chat history
         chat_histories = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+        summary_histories = SummaryHistory.query.filter_by(login_pin=session['login_pin']).all()
 
     # Convert chat history objects to a list of dictionaries
     chat_history_data = [
@@ -1339,9 +1346,18 @@ def handle_request_chat_history(data):
             'source': chat.source,
             'page_number': chat.page_number,
         }
-        for chat in chat_histories
-    ]
+        for chat in chat_histories]
+
+    # Convert summary history objects to a list of dictionaries
+    summary_history_data = [
+        {
+            'filename': summary.filename,
+            'summary': summary.summary,
+        }
+        for summary in summary_histories]
+
     emit('chat_history', {'chat_history': chat_history_data[::-1]})
+    emit('summary_history', {'summary_history': summary_history_data[::-1]})
 
 
 @socketio.on('connect')
@@ -2207,8 +2223,8 @@ def handle_ask_question(data):
 def handle_clear_chat():
     try:
         # Clear the ChatHistory table for the specific login_pin
-        db.session.query(ChatHistory).filter_by(login_pin=session['login_pin']).delete()
-        db.session.commit()
+        # db.session.query(ChatHistory).filter_by(login_pin=session['login_pin']).delete()
+        # db.session.commit()
         # sentiment variable for Q_A
         session['lda_topics_Q_A'] = {}
         session['senti_Positive_Q_A'] = 0

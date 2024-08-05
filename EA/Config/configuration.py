@@ -3,10 +3,10 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from azure.storage.blob import BlobServiceClient
 from azure.cognitiveservices.vision.computervision import ComputerVisionClient
+from flask import request, session
 from msrest.authentication import CognitiveServicesCredentials
 from langchain_openai import AzureOpenAIEmbeddings
 from dotenv import load_dotenv
-
 # Load environment variables from .env file for local development
 load_dotenv()
 
@@ -23,8 +23,8 @@ if not IS_PRODUCTION:
     MySQL_db_pwd = "mysql-db-pwd"
     DB_USERNAME = "extremumadmin"
     DB_HOST = "extremum-mysql-db.mysql.database.azure.com"
-    DB_NAME = "extremum_master_db"
-    LOG_DB_NAME = "logging_db"
+    DB_NAME = "cognilink-master-dev"
+    LOG_DB_NAME = "cognilink-logging-dev"
     KVUri = f"https://eavault.vault.azure.net/"
     credential = DefaultAzureCredential()
     client = SecretClient(vault_url=KVUri, credential=credential)
