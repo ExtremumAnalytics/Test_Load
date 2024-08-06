@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     // Listen for the chat_history event
     socket.on('chat_history', function(response) {
-        console.log(response);
+        // console.log(response);
         // Display chat history
         var historyContainer = document.getElementById("questionAnswer");
         historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
@@ -43,21 +43,28 @@ document.addEventListener('DOMContentLoaded', (event) => {
     });
 });
 
+
 function requestChatHistory() {
+    document.getElementById('askSentiments').style.display = 'none';
+    document.getElementById('askTopics').style.display = 'none';
+
     var socket = io();
     const date = document.getElementById('chatDate').value;
-    console.log(date);
+    // console.log(date);
     // Emit an event to request chat history
     if (!date) {
         // No date selected, request all chat history
         socket.emit('request_chat_history', { date: null });
+        alert('Please select any date!')
     } else {
         // Date is selected, request filtered chat history
         socket.emit('request_chat_history', { date: date });
+        document.getElementById("questionAnswer").innerHTML = "";
+
         // Listen for the chat_history event
         socket.on('chat_history', function(response) {
             
-            console.log(response);
+            // console.log(response);
             // Display chat history
             var historyContainer = document.getElementById("questionAnswer");
             historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";

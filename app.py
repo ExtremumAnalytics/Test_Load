@@ -8,6 +8,7 @@ import re
 import docx
 import asyncio
 import pytz
+from sqlalchemy.orm import sessionmaker
 from werkzeug.utils import secure_filename
 
 from azure.search.documents._generated.models import SearchMode, VectorizedQuery
@@ -100,7 +101,7 @@ from EA.Database.database import UserRole, UserDetails, ChatHistory, DatabaseDet
 from EA.Config.configuration import (blob_service_client, container_client, computervision_client,
                                      embeddings, vector_store_address, vector_store_password, container_name,
                                      main_key, DB_USERNAME, DB_PASSWORD, DB_HOST, DB_NAME)
-from EA.Logger.logging import setup_database_logger, CustomLoggerAdapter
+from EA.Logger.logging import setup_database_logger, CustomLoggerAdapter, clean_old_logs
 from EA.Interrupt.flag import check_stop_flag, write_stop_flag_to_csv, read_stop_flag_from_csv
 from EA.Error_Handling.checkError import check_file, check_error
 
@@ -454,9 +455,7 @@ def update_when_file_delete():
                     print("Data Load Cancelled")
                     break
                 if 'https://' or 'http://' in blob.name:
-                    # print("name------>URL", blob.name)
                     url_part = blob.name.split(str(session['login_pin']) + '/')[1]
-                    # print("name------>URL", url_part)
                     loader = WebBaseLoader(url_part)
                     session['embedding_not_created'].append(url_part)
                     socketio.emit('pending', session['embedding_not_created'])
@@ -494,7 +493,6 @@ def update_when_file_delete():
 
                 if check_stop_flag():
                     write_stop_flag_to_csv(session['login_pin'], 'False')
-                    print("Data Load Cancelled")
                     break
 
                 s_url = 'https://testcongnilink.blob.core.windows.net/congnilink-container/' + blob.name
@@ -540,7 +538,6 @@ def update_when_file_delete():
 
                 if check_stop_flag():
                     write_stop_flag_to_csv(session['login_pin'], 'False')
-                    print("Data Load Cancelled")
                     break
 
                 update_bar_chart_from_blob(session, blob_service_client, container_name)
@@ -550,7 +547,6 @@ def update_when_file_delete():
             socketio.emit('progress', {'percentage': 75, 'pin': session['login_pin']})
 
         if not check_stop_flag():
-            print("Complete")
             elapsed_time = time.time() - start_time
             g.flag = 1  # Set flag to 1 on success1
             logger.info(f"Function update_when_file_delete Data Loaded Successfully in {elapsed_time} seconds")
@@ -640,9 +636,11 @@ def create_or_update_index():
     # Create or update the index
     try:
         client.create_or_update_index(index)
+        g.flag = 1
         logger.info(f"Index {index_name} created for user {str(session['user_name'])}")
         print(f"Index '{index_name}' created or updated successfully.")
     except Exception as e:
+        g.flag = 0
         logger.error(f"Index {index_name} not created for user {str(session['user_name'])}", exc_info=True)
         print(f"Index '{index_name}' creation or update failed. Error: {str(e)}")
 
@@ -697,10 +695,11 @@ def get_vectorstore(text_chunks, file_name):
             documents.append(document)
 
         result = search_client.upload_documents(documents=documents)
-        # print(f"Uploaded documents: {result}")
+        g.flag = 1
         logger.info('Documents uploaded to vector database')
 
     except Exception as e:
+        g.flag = 0
         logger.error("Documents not uploaded to vector database", exc_info=True)
         print('ERROR! ', e)
 
@@ -741,13 +740,16 @@ def delete_documents_from_vectordb(documents_to_delete):
         batch_response = search_client.upload_documents(actions)
 
         if batch_response:
+            g.flag = 1
             logger.info('Documents deleted from vector database')
             print({"message": "Documents deleted successfully"})
         else:
+            g.flag = 0
             logger.error('Failed to delete some documents from vector database')
             raise Exception("Failed to delete some documents")
 
     except Exception as e:
+        g.flag = 0
         logger.error('Failed to delete some documents from vector database', exc_info=True)
         print({'message': str(e)})
 
@@ -866,7 +868,6 @@ def analyze_sentiment_summ(senti_text_summ):
 
     # Analyze sentiment
     sentiment_scores = sid.polarity_scores(senti_text_summ)
-    # print("Sentiment scores:", sentiment_scores)
 
     # Calculate percentages
     total = sentiment_scores['pos'] + sentiment_scores['neg'] + sentiment_scores['neu']
@@ -879,7 +880,6 @@ def analyze_sentiment_summ(senti_text_summ):
     pin = session['login_pin']
 
     senti = {'values': x1, 'labels': y1, 'pin': pin}
-    # print("Emitting sentiment data:", senti)
     g.flag = 1  # Set flag to 1 on success
     logger.info(f"Summary sentiments analyzed")
     socketio.emit('analyze_sentiment_summ', senti)
@@ -926,7 +926,6 @@ def create_bar_chart():
     """
     # update_bar_chart_from_blob(session, blob_service_client, container_name)
     bar_chart = session['bar_chart_ss']
-    # print(bar_chart)
     # Check if 'bar_chart_ss' exists in session
     if bar_chart:
         x1 = list(bar_chart.values())  # Values for the bars
@@ -1248,7 +1247,6 @@ def extract_text_from_pdf(file_obj, language):
             read_results = result.analyze_result.read_results
             for page in read_results:
                 for line in page.lines:
-                    # print(line.text)
                     text += line.text + '\n'
 
             # save the text of scanned pdf in container
@@ -1293,7 +1291,6 @@ def is_url_valid(url):
 
     try:
         response = requests.get(url, headers=headers, timeout=10)
-        # print("response_URL--->", response)
         # Check if the response status code is 200 (OK)
         time.sleep(0.5)
         if response.status_code == 200:
@@ -1485,7 +1482,6 @@ def popup_form():
                 scan_source = False
                 if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg', '.pdf']):
                     lang = request.form.get('selected_language', False)
-                    print("lang------>", lang)
                     if lang and '.pdf' in file.filename:
                         extract_text_from_pdf(file, lang)
                         scan_source = True
@@ -1493,7 +1489,6 @@ def popup_form():
                         extract_text_from_image(file, lang)
 
                 if file.filename.endswith('.mp3'):
-                    # print("mp3--------->file received", file.filename)
                     folder_name = os.path.join('static', 'login', str(session['login_pin']))
                     # Ensure the folder exists
                     os.makedirs(folder_name, exist_ok=True)
@@ -1667,7 +1662,6 @@ def run_query(data):
         try:
             engine = create_engine(conn_str)
             inspector = inspect(engine)
-            print("Information-------------->", inspector)
 
             schema_with_descriptions = []
 
@@ -1682,7 +1676,6 @@ def run_query(data):
                     schema_with_descriptions.append(column_info)
 
             df = pd.DataFrame(schema_with_descriptions)
-            print("Data Formed--------->", df)
 
             excel_buffer = io.BytesIO()
             df.to_excel(excel_buffer, engine='openpyxl', index=False)
@@ -1725,7 +1718,6 @@ def stop_process(data):
         write_stop_flag_to_csv(login_pin, 'True')
 
         stop_flag = read_stop_flag_from_csv(login_pin)
-        print('Stop Flag:', stop_flag)
 
         socketio.emit('stop_process_flag', {'flag': stop_flag, 'pin': login_pin})
         socketio.emit('button_response', {'message': 'Operation Cancelled', 'pin': session.get('login_pin')})
@@ -1747,7 +1739,6 @@ def Cogni_button():
         logger.info('CogniLink load button pressed')
         write_stop_flag_to_csv(session['login_pin'], 'False')
         socketio.emit('progress', {'percentage': 10, 'pin': session['login_pin']})
-        print('Stop Flag Value-------------------------->', check_stop_flag())
         response = update_when_file_delete()
         if check_stop_flag():
             write_stop_flag_to_csv(session['login_pin'], 'False')
@@ -1817,7 +1808,6 @@ def handle_summary_input(data):
             partial_match_query = " or ".join([f"search.ismatch('{keyword}*', 'file_name')" for keyword in keywords])
             # search_query = f"({exact_match_query}) or ({partial_match_query})"
             search_query = f"{partial_match_query}"
-            # print(search_query)
             results = search_client.search(
                 search_text=prompt_embeddings,
                 select="*",
@@ -1872,7 +1862,7 @@ def handle_summary_input(data):
                 summary_record = SummaryHistory(
                     login_pin=session['login_pin'],
                     filename=filename,  # Assuming filename represents the question or context
-                    summary=summary_text,
+                    summary=summary_list,
                     summary_date=datetime.datetime.now()
                 )
                 # Add record to session
@@ -1894,6 +1884,7 @@ def handle_summary_input(data):
                                             For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
                 else:
                     error_messages.append(error_message)
+                g.flag = 0
                 logger.error('Summary generation error: ' + error_message, exc_info=True)
 
         session['summary_add'].extend(summ)
@@ -1925,6 +1916,7 @@ def handle_summary_input(data):
                                                     For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
         else:
             error_messages.append(error_message)
+        g.flag = 0
         logger.error('Summary generation error: ' + str(error_messages), exc_info=True)
 
     finally:
@@ -1987,7 +1979,6 @@ def handle_ask_question(data):
 
             context = web_search_tool.invoke({"query": question})
 
-            # print("context generated---------->",context)
             generate_prompt = PromptTemplate(
                 template="""
 
@@ -2026,7 +2017,6 @@ def handle_ask_question(data):
                                   "source": "Web/Internet",
                                   "page_number": "N/A",
                                   "date": datetime.datetime.now()}]
-            # print("chat_history_list--->", chat_history_list)
 
             # Save chat history to the database
             for entry in chat_history_list:
@@ -2084,7 +2074,6 @@ def handle_ask_question(data):
                 documents.append(doc)
 
             sorted_documents = sorted(documents, key=lambda x: x['score'], reverse=True)
-            # print("sorted documents------------>", sorted_documents)
 
             vector_store: AzureSearch = AzureSearch(
                 azure_search_endpoint=vector_store_address,
@@ -2100,7 +2089,6 @@ def handle_ask_question(data):
             retriever = vector_store.as_retriever(sorted_documents=sorted_documents)
             conversation_chain_handler = get_conversation_chain(retriever, source)
             response = conversation_chain_handler(question)
-            # print("Conversational result----------->", response)
 
             # Update progress to 50%
             emit('progress', {'percentage': 50, 'pin': session['login_pin']})
@@ -2173,7 +2161,6 @@ def handle_ask_question(data):
             chat_history = conversation_chain_handler.memory.chat_memory.messages
             context = "Use the following pieces of context from the provided files only. Do not use any information from the internet to answer the question at the end."
             follow_up_question = generate_followup_question(response['answer'], chat_history, context)
-            # print("Followup_question------------->", follow_up_question)
 
             senti_text_q_a = ' '.join(entry['answer'] for entry in chat_history_list)
 
@@ -2249,8 +2236,10 @@ async def delete_blob_async(blob_name, container_client_):
     try:
         blob_client_ = container_client_.get_blob_client(blob_name)
         await blob_client_.delete_blob()
+        g.flag = 1
         logger.info(f"Successfully deleted blob: {blob_name}")
     except Exception as e:
+        g.flag = 0
         logger.error(f"Error deleting blob: {blob_name}, {str(e)}")
 
 
@@ -2346,7 +2335,6 @@ def table_update(search_term=None):
                 # Convert the date to IST
                 date = blob['last_modified']
                 date_str = convert_to_ist(date)
-                # print("date--------->", date_str)
 
             if blob.name.split('/')[2] != 'draft':
                 file_name = blob.name.split('/')[2]
@@ -2414,7 +2402,6 @@ def webcrawler_start(data):
     os.makedirs(folder_name, exist_ok=True)
 
     try:
-        # print("Received URL:", url)
         session['current_status'] = "Website URL Received"
         socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
         response = requests.get(url)
@@ -2437,7 +2424,6 @@ def webcrawler_start(data):
                     'current_file': current_file,
                     'pin': login_pin
                 })
-                # print("Crawling Cancelled")
                 return jsonify({'message': 'Webcrawler stopped!'})
 
             try:
@@ -2523,7 +2509,6 @@ def extract_pdf_info_from_table(html_content):
     for row in rows:
         if check_stop_flag():
             write_stop_flag_to_csv(session['login_pin'], 'False')
-            # print("Web Crawling Cancelled")
             break
         # Extract data from each row
         cells = row.find_all('td')
@@ -2621,7 +2606,6 @@ def delete_pdf_file(data):
             res = delete_file(directory_path, file_name)
             # Delete the file
             if res is True:
-                print("file deleted")
                 return socketio.emit('delete_response', {'message': 'Successfully file deleted'})
             else:
                 return socketio.emit('delete_response', {'message': 'Failed to delete'})
@@ -2644,8 +2628,7 @@ def delete_pdf_file(data):
 
         # Delete the file
         if res is True:
-            # print("file deleted from temp")
-            g.flag = 1  # Set flag to 1 on success1
+            g.flag = 1  # Set flag to 1 on success
             logger.info(f"Successfully webcrawler File Loaded In Cognilink Application")
             socketio.emit('delete_response', {'message': 'Successfully file loaded in CogniLink application'})
             socketio.emit('update_table_vault', {'message': 'update_table'})
@@ -2827,7 +2810,6 @@ def question_answer_on_structure_data(data):
 
     try:
         query_input = data.get('query_input')
-        print("question_passed------>", query_input)
 
         container_client_ = blob_service_client.get_container_client(container_name)
         blob_list = container_client_.list_blobs()
@@ -2872,7 +2854,6 @@ def question_answer_on_structure_data(data):
                                  )
             query_generated = write_query_chain.invoke({"schema": schema_str, "question": query_input})
             query_to_run = query_generated.content
-            print("Query To Run---------->", query_to_run)
 
             if query_to_run:
                 conn = mysql.connector.connect(
@@ -2900,7 +2881,6 @@ def question_answer_on_structure_data(data):
                 )
                 llm_chain = LLMChain(prompt=answer_prompt, llm=llm)
                 answer = llm_chain.invoke({"question": query_input, "query": query_to_run, "result": results})
-                print("Answer----------------->", answer['text'])
 
                 df = pd.DataFrame(results, columns=columns)
                 df_table = df.head(5).to_html(index=False)
@@ -2985,9 +2965,35 @@ def query_table_update():
         return jsonify({'error': str(e)}), 500
 
 
+@socketio.on('reset_database')
+def handle_reset_database_event():
+    try:
+        # Get the rollover date
+        rollover_date = datetime.datetime.now() - datetime.timedelta(days=2)
+
+        # Delete records based on rollover date
+        ChatHistory.query.filter(ChatHistory.chat_date < rollover_date, ChatHistory.login_pin == session['login_pin']).delete()
+        SummaryHistory.query.filter(SummaryHistory.summary_date < rollover_date, SummaryHistory.login_pin == session['login_pin']).delete()
+        db.session.commit()
+
+        # Delete logs
+        clean_old_logs(session['login_pin'])
+
+        g.flag = 1
+        logger.info("History deleted from database")
+        # Send back a response to the client
+        socketio.emit('database_reset', {'status': 'success', 'message': f'Database resetting successful.'})
+    except Exception as e:
+        g.flag = 0
+        logger.error("Error, History not deleted from database", exc_info=True)
+        db.session.rollback()
+        socketio.emit('database_reset', {'status': 'error', 'message': str(e)})
+    finally:
+        db.session.close()
+
+
 @app.route("/", methods=["GET", "POST"])
 def home():
-    # print("request.url------>", request.base_url)
     global logger
     role_names = UserRole.query.with_entities(UserRole.name.distinct()).all()
 

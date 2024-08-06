@@ -97,6 +97,8 @@ function sendQuestion() {
                         document.getElementById("followUp").style.display = 'none';
                     }
                 }, 50);
+                document.getElementById('askSentiments').style.display = 'block';
+                document.getElementById('askTopics').style.display = 'block';
             } else {
                 preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>" + item.answer + "<br>" + sourceLink + "\n\n";
             }
@@ -272,7 +274,6 @@ function openPopup(sources, pageNumbers) {
 // Clear Chat
 function clearChat() {
     socket.emit('clear_chat');
-
     socket.on('chat_cleared', function(data) {
         // console.log('response', data);
         $('#message').text(data.message);
@@ -283,6 +284,7 @@ function clearChat() {
         if (data.message === 'Chat history cleared successfully') {
             var historyContainer = document.getElementById("questionAnswer");
             var followup_list = document.getElementById("followUp");
+            document.getElementById("question").value = "";
             historyContainer.innerHTML = "";
             followup_list.innerHTML = "";
         } else {
