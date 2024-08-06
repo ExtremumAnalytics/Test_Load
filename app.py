@@ -569,25 +569,21 @@ def update_when_file_delete():
 def generate_word_cloud(word_cloud_text):
     """
     Generates a word cloud image from the provided text and saves it to a file.
-
     Args:
         word_cloud_text (str): The text to be used for generating the word cloud.
-
     Side Effects:
         Saves the generated word cloud image to a file in the user's folder.
-
     Returns:
         None
     """
     # Tokenization
     tokens = word_tokenize(word_cloud_text)
-
+    font_path = 'static/api/NotoSansDevanagari-Regular.ttf'
     # Generate WordCloud with specified width and height
-    wordcloud = WordCloud(width=1200, height=800,
+    wordcloud = WordCloud(font_path=font_path, width=1200, height=800,
                           background_color='white',
                           min_font_size=10).generate(' '.join(tokens))
     folder_name = str(session['login_pin'])
-
     # Save the WordCloud image to a file
     wordcloud.to_file(f'static/login/{folder_name}/wordcloud.png')
 
@@ -1790,7 +1786,7 @@ def handle_summary_input(data):
         def extract_keywords(prompt):
             # Using a simple regex to extract words, you can replace this with a more sophisticated method if needed
             keys = re.findall(r'\w+', prompt)
-            return [keyword for keyword in keys if keyword.lower() != ['summary', 'on', 'generate']]
+            return [keyword for keyword in keys if keyword.lower() != ['summary', 'on', 'generate', 'in']]
 
         # Perform the search
         if not custom_p or "all" in custom_p.lower():
@@ -1822,85 +1818,91 @@ def handle_summary_input(data):
         def split_content(content, size=8000):
             return [content[i:i + size] for i in range(0, len(content), size)]
 
-        # Process each result
-        for result in results:
-            try:
-                # Extract file_name and content
-                filename = result['file_name']
-                content = result['content']
+        # Check if any results were returned
+        if results.get_count() == 0:
+            error_messages.append("Please specify filenames in the given prompt!")
+            # Display message if no filenames matched
+            print("No filenames matched the search query.")
+        else:
+            # Process and display search results
+            for result in results:
+                try:
+                    # Extract file_name and content
+                    filename = result['file_name']
+                    content = result['content']
 
-                # Split the content into chunks of 8000 characters
-                content_chunks = split_content(content, size=8000)
+                    # Split the content into chunks of 8000 characters
+                    content_chunks = split_content(content, size=8000)
 
-                # Create Document objects with metadata for each chunk
-                docs = [Document(page_content=chunk) for chunk in content_chunks]
+                    # Create Document objects with metadata for each chunk
+                    docs = [Document(page_content=chunk) for chunk in content_chunks]
 
-                # Add the document chunks to the corresponding filename key
-                if filename in filename_to_docs:
-                    filename_to_docs[filename].extend(docs)
-                else:
-                    filename_to_docs[filename] = docs
+                    # Add the document chunks to the corresponding filename key
+                    if filename in filename_to_docs:
+                        filename_to_docs[filename].extend(docs)
+                    else:
+                        filename_to_docs[filename] = docs
 
-            except KeyError as e:
-                error_messages.append(f"KeyError: {e}. Result: {result}")
-            except Exception as e:
-                error_messages.append(f"An unexpected error occurred while processing result: {str(e)}")
+                except KeyError as e:
+                    error_messages.append(f"KeyError: {e}. Result: {result}")
+                except Exception as e:
+                    error_messages.append(f"An unexpected error occurred while processing result: {str(e)}")
 
-        # Convert the dictionary to a list of tuples
-        old_structure = [(filename, docs) for filename, docs in filename_to_docs.items()]
+            # Convert the dictionary to a list of tuples
+            old_structure = [(filename, docs) for filename, docs in filename_to_docs.items()]
 
-        # Generate summaries with the required structure
-        summ = []
-        counter = 1
+            # Generate summaries with the required structure
+            summ = []
+            counter = 1
 
-        for filename, documents in old_structure:
-            try:
-                summary_list = custom_summary(documents, custom_p, chain_type, word_count)
-                summary_text = '\n'.join(summary_list)
+            for filename, documents in old_structure:
+                try:
+                    summary_list = custom_summary(documents, custom_p, chain_type, word_count)
+                    summary_text = '\n'.join(summary_list)
 
-                # Create summary history record
-                summary_record = SummaryHistory(
-                    login_pin=session['login_pin'],
-                    filename=filename,  # Assuming filename represents the question or context
-                    summary=summary_list,
-                    summary_date=datetime.datetime.now()
-                )
-                # Add record to session
-                db.session.add(summary_record)
-                db.session.commit()
+                    # Create summary history record
+                    summary_record = SummaryHistory(
+                        login_pin=session['login_pin'],
+                        filename=filename,  # Assuming filename represents the question or context
+                        summary=summary_list,
+                        summary_date=datetime.datetime.now()
+                    )
+                    # Add record to session
+                    db.session.add(summary_record)
+                    db.session.commit()
 
-                key = f'{filename}--{counter}--'
-                summary_dict = {'key': key, 'value': summary_list}
-                summ.append(summary_dict)
-                counter += 1
-                emit('summary_response', summ)
-            except Exception as e:
-                error_message = f"An unexpected error occurred for file {filename}: {str(e)}"
-                file_name = check_error(str(e))
-                if file_name == 'policyError':
-                    error_messages.append(f"""An unexpected error occurred for file {filename}:
-                                            It seems the content of your file violates some policies.
-                                            This could be due to certain words or phrases that are not allowed.
-                                            For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
-                else:
-                    error_messages.append(error_message)
-                g.flag = 0
-                logger.error('Summary generation error: ' + error_message, exc_info=True)
+                    key = f'{filename}--{counter}--'
+                    summary_dict = {'key': key, 'value': summary_list}
+                    summ.append(summary_dict)
+                    counter += 1
+                    emit('summary_response', summ)
+                except Exception as e:
+                    error_message = f"An unexpected error occurred for file {filename}: {str(e)}"
+                    file_name = check_error(str(e))
+                    if file_name == 'policyError':
+                        error_messages.append(f"""An unexpected error occurred for file {filename}:
+                                                It seems the content of your file violates some policies.
+                                                This could be due to certain words or phrases that are not allowed.
+                                                For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
+                    else:
+                        error_messages.append(error_message)
+                    g.flag = 0
+                    logger.error('Summary generation error: ' + error_message, exc_info=True)
 
-        session['summary_add'].extend(summ)
+            session['summary_add'].extend(summ)
 
-        emit('progress', {'percentage': 75, 'pin': session['login_pin']})
+            emit('progress', {'percentage': 75, 'pin': session['login_pin']})
 
-        senti_text_summ = ' '.join(entry['value'] for entry in summ)
-        analyze_sentiment_summ(senti_text_summ)
+            senti_text_summ = ' '.join(entry['value'] for entry in summ)
+            analyze_sentiment_summ(senti_text_summ)
 
-        generate_word_cloud(senti_text_summ)
-        perform_lda____summ(senti_text_summ)
+            generate_word_cloud(senti_text_summ)
+            perform_lda____summ(senti_text_summ)
 
-        elapsed_time = time.time() - start_time
-        g.flag = 1
-        logger.info(f'Summary Generated in {elapsed_time} seconds')
-        emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+            elapsed_time = time.time() - start_time
+            g.flag = 1
+            logger.info(f'Summary Generated in {elapsed_time} seconds')
+            emit('progress', {'percentage': 100, 'pin': session['login_pin']})
 
     except Exception as e:
         g.flag = 0
