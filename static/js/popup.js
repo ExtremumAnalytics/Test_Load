@@ -203,7 +203,16 @@ function runDefaultProgram(called_from) {
             $("#waitImg").hide(); // Hide the loading image on success
             linkDataPopup();
             updateTable();
-
+            socket.emit('eda_excel_to_json');
+            socket.on('excel_to_json', (response) =>{
+                if (response.message){
+                    document.getElementById('message').innerHTML = '<p>' + response.message + '</p>';
+                    setTimeout(function () {
+                        document.getElementById('message').innerHTML = '';
+                    }, 5000);
+                    updateTable();
+                }
+            });
             urlArray = []; // Clear the URL array
         } else {
             var response = JSON.parse(xhr.responseText);
@@ -620,6 +629,13 @@ function deleteFile(fileNames) {
     });
 }
 
+function closeUserModal(){
+    document.getElementById('userGuide').style.display = 'none';
+}
+
+function openUserModal(){
+    document.getElementById('userGuide').style.display = 'block';
+}
 
 // Data Base Connection Form
 document.getElementById('dbForm').onsubmit = async (event) => {
@@ -630,20 +646,16 @@ document.getElementById('dbForm').onsubmit = async (event) => {
     const socket = io();
 
     socket.emit('run_query', Object.fromEntries(formData));
-
-    socket.on('query_success', (data) => {
-        document.getElementById('message').innerText = data.message || 'Query executed successfully.';
+    $("#waitImg").show(); 
+    socket.on('excel_response', (data) => {
+        document.getElementById('message').innerText = data.message;
+        console.log(data);
         setTimeout(() => {
             document.getElementById('message').innerText = '';
         }, 8000); // Clear message after 8 seconds
         updateTable();
-    });
-
-    socket.on('query_error', (data) => {
-        document.getElementById('message').innerText = JSON.stringify(data);
-        setTimeout(() => {
-            document.getElementById('message').innerText = '';
-        }, 8000); // Clear message after 8 seconds
-        updateTable();
-    });
+        $("#waitImg").hide(); 
+        pdfclosePopup();
+        document.getElementById('userGuide').style.display = 'block';
+    });  
 };

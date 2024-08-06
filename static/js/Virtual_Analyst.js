@@ -2,7 +2,8 @@
 var modal = document.getElementById("myModal");
 var span = document.getElementsByClassName("close")[0];
 var socket = io();
-
+let databaseName='';
+let selectedDB='';
 // Select Files to load
 document.addEventListener('DOMContentLoaded', (event) => {
     
@@ -16,19 +17,25 @@ document.addEventListener('DOMContentLoaded', (event) => {
         // Clear the fileList dropdown before adding new options
         fileList.innerHTML = '';
 
-        // Creating a default db option
+        // Creating a default 'select data' option
         var option1 = document.createElement("option");
         option1.text = 'Select Data';
         option1.value = 'select';
         fileList.appendChild(option1);
 
-        const option2 = document.createElement("option");
-        option2.text = 'Use Database';
-        option2.value = 'database';
-        fileList.appendChild(option2);
+        
+        data.database_name.forEach(function(db) {
+            var option2 = document.createElement("option");
+            // console.log(db);
+            option2.text = `Use Database: ${db}`;
+            option2.value =`database:${db}` ;  // Use the database name as the value
+            databaseName = db;
+            // console.log(db);
+            fileList.appendChild(option2);
+        });
 
 
-        var filteredData = data.filter(function(file) {
+        var filteredData = data.blobs.filter(function(file) {
             var fileExtension = file.name.split('.').pop().toLowerCase();
             return fileExtension === 'xlsx' || fileExtension === 'csv';
         });
@@ -47,7 +54,7 @@ function table_data_retrieve() {
     // Listen for the 'table_update' event from the server
     socket.on('table_update', function(data) {
         // Handle the data received from the server
-        console.log(data); 
+        // console.log(data); 
     });
 }
 
@@ -83,7 +90,7 @@ function loadData() {
         alert('Please select the data!')
     }
 
-    else if(selectedFileUrl!='database'){
+    else if(!selectedFileUrl.startsWith('database:')){
         // Emit the eda_process event with the selected file URL
         socket.emit('eda_process', { fileUrl: selectedFileUrl });
 
@@ -96,9 +103,12 @@ function loadData() {
             document.getElementById('message').textContent = response.message;
         });
     }
-    else if(selectedFileUrl == 'database'){
+    else if(selectedFileUrl.startsWith('database:')){
         closeModal();
-        document.getElementById('message').textContent = 'Database Selected';
+        let dbName = selectedFileUrl.split(':')[1];
+        // console.log(dbName);
+        selectedDB=dbName;
+        document.getElementById('message').textContent = `${dbName} Selected`;
     }
 }
 
@@ -117,11 +127,11 @@ function sendQuestion() {
     const question = document.getElementById('question_eda').value;
     var selectedFileUrl = document.getElementById("fileList").value;
 
-    if(selectedFileUrl=='database'){
+    if(selectedFileUrl.startsWith('database:')){
         $("#waitImg").show(); // Show the loading image
 
         // Emit the 'eda_db_process' event with the question data
-        socket.emit('eda_db_process', {'query_input': question });
+        socket.emit('eda_db_process', {'query_input': question,'database_name':selectedDB });
 
         socket.on('eda_query_success', (data) =>{
             $("#waitImg").hide(); // Hide the loading image on success
@@ -361,8 +371,13 @@ function deleteFile(fileNames) {
     });
 }
 
+function closeUserModal(){
+    document.getElementById('userGuide').style.display = 'none';
+}
+
 // Virtual Analyst Voice Record Button
 document.addEventListener('DOMContentLoaded', function() {
+
     let recognition;
     const outputDiv = document.getElementById('message');
     const recordButton = document.getElementById('recordButton');
@@ -429,3 +444,85 @@ document.addEventListener('DOMContentLoaded', function() {
         recordButton.style.display = show ? 'block' : 'none';
     }
 });
+
+// function triggerFileInput() {
+//     const fileInput = document.getElementById('fileInput');
+//     fileInput.click();
+//     fileInput.onchange = uploadFile;
+// }
+
+function uploadFile() {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    var files;
+    
+    if (!file) {
+        alert('No file selected!');
+        return;
+    }
+
+    if (fileInput && fileInput.files.length > 0) {
+        files = fileInput.files;
+    } else {
+        files = []; // Placeholder action
+    }
+
+    var formData = new FormData();
+    formData.append('sizeValue',200);
+    for (var i = 0; i < files.length; i++) {
+        formData.append('myFile', files[i]);
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/popup_form');
+    // console.log('popup form');
+    xhr.onload = function () {
+        if (xhr.status === 200) {
+            // console.log('route called');
+            var response = JSON.parse(xhr.responseText);
+            document.getElementById('message').innerHTML = '<p>' + response.message + '</p>';
+            setTimeout(function () {
+                document.getElementById('message').innerHTML = '';
+            }, 8000);
+            $("#waitImg").hide(); // Hide the loading image on success
+            updateQueryTable();
+        } else {
+            var response = JSON.parse(xhr.responseText);
+            document.getElementById('message').innerHTML = '<p>' + response.message + '</p>';
+            setTimeout(function () {
+                document.getElementById('message').innerHTML = '';
+            }, 8000);
+            updateQueryTable();
+            $("#waitImg").hide(); // Hide the loading image on failure
+        }
+    };
+    xhr.send(formData);
+    document.getElementById('fileInput').value='';
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const data = event.target.result;
+
+        if (file.type === 'application/json') {
+            handleJSON(data);
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.type === 'application/vnd.ms-excel') {
+            handleExcel(data);
+        } else {
+            alert('Unsupported file type!');
+        }
+    };
+
+    reader.readAsBinaryString(file);
+   
+    
+}
+
+function handleJSON(data) {
+    const jsonData = JSON.parse(data);
+    // console.log('JSON Data:', jsonData);
+}
+
+function handleExcel(data) {
+    const workbook = XLSX.read(data, { type: 'binary' });
+    // console.log('Excel Data:', workbook);
+}

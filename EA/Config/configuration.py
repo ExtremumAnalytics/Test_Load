@@ -3,10 +3,10 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from azure.storage.blob import BlobServiceClient
 from azure.cognitiveservices.vision.computervision import ComputerVisionClient
+from flask import request, session
 from msrest.authentication import CognitiveServicesCredentials
-from langchain.embeddings import AzureOpenAIEmbeddings
+from langchain_openai import AzureOpenAIEmbeddings
 from dotenv import load_dotenv
-
 # Load environment variables from .env file for local development
 load_dotenv()
 
@@ -20,6 +20,11 @@ if not IS_PRODUCTION:
     vectorsecret = "vectordatabsekey"
     computer_vision = "computer-vision-key-v1"
     openapi_key = "OPENAI-API-KEY"
+    MySQL_db_pwd = "mysql-db-pwd"
+    DB_USERNAME = "extremumadmin"
+    DB_HOST = "extremum-mysql-db.mysql.database.azure.com"
+    DB_NAME = "cognilink-master-prod"
+    LOG_DB_NAME = "cognilink-logging-prod"
     KVUri = f"https://eavault.vault.azure.net/"
     credential = DefaultAzureCredential()
     client = SecretClient(vault_url=KVUri, credential=credential)
@@ -27,12 +32,21 @@ if not IS_PRODUCTION:
     main_key = client.get_secret(openapi_key).value
     vector_store = client.get_secret(vectorsecret).value
     computer_vision_key = client.get_secret(computer_vision).value
+    DB_PASSWORD = client.get_secret(MySQL_db_pwd).value
 else:
     print("Running in development mode.")
     # For local use only
-    main_key = os.getenv("Main_key")
+    main_key = os.getenv("MAIN_KEY")
     vector_store = os.getenv("AZURE_COGNITIVE_SEARCH_API_KEY")
     computer_vision_key = os.getenv("COMPUTER_VISION_SUBSCRIPTION_KEY")
+
+    # MySQL Database Connection
+    DB_USERNAME = os.getenv("DB_USERNAME")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    DB_HOST = os.getenv("DB_HOST")
+    DB_NAME = os.getenv("DB_NAME")
+    LOG_DB_NAME = os.getenv("LOG_DB_NAME")
+
     print(f"main_key: {main_key}")
     print(f"vector_store: {vector_store}")
     print(f"computer_vision_key: {computer_vision_key}")
@@ -42,6 +56,13 @@ os.environ["OPENAI_API_TYPE"] = "azure"
 os.environ["OPENAI_API_KEY"] = main_key
 os.environ["OPENAI_API_VERSION"] = "2023-05-15"
 os.environ["AZURE_OPENAI_ENDPOINT"] = "https://ea-openai.openai.azure.com/"
+
+# Set MySQL DB Environment Variables
+os.environ["DB_USERNAME"] = DB_USERNAME
+os.environ["DB_PASSWORD"] = DB_PASSWORD
+os.environ["DB_HOST"] = DB_HOST
+os.environ["DB_NAME"] = DB_NAME
+os.environ["LOG_DB_NAME"] = LOG_DB_NAME
 
 # Computer Vision setup
 computer_vision_api_endpoint = "https://test-computer-vision-extremum.cognitiveservices.azure.com/"
@@ -59,9 +80,9 @@ if not IS_PRODUCTION:
     account_url = "https://testcongnilink.blob.core.windows.net"
     blob_service_client = BlobServiceClient(account_url, credential=DefaultAzureCredential())
 else:
-    account_name = os.getenv('account_name')
-    account_key = os.getenv('account_key')
-    container_name = os.getenv('container_name')
+    account_name = os.getenv('ACCOUNT_NAME')
+    account_key = os.getenv('ACCOUNT_KEY')
+    container_name = os.getenv('CONTAINER_NAME')
     connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
     blob_service_client = BlobServiceClient.from_connection_string(connection_string)
     print(f"account_name: {account_name}")

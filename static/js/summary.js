@@ -2,12 +2,6 @@ const socket = io();
 var pin = localStorage.getItem('pin');
 socket.emit('table_update');
 
-document.getElementById('errorButton').onclick = function() {
-    var modal = document.getElementById("myModal");
-    modal.style.display = "block";
-    $('#errorModal').modal('show');
-}
-
 // Close the select menu
 function closeModal() {
     document.getElementById('myModal').style.display = 'none';
@@ -16,7 +10,6 @@ function closeModal() {
 // Generate Summary Button
 document.addEventListener('DOMContentLoaded', function() {
     const fetchSummaryBtn = document.getElementById('fetchSummaryBtn');
-    const summaryList = document.getElementById('summaryList');
     const slider = document.getElementById("mySlider");
     const valueBox = document.querySelector(".value-box");
     const displayedSummaries = new Set(); // To keep track of displayed summaries
@@ -48,17 +41,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if data contains errors
         if (data.errors) {
             errorMessages = data.errors;
-            console.log(errorMessages);
+            // console.log(errorMessages);
         } else if (Array.isArray(data) && data.length > 0) {
+            // console.log(data);
             displaySummaries(data);
         }
 
         if (data.message) {
             $('#message').text(data.message);
-            // document.getElementById('error').style.display='block';
             setTimeout(function() {
                 $('#message').text('');
-                // document.getElementById('error').style.display='none';
             }, 5000); // Clear message after 5 seconds
         }
         updateImage();
@@ -87,9 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function clearOldData() {
         const summaryContainer = document.getElementById('summaryContainer');
-        const errorContainer = document.getElementById('errorContainer');
         summaryContainer.innerHTML = ''; // Clear the summary container
-        errorContainer.innerHTML = ''; // Clear the error container
         displayedSummaries.clear(); // Clear the set of displayed summaries
     }
 
@@ -124,26 +114,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 typeWord(); // Start the typing effect
                 displayedSummaries.add(summaryKey); // Add to the set of displayed summaries
+                document.getElementById('summarySentiments').style.display = 'block';
+                document.getElementById('summaryWordCloud').style.display = 'block';
+                document.getElementById('summaryTopics').style.display = 'block';
             }
         });
     }
 
     function displayErrors(errors) {
-        // const errorContainer = document.getElementById('errorContainer');
         const error = document.getElementById('modalBody');
-        // document.getElementById('errorButton').style.display='block';
         if (Array.isArray(errors) && errors.length > 0) {
 
             const list = document.createElement('ul'); // Create an unordered list element
 
             errors.forEach(error => {
                 const listItem = document.createElement('li'); // Create a list item element
-                // listItem.innerHTML = `<b>Error</b>: ${error}`;
                 listItem.innerHTML = `${error}`;
                 list.appendChild(listItem); // Append the list item to the list
             });
 
-            // errorContainer.appendChild(list); // Append the list to the container
             error.appendChild(list); // Append the list to the container
             document.getElementById('myModal').style.display='block';
 
@@ -162,11 +151,10 @@ function updateImage() {
 
 // Function to clear the chat summary using Socket.IO
 function clear_summ_Chat() {
-    
     // Emit event to the server to clear chat history
     socket.emit('clear_chat_summ', {});
     socket.emit('table_update');
-
+    document.getElementById('summary_que').value = "";
 }
 
 // Handle the response from the server
@@ -180,8 +168,6 @@ socket.on('clear_chat_response', function(data) {
     // Clear the chat history container
     var historyContainer = document.getElementById("summaryContainer");
     historyContainer.innerHTML = "";
-    var errorContainer = document.getElementById("errorContainer");
-    errorContainer.innerHTML = "";
 });
 
 
@@ -202,28 +188,28 @@ socket.on('lda_topics_summ', function(data) {
 
 // Summary Page Word Count Slider
 document.addEventListener('DOMContentLoaded', function() {
-  const slider = document.getElementById("mySlider");
-  const valueBox = document.querySelector(".value-box");
-  const socket = io();
+    const slider = document.getElementById("mySlider");
+    const valueBox = document.querySelector(".value-box");
+    const socket = io();
 
-  // Update the value box when the slider changes
-  slider.addEventListener("input", () => {
-      valueBox.textContent = slider.value;
-  });
+    // Update the value box when the slider changes
+    slider.addEventListener("input", () => {
+        valueBox.textContent = slider.value;
+    });
 
-  // Send a Socket.IO event to the server when the slider changes
-  slider.addEventListener("change", () => {
-      socket.emit('Cogservice_Value_Updated', { value: slider.value });
-  });
+    // Send a Socket.IO event to the server when the slider changes
+    slider.addEventListener("change", () => {
+        socket.emit('Cogservice_Value_Updated', { value: slider.value });
+    });
 
-  // Handle the response from the server
-  socket.on('cogservice_response', (data) => {
-      if (data.message) {
-        //   console.log(data.message); // Log success message
-      } else if (data.error) {
-        //   console.error(data.error); // Log error message
-      }
-  });
+    // Handle the response from the server
+    socket.on('cogservice_response', (data) => {
+        if (data.message) {
+            //   console.log(data.message); // Log success message
+        } else if (data.error) {
+            //   console.error(data.error); // Log error message
+        }
+    });
 });
 
 //Summary Page Voice Recording Button
@@ -305,8 +291,6 @@ function updateImage() {
     image.src = "../static/login/"+ pin +"/wordcloud.png?t=" + timestamp;
 }
 
-// // Call updateImage function every 5 seconds
-// setInterval(updateImage, 5000);
 
 // Loading Updated wordcloud image
 document.addEventListener('DOMContentLoaded', function() {

@@ -8,9 +8,10 @@ import re
 import docx
 import asyncio
 import pytz
+from sqlalchemy.orm import sessionmaker
 from werkzeug.utils import secure_filename
 
-from azure.search.documents._generated.models import SearchMode
+from azure.search.documents._generated.models import SearchMode, VectorizedQuery
 from azure.search.documents.indexes._generated.models import SemanticConfiguration, SemanticPrioritizedFields, \
     SemanticField, SemanticSearch, ScoringProfile, TextWeights
 from flask import Flask, jsonify, url_for, flash
@@ -18,8 +19,7 @@ from flask import render_template, request, g, redirect, session
 import tempfile
 
 # For Virtual Analyst DB integration
-from langchain.sql_database import SQLDatabase
-from langchain.chains import create_sql_query_chain
+from sqlalchemy import create_engine, inspect
 
 # sentiment and word cloud use only
 import nltk
@@ -35,7 +35,6 @@ from azure.storage.blob import BlobServiceClient, ContentSettings
 from azure.cognitiveservices.vision.computervision.models import OperationStatusCodes
 
 # langchain module
-from langchain.chat_models import AzureChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains.summarize import load_summarize_chain
 from langchain_community.document_loaders import Docx2txtLoader, \
@@ -43,18 +42,18 @@ from langchain_community.document_loaders import Docx2txtLoader, \
     AssemblyAIAudioTranscriptLoader
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.chat_models import AzureChatOpenAI
-from langchain.vectorstores import AzureSearch
+from langchain_community.vectorstores import AzureSearch
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.llm import LLMChain
 from langchain.schema import Document
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
-from langchain.tools import DuckDuckGoSearchRun
+from langchain_community.tools import DuckDuckGoSearchRun
 from langchain.schema import AIMessage
 from langchain_core.runnables import RunnablePassthrough
 # for azure vector db index creation
 from azure.search.documents import SearchClient
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
@@ -84,24 +83,25 @@ import matplotlib
 from pandasai import Agent
 from pandasai.llm import AzureOpenAI
 
-import traceback
 from datetime import datetime
 
 # Socket IO
 from flask_socketio import SocketIO, emit
 
 # For database connection
-import pyodbc, datetime
-import pymongo
+import datetime
 import mysql.connector
 # from pymongo import MongoClient
+import pymongo
 import io
 
 # Import folder file
 from EA.Database.database import db, create_all_tables
-from EA.Database.database import UserRole, UserDetails, ChatHistory
-from EA.Config.configuration import (blob_service_client, container_client, computervision_client, embeddings, vector_store_address, vector_store_password, container_name, main_key)
-from EA.Logger.logging import setup_csv_logger, CustomLoggerAdapter
+from EA.Database.database import UserRole, UserDetails, ChatHistory, DatabaseDetailsSave, SummaryHistory
+from EA.Config.configuration import (blob_service_client, container_client, computervision_client,
+                                     embeddings, vector_store_address, vector_store_password, container_name,
+                                     main_key, DB_USERNAME, DB_PASSWORD, DB_HOST, DB_NAME)
+from EA.Logger.logging import setup_database_logger, CustomLoggerAdapter, clean_old_logs
 from EA.Interrupt.flag import check_stop_flag, write_stop_flag_to_csv, read_stop_flag_from_csv
 from EA.Error_Handling.checkError import check_file, check_error
 
@@ -125,14 +125,12 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-
 global blob_client, logger, chat_history_list, Limit_By_Size, mb_pop, file_size_bytes, df, png_file, loader
-
 
 app = Flask(__name__, template_folder="Templates")
 app.debug = True
 app.static_folder = "static"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///Dashboard.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
 db.init_app(app)
 
 # Create tables
@@ -140,7 +138,6 @@ create_all_tables(app)
 app.config['DEBUG'] = True
 app.secret_key = os.urandom(24)
 socketio = SocketIO(app, manage_session=True)
-
 
 env_mapping_dict = {"http://cognilink-prod.azurewebsites.net/": "prod",
                     "http://cognilink-dev.azurewebsites.net/": "dev", "http://127.0.0.1:5000/": "dev"}
@@ -384,7 +381,11 @@ def update_when_file_delete():
             blob.name.endswith('.png') or
             blob.name.endswith('.text') or
             blob.name.endswith('.jpeg') or
-            blob.name.endswith('.mp3'))]
+            blob.name.endswith('.mp3') or
+            blob.name.endswith('.json') or
+            blob.name.endswith('_schema.xls') or
+            blob.name.endswith('_schema.xlsx')
+    )]
 
     # Update session counts for CSV files directly
     csv_files_count = len(all_blobs_list) - len(blob_list)
@@ -451,6 +452,7 @@ def update_when_file_delete():
 
                 if check_stop_flag():
                     write_stop_flag_to_csv(session['login_pin'], 'False')
+                    print("Data Load Cancelled")
                     break
                 if 'https://' or 'http://' in blob.name:
                     url_part = blob.name.split(str(session['login_pin']) + '/')[1]
@@ -551,6 +553,7 @@ def update_when_file_delete():
             return jsonify({"message": "Data loaded successfully"})
 
         else:
+            print("Load Process Stopped")
             elapsed_time = time.time() - start_time
             g.flag = 0  # Set flag to 1 on success1
             logger.info(f"Function update_when_file_delete Data Loaded unsuccessfully in {elapsed_time} seconds")
@@ -597,7 +600,8 @@ def create_or_update_index():
     # Define the index schema
     fields = [
         SimpleField(name="id", type=SearchFieldDataType.String, key=True),
-        SearchableField(name="file_name", type=SearchFieldDataType.String, filterable=True, sortable=True, searchable=True),
+        SearchableField(name="file_name", type=SearchFieldDataType.String, filterable=True, sortable=True,
+                        searchable=True),
         SearchableField(name="content", type=SearchFieldDataType.String, searchable=True),
         SearchField(name="content_vector", type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                     searchable=True, vector_search_dimensions=1536, vector_search_profile_name="my-vector-config"),
@@ -632,9 +636,11 @@ def create_or_update_index():
     # Create or update the index
     try:
         client.create_or_update_index(index)
+        g.flag = 1
         logger.info(f"Index {index_name} created for user {str(session['user_name'])}")
         print(f"Index '{index_name}' created or updated successfully.")
     except Exception as e:
+        g.flag = 0
         logger.error(f"Index {index_name} not created for user {str(session['user_name'])}", exc_info=True)
         print(f"Index '{index_name}' creation or update failed. Error: {str(e)}")
 
@@ -689,11 +695,13 @@ def get_vectorstore(text_chunks, file_name):
             documents.append(document)
 
         result = search_client.upload_documents(documents=documents)
+        g.flag = 1
         logger.info('Documents uploaded to vector database')
 
     except Exception as e:
+        g.flag = 0
         logger.error("Documents not uploaded to vector database", exc_info=True)
-        print('ERROR! ',e)
+        print('ERROR! ', e)
 
 
 def delete_documents_from_vectordb(documents_to_delete):
@@ -732,13 +740,16 @@ def delete_documents_from_vectordb(documents_to_delete):
         batch_response = search_client.upload_documents(actions)
 
         if batch_response:
+            g.flag = 1
             logger.info('Documents deleted from vector database')
             print({"message": "Documents deleted successfully"})
         else:
+            g.flag = 0
             logger.error('Failed to delete some documents from vector database')
             raise Exception("Failed to delete some documents")
 
     except Exception as e:
+        g.flag = 0
         logger.error('Failed to delete some documents from vector database', exc_info=True)
         print({'message': str(e)})
 
@@ -1302,6 +1313,50 @@ def check_session():
         return jsonify({'sessionValid': False}), 401
 
 
+@socketio.on('request_chat_history')
+def handle_request_chat_history(data):
+    date_str = data.get('date')
+
+    if date_str:
+        selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+        # Filter chat history by date
+        chat_histories = ChatHistory.query.filter(
+            ChatHistory.login_pin == session['login_pin'],
+            db.func.date(ChatHistory.chat_date) == selected_date.date()
+        ).all()
+
+        # Filter summary history by date
+        summary_histories = SummaryHistory.query.filter(
+            SummaryHistory.login_pin == session['login_pin'],
+            db.func.date(SummaryHistory.summary_date) == selected_date.date()
+        ).all()
+    else:
+        # Retrieve all chat history
+        chat_histories = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+        summary_histories = SummaryHistory.query.filter_by(login_pin=session['login_pin']).all()
+
+    # Convert chat history objects to a list of dictionaries
+    chat_history_data = [
+        {
+            'question': chat.question,
+            'answer': chat.answer,
+            'source': chat.source,
+            'page_number': chat.page_number,
+        }
+        for chat in chat_histories]
+
+    # Convert summary history objects to a list of dictionaries
+    summary_history_data = [
+        {
+            'filename': summary.filename,
+            'summary': summary.summary,
+        }
+        for summary in summary_histories]
+
+    emit('chat_history', {'chat_history': chat_history_data[::-1]})
+    emit('summary_history', {'summary_history': summary_history_data[::-1]})
+
+
 @socketio.on('connect')
 def handle_connect():
     bar_chart_data = create_bar_chart()
@@ -1320,6 +1375,12 @@ def handle_connect():
                     for chat in chat_history_from_db]
     emit('chat_history', {'chat_history': chat_history[::-1]})
 
+    database_details = DatabaseDetailsSave.query.filter_by(login_pin=session['login_pin']).all()
+    database = [{"database_name": chat.db_name, }
+                for chat in database_details]
+    db_name = set()
+    for db in database:
+        db_name.add(db['database_name'])
     # Code to fetch draft data from storage
     container_client_ = blob_service_client.get_container_client(container_name)
     blob_list = container_client_.list_blobs(
@@ -1337,7 +1398,8 @@ def handle_connect():
                 # 'draftType': draft_type,
                 'status': 'Uploaded'  # or other status based on your logic
             })
-    emit('updateAnalystTable', blobs)
+
+    emit('updateAnalystTable', {'blobs': blobs, 'database_name': list(db_name)})
 
 
 @socketio.on('send_data')
@@ -1522,95 +1584,129 @@ def run_query(data):
     port = data['port']
     username = data['username']
     password = data['password']
-    query = data['query']
-    database = 'master'
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    database_name = data['db_name']
+    session['database_name'].append(database_name)
     folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
-    file_name = f"query_results_{timestamp}.csv"
+    start_time = time.time()
 
-    try:
-        start_time = time.time()
+    new_chat = DatabaseDetailsSave(
+        login_pin=session['login_pin'],
+        database_type=db_type,
+        hostname=hostname,
+        db_name=database_name,
+        port=port,
+        username=username,
+        password=password,
+    )
+    db.session.add(new_chat)
+    db.session.commit()
 
-        if db_type == 'MySQL':
-            conn = mysql.connector.connect(
-                host=hostname,
-                user=username,
-                password=password,
-                port=port,
-                database="extremum-db"
-            )
-            cursor = conn.cursor()
-            cursor.execute(query)
-            columns = [desc[0] for desc in cursor.description]
-            results = cursor.fetchall()
-            cursor.close()
-            conn.close()
+    if db_type == 'MySQL':
+        try:
+            conn_string = f"mysql+pymysql://{username}:{password}@{hostname}:{port}/{database_name}"
 
-            df = pd.DataFrame(results, columns=columns)
-            csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
-            csv_buffer.seek(0)
+            engine = create_engine(conn_string)
+            inspector = inspect(engine)
 
-            blob_name = f"{folder_name_azure}/{file_name}"
-            blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client_.upload_blob(
-                csv_buffer.getvalue(),
+            schema_with_descriptions = []
+
+            for table_name in inspector.get_table_names():
+                for column in inspector.get_columns(table_name):
+                    column_info = {
+                        'Table': table_name,
+                        'Column': column['name'],
+                        'Type': str(column['type']),
+                        'Description': ''  # Add your descriptions here
+                    }
+                    schema_with_descriptions.append(column_info)
+
+            df = pd.DataFrame(schema_with_descriptions)
+
+            excel_buffer = io.BytesIO()
+            df.to_excel(excel_buffer, engine='openpyxl', index=False)
+            excel_buffer.seek(0)
+            excel_filename = f'{database_name}_schema.xlsx'
+            blob_name = f"{folder_name_azure}/{excel_filename}"
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            blob_client.upload_blob(
+                excel_buffer,
                 blob_type="BlockBlob",
-                content_settings=ContentSettings(content_type="text/csv"),
+                content_settings=ContentSettings(
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
                 overwrite=True
             )
-            elapsed_time = time.time() - start_time
+            excel_file_path = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{session['env_map']}/{session['login_pin']}/{excel_filename}"
             g.flag = 1
-            logger.info(f'Fetched MySQL Data in {elapsed_time} seconds')
-            emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
-
-        elif db_type == 'MongoDB':
-            client = pymongo.MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
-            db = client[database]
-            result = db.command('eval', query)
-
             elapsed_time = time.time() - start_time
-            g.flag = 1
-            logger.info(f'Fetched MongoDB Data in {elapsed_time} seconds')
-            emit('query_success', {'message': 'Data fetched and uploaded successfully.', 'result': str(result)})
+            logger.info(f'Fetched data from database in {elapsed_time} seconds')
+            emit('excel_response',
+                 {'message': f'Database {database_name} connected successfully!! ', 'url': excel_file_path})
 
-        elif db_type == 'SQLServer':
-            conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE=master;UID={username};PWD={password};TrustServerCertificate=yes;'
-            conn = pyodbc.connect(conn_str)
-            cursor = conn.cursor()
-            cursor.execute(query)
-            columns = [desc[0] for desc in cursor.description]
-            results = cursor.fetchall()
-            cursor.close()
-            conn.close()
-
-            df_data = pd.DataFrame(results, columns=columns)
-            csv_buffer = io.StringIO()
-            df_data.to_csv(csv_buffer, index=False)
-            csv_buffer.seek(0)
-
-            blob_name = f"{folder_name_azure}/{file_name}"
-            blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client_.upload_blob(
-                csv_buffer.getvalue(),
-                blob_type="BlockBlob",
-                content_settings=ContentSettings(content_type="text/csv"),
-                overwrite=True
-            )
-            elapsed_time = time.time() - start_time
-            g.flag = 1
-            logger.info(f'Fetched SQL Server Data in {elapsed_time} seconds')
-            emit('query_success', {'message': 'Data fetched and uploaded successfully.'})
-
-        else:
+        except Exception as ex:
+            print(ex)
             g.flag = 0
-            logger.error('Unsupported database type or connection error.')
-            emit('query_error', {'error': 'Unsupported database type or connection error'})
+            emit('excel_response', {'message': 'Unable to connect with database'})
 
-    except Exception as e:
+    elif db_type == 'MongoDB':
+        client = pymongo.MongoClient(f'mongodb://{username}:{password}@{hostname}:{port}/')
+        # db = client[database_name]
+        # # result = db.command('eval',query)
+        #
+        # elapsed_time = time.time() - start_time
+        # g.flag = 1
+        # logger.info(f'Fetched MongoDB Data in {elapsed_time} seconds')
+        # emit('query_success', {'message': 'Data fetched and uploaded successfully.', 'result': str(result)})
+
+    elif db_type == 'SQLServer':
+        conn_str = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={hostname},{port};DATABASE={database_name};UID={username};PWD={password};TrustServerCertificate=yes;'
+        try:
+            engine = create_engine(conn_str)
+            inspector = inspect(engine)
+
+            schema_with_descriptions = []
+
+            for table_name in inspector.get_table_names():
+                for column in inspector.get_columns(table_name):
+                    column_info = {
+                        'Table': table_name,
+                        'Column': column['name'],
+                        'Type': str(column['type']),
+                        'Description': ''  # Add your descriptions here
+                    }
+                    schema_with_descriptions.append(column_info)
+
+            df = pd.DataFrame(schema_with_descriptions)
+
+            excel_buffer = io.BytesIO()
+            df.to_excel(excel_buffer, engine='openpyxl', index=False)
+            excel_buffer.seek(0)
+            excel_filename = f'{database_name}_schema.xlsx'
+            blob_name = f"{folder_name_azure}/{excel_filename}"
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+            blob_client.upload_blob(
+                excel_buffer,
+                blob_type="BlockBlob",
+                content_settings=ContentSettings(
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                overwrite=True
+            )
+            upload_time = time.time()
+            excel_file_path = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{session['env_map']}/{session['login_pin']}/{excel_filename}"
+            g.flag = 1
+            elapsed_time = time.time() - start_time
+            logger.info(f'Fetched data from database in {elapsed_time} seconds')
+            emit('excel_response',
+                 {'message': 'Schema uploaded successfully ', 'url': excel_file_path, 'upload time': upload_time})
+
+        except Exception as ex:
+            print(ex)
+            g.flag = 0
+            emit('excel_response', {'message': 'Unable to connect with database'})
+
+    else:
         g.flag = 0
-        logger.error('Unsupported database type', exc_info=True)
-        emit('query_error', {'error': str(e), 'trace': traceback.format_exc()})
+        logger.error('Unsupported database type or connection error.')
+        emit('excel_response', {'error': 'Unsupported database type or connection error'})
 
 
 @socketio.on('stop_process')
@@ -1618,6 +1714,7 @@ def stop_process(data):
     login_pin = data['login_pin']
 
     if login_pin == session['login_pin']:
+        print('stop', login_pin, session['login_pin'])
         write_stop_flag_to_csv(login_pin, 'True')
 
         stop_flag = read_stop_flag_from_csv(login_pin)
@@ -1645,6 +1742,7 @@ def Cogni_button():
         response = update_when_file_delete()
         if check_stop_flag():
             write_stop_flag_to_csv(session['login_pin'], 'False')
+            print("Data Load Cancelled")
             socketio.emit('button_response', {'message': 'Data loaded cancelled', 'pin': session['login_pin']})
         else:
             elapsed_time = time.time() - start_time
@@ -1670,7 +1768,7 @@ def handle_summary_input(data):
 
     try:
         session['summary_word_count'] = data['value']
-        custom_p = data.get('summary_que',"")
+        custom_p = data.get('summary_que', "")
         session['summary_word_count'] = data['value']
 
         if int(session['summary_word_count']) == 0:
@@ -1758,6 +1856,19 @@ def handle_summary_input(data):
         for filename, documents in old_structure:
             try:
                 summary_list = custom_summary(documents, custom_p, chain_type, word_count)
+                summary_text = '\n'.join(summary_list)
+
+                # Create summary history record
+                summary_record = SummaryHistory(
+                    login_pin=session['login_pin'],
+                    filename=filename,  # Assuming filename represents the question or context
+                    summary=summary_list,
+                    summary_date=datetime.datetime.now()
+                )
+                # Add record to session
+                db.session.add(summary_record)
+                db.session.commit()
+
                 key = f'{filename}--{counter}--'
                 summary_dict = {'key': key, 'value': summary_list}
                 summ.append(summary_dict)
@@ -1773,6 +1884,7 @@ def handle_summary_input(data):
                                             For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
                 else:
                     error_messages.append(error_message)
+                g.flag = 0
                 logger.error('Summary generation error: ' + error_message, exc_info=True)
 
         session['summary_add'].extend(summ)
@@ -1804,6 +1916,7 @@ def handle_summary_input(data):
                                                     For more details, refer to: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/content-filter?tabs=warning%2Cuser-prompt%2Cpython-new""")
         else:
             error_messages.append(error_message)
+        g.flag = 0
         logger.error('Summary generation error: ' + str(error_messages), exc_info=True)
 
     finally:
@@ -1902,7 +2015,8 @@ def handle_ask_question(data):
             chat_history_list = [{"question": question,
                                   "answer": response_content,
                                   "source": "Web/Internet",
-                                  "page_number": "N/A", }]
+                                  "page_number": "N/A",
+                                  "date": datetime.datetime.now()}]
 
             # Save chat history to the database
             for entry in chat_history_list:
@@ -1911,7 +2025,8 @@ def handle_ask_question(data):
                     question=entry['question'],
                     answer=entry['answer'],
                     source=entry['source'],
-                    page_number=entry['page_number']
+                    page_number=entry['page_number'],
+                    chat_date=entry['date']
                 )
                 db.session.add(new_chat)
             db.session.commit()
@@ -1943,7 +2058,13 @@ def handle_ask_question(data):
             )
 
             # Perform the search
-            results = search_client.search(search_text=question_embeddings, select="*", top=5)
+            results = search_client.search(search_text=question_embeddings,
+                                           select="*",
+                                           top=5,
+                                           vector_queries=[VectorizedQuery(vector=question_embeddings,
+                                                                           k_nearest_neighbors=5,
+                                                                           fields="content_vector")]
+                                           )
             documents = []
             for result in results:
                 doc = {
@@ -1968,7 +2089,6 @@ def handle_ask_question(data):
             retriever = vector_store.as_retriever(sorted_documents=sorted_documents)
             conversation_chain_handler = get_conversation_chain(retriever, source)
             response = conversation_chain_handler(question)
-            # print("Conversational result----------->", response)
 
             # Update progress to 50%
             emit('progress', {'percentage': 50, 'pin': session['login_pin']})
@@ -2033,7 +2153,8 @@ def handle_ask_question(data):
             chat_history_list = [{"question": chat_pair[0],
                                   "answer": chat_pair[1],
                                   "source": chat_pair[2],
-                                  "page_number": chat_pair[3]}
+                                  "page_number": chat_pair[3],
+                                  "date": datetime.datetime.now()}
                                  for chat_pair in final_chat_hist]
 
             # Generate follow-up question
@@ -2056,7 +2177,8 @@ def handle_ask_question(data):
                     question=entry['question'],
                     answer=entry['answer'],
                     source=entry['source'],
-                    page_number=entry['page_number']
+                    page_number=entry['page_number'],
+                    chat_date=entry['date']
                 )
                 db.session.add(new_chat)
             db.session.commit()
@@ -2088,8 +2210,8 @@ def handle_ask_question(data):
 def handle_clear_chat():
     try:
         # Clear the ChatHistory table for the specific login_pin
-        db.session.query(ChatHistory).filter_by(login_pin=session['login_pin']).delete()
-        db.session.commit()
+        # db.session.query(ChatHistory).filter_by(login_pin=session['login_pin']).delete()
+        # db.session.commit()
         # sentiment variable for Q_A
         session['lda_topics_Q_A'] = {}
         session['senti_Positive_Q_A'] = 0
@@ -2114,8 +2236,10 @@ async def delete_blob_async(blob_name, container_client_):
     try:
         blob_client_ = container_client_.get_blob_client(blob_name)
         await blob_client_.delete_blob()
+        g.flag = 1
         logger.info(f"Successfully deleted blob: {blob_name}")
     except Exception as e:
+        g.flag = 0
         logger.error(f"Error deleting blob: {blob_name}, {str(e)}")
 
 
@@ -2182,7 +2306,8 @@ def table_update(search_term=None):
         # Exclude files from blobs_chart based on criteria
         blobs_chart = container_client.list_blobs(
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
-        blob_list = [blob for blob in blobs_chart if not (blob.name.lower().endswith('.csv') or blob.name.lower().endswith('.mp3'))]
+        blob_list = [blob for blob in blobs_chart if
+                     not (blob.name.lower().endswith('.csv') or blob.name.lower().endswith('.mp3'))]
         new_blob_list_jpg = [blob for blob in blob_list if
                              not (blob.name.lower().endswith('.jpg') or blob.name.lower().endswith(
                                  '.png') or blob.name.lower().endswith('.jpeg'))]
@@ -2277,7 +2402,6 @@ def webcrawler_start(data):
     os.makedirs(folder_name, exist_ok=True)
 
     try:
-        print("Received URL:", url)
         session['current_status'] = "Website URL Received"
         socketio.emit('update_status', {'status': session['current_status'], 'pin': login_pin})
         response = requests.get(url)
@@ -2627,112 +2751,177 @@ def handle_eda_process(data):
         emit('eda_response', {'message': f'Error occurred while EDA process: {str(e)}', 'success': False})
 
 
+@socketio.on('eda_excel_to_json')
+def excel_to_json():
+    try:
+        start_time = time.time()
+        file_list = ['schema.json', 'schema.xlsx', 'schema.xlx']
+        container_client_ = blob_service_client.get_container_client(container_name)
+        blob_list = container_client_.list_blobs()
+        for blob in blob_list:
+            if blob.name.split('/')[-1].split('_')[-1] in file_list:
+                if blob.name.split('/')[-1].split('_')[-1] == 'schema.json':
+                    emit('excel_to_json', {'message': 'Schema received'})
+                else:
+                    if blob['last_modified'] != blob['creation_time']:
+                        excel_file_path = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{session['env_map']}/{session['login_pin']}/{blob.name.split('/')[-1]}"
+
+                        excel_file = pd.read_excel(excel_file_path)
+                        json_data = excel_file.to_json(orient='records', indent=4)
+
+                        folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
+                        blob_name = f"{folder_name_azure}/{blob.name.split('/')[-1].split('_schema')[0]}_{'schema.json'}"
+                        blob_client_ = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+                        blob_client_.upload_blob(
+                            json_data,
+                            blob_type="BlockBlob",
+                            content_settings=ContentSettings(
+                                content_type="application/json"),
+                            overwrite=True
+                        )
+                    elapsed_time = time.time() - start_time
+                    g.flag = 1
+                    logger.info(f"Excel to JSON file converted in {elapsed_time} seconds")
+                    emit('excel_to_json', {'message': 'Json schema created'})
+            else:
+                g.flag = 1
+                logger.info(f"No file found to convert to JSON")
+                pass
+    except Exception as e:
+        g.flag = 0
+        logger.error(f"Excel to JSON file conversion error: {e}", exc_info=True)
+
+
 @socketio.on('eda_db_process')
 def question_answer_on_structure_data(data):
     start_time = time.time()
+    database_name = data['database_name'].strip()
 
-    db_user = "extremumadmin"
-    db_password = "Welcome!#34"
-    db_host = "extremum-mysql-db.mysql.database.azure.com"
-    db_name = "extremum-db"
-    conn_string = f"mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}"
+    database_details = DatabaseDetailsSave.query.filter_by(login_pin=session['login_pin'],
+                                                           db_name=database_name).first()
+    db_user = database_details.username
+    db_password = database_details.password
+    db_host = database_details.hostname
+    db_name = database_details.db_name
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     folder_name_azure = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}"
     file_name = f"query_results_{timestamp}.csv"
 
     try:
-
-        sql_db = SQLDatabase.from_uri(conn_string)
         query_input = data.get('query_input')
-        # print("question_passed--------->", query_input)
-        schema = sql_db.get_table_info()
-        # print("Schema----->", schema)
-        template = '''Based on the table schema:{schema} write a sql query that would answer user questions.return only sql query:
-        Question: "{question}"
 
-        SQL QUERY:
-        '''
-        prompt = PromptTemplate.from_template(template)
+        container_client_ = blob_service_client.get_container_client(container_name)
+        blob_list = container_client_.list_blobs()
 
-        def format_prompt(data):
-            return prompt.format(schema=data['schema'], question=data['question'])
+        expected_filename = f'{database_name}_schema.json'
+        file_found = False
+        for blob in blob_list:
+            if blob.name.split('/')[-1].endswith(expected_filename):
+                file_found = True
 
-        llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
-        write_query_chain = (RunnablePassthrough()
-                             | format_prompt
-                             | llm
-                             )
-        # write_query = create_sql_query_chain(llm, sql_db)
-        query_generated = write_query_chain.invoke({"schema": schema, "question": query_input})
-        # print("Query generated---------->", query_generated)
-        query_to_run = query_generated.content
-        # print("Query To Run---------->", query_to_run)
-
-        if query_to_run:
-            conn = mysql.connector.connect(
-                host=db_host,
-                user=db_user,
-                password=db_password,
-                database=db_name,
+        if file_found:
+            schema_json = (
+                f"https://{blob_service_client.account_name}.blob.core.windows.net/"
+                f"{container_name}/cognilink-{session['env_map']}/"
+                f"{session['login_pin']}/{expected_filename}"
             )
 
-            cursor = conn.cursor()
-            cursor.execute(query_to_run)
+            if schema_json:
+                json_link = requests.get(schema_json)
+                json_schema = json_link.json()
+                schema_str = "\n".join([
+                    f"Table: {entry['Table']}, Column: {entry['Column']}, Type: {entry['Type']}, Description: {entry['Description']}"
+                    for entry in json_schema])
 
-            columns = [desc[0] for desc in cursor.description]
-            results = cursor.fetchall()
-            cursor.close()
-            conn.close()
+            template = '''Based on the database schema:
+                    {schema}
+                    write a SQL query that would answer the user question. Return only the SQL query:
 
-            answer_prompt = PromptTemplate.from_template(
-                """Given the following  user question,corresponding sql query,and sql result 
-                you have to formulate the sql result in an human friendly way.
-                Question:{question}
-                SQL Query:{query}
-                SQL Result:{result}
-                Answer:"""
-            )
-            llm_chain = LLMChain(prompt=answer_prompt, llm=llm)
-            answer = llm_chain.invoke({"question": query_input, "query": query_to_run, "result": results})
-            # print("Answer----------------->", answer['text'])
+                    Question: "{question}"
 
-            df = pd.DataFrame(results, columns=columns)
-            df_table = df.head(5).to_html(index=False)
-            csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
-            csv_buffer.seek(0)
+                    SQL QUERY:
+                    '''
+            prompt = PromptTemplate.from_template(template)
 
-            blob_name = f"{folder_name_azure}/{file_name}"
-            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-            blob_client.upload_blob(
-                csv_buffer.getvalue(),
-                blob_type="BlockBlob",
-                content_settings=ContentSettings(content_type="text/csv"),
-                overwrite=True
-            )
+            def format_prompt(data):
+                return prompt.format(schema=data['schema'], question=data['question'])
 
-            container_client_ = blob_service_client.get_container_client(container_name)
-            blob_list = container_client_.list_blobs()
-            for blob in blob_list:
-                if file_name in blob.name:
-                    csv_file_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
-                    g.flag = 1
-                    logger.info(f'CSV File URL: {csv_file_url}')  # Log the draft URL
-                    emit('eda_db_response', {'output': answer['text'], 'query': query_to_run, 'url': csv_file_url, 'df_table': df_table})
-                else:
-                    g.flag = 0
-                    logger.error('CSV file URL not found!')
+            llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
+            write_query_chain = (RunnablePassthrough()
+                                 | format_prompt
+                                 | llm
+                                 )
+            query_generated = write_query_chain.invoke({"schema": schema_str, "question": query_input})
+            query_to_run = query_generated.content
 
-            elapsed_time = time.time() - start_time
-            g.flag = 1
-            logger.info(f'Fetched data from database in {elapsed_time} seconds')
-            emit('eda_query_success', {'message': 'Data fetched and uploaded successfully.'})
+            if query_to_run:
+                conn = mysql.connector.connect(
+                    host=db_host,
+                    user=db_user,
+                    password=db_password,
+                    database=db_name,
+                )
+
+                cursor = conn.cursor()
+                cursor.execute(query_to_run)
+
+                columns = [desc[0] for desc in cursor.description]
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+
+                answer_prompt = PromptTemplate.from_template(
+                    """Given the following  user question,corresponding sql query,and sql result 
+                    you have to formulate the sql result in an human friendly way.
+                    Question:{question}
+                    SQL Query:{query}
+                    SQL Result:{result}
+                    Answer:"""
+                )
+                llm_chain = LLMChain(prompt=answer_prompt, llm=llm)
+                answer = llm_chain.invoke({"question": query_input, "query": query_to_run, "result": results})
+
+                df = pd.DataFrame(results, columns=columns)
+                df_table = df.head(5).to_html(index=False)
+                csv_buffer = io.StringIO()
+                df.to_csv(csv_buffer, index=False)
+                csv_buffer.seek(0)
+
+                blob_name = f"{folder_name_azure}/{file_name}"
+                blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+                blob_client.upload_blob(
+                    csv_buffer.getvalue(),
+                    blob_type="BlockBlob",
+                    content_settings=ContentSettings(content_type="text/csv"),
+                    overwrite=True
+                )
+
+                container_client_ = blob_service_client.get_container_client(container_name)
+                blob_list = container_client_.list_blobs()
+                for blob in blob_list:
+                    if file_name in blob.name:
+                        csv_file_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}"
+                        g.flag = 1
+                        logger.info(f'CSV File URL: {csv_file_url}')  # Log the draft URL
+                        emit('eda_db_response', {'output': answer['text'], 'query': query_to_run, 'url': csv_file_url,
+                                                 'df_table': df_table})
+                    else:
+                        g.flag = 0
+                        logger.error('CSV file URL not found!')
+
+                elapsed_time = time.time() - start_time
+                g.flag = 1
+                logger.info(f'Fetched data from database in {elapsed_time} seconds')
+                emit('eda_query_success', {'message': 'Data fetched and uploaded successfully.'})
+
+            else:
+                g.flag = 0
+                logger.error("Error in db connection no sql query generated!!")
+                emit('eda_db_response', {'message': "Error in db connection no sql query generated!!"})
 
         else:
-            g.flag = 0
-            logger.error("Error in db connection no sql query generated!!")
-            emit('eda_db_response', {'message': "Error in db connection no sql query generated!!"})
+            emit('eda_db_response', {'message': f"No json file found for {database_name}"})
     except Exception as ex:
         print(ex)
         g.flag = 0
@@ -2755,7 +2944,8 @@ def query_table_update():
             if (blob.name.split('/')[2].endswith('.csv') or
                     blob.name.split('/')[2].endswith('.xlsx') or
                     blob.name.split('/')[2].endswith('.xlscd') or
-                    blob.name.split('/')[2].endswith('.xls')):
+                    blob.name.split('/')[2].endswith('.xls') or
+                    blob.name.split('/')[2].endswith('.json')):
                 blobs.append({
                     'name': blob.name.split('/')[-1],
                     'url': f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{blob.name}",
@@ -2773,6 +2963,33 @@ def query_table_update():
         g.flag = 0  # Set flag to 0 on error
         logger.error(f"query_table_update route error", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+
+@socketio.on('reset_database')
+def handle_reset_database_event():
+    try:
+        # Get the rollover date
+        rollover_date = datetime.datetime.now() - datetime.timedelta(days=2)
+
+        # Delete records based on rollover date
+        ChatHistory.query.filter(ChatHistory.chat_date < rollover_date, ChatHistory.login_pin == session['login_pin']).delete()
+        SummaryHistory.query.filter(SummaryHistory.summary_date < rollover_date, SummaryHistory.login_pin == session['login_pin']).delete()
+        db.session.commit()
+
+        # Delete logs
+        clean_old_logs(session['login_pin'])
+
+        g.flag = 1
+        logger.info("History deleted from database")
+        # Send back a response to the client
+        socketio.emit('database_reset', {'status': 'success', 'message': f'Database resetting successful.'})
+    except Exception as e:
+        g.flag = 0
+        logger.error("Error, History not deleted from database", exc_info=True)
+        db.session.rollback()
+        socketio.emit('database_reset', {'status': 'error', 'message': str(e)})
+    finally:
+        db.session.close()
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -2823,13 +3040,14 @@ def home():
             session['failed_files'] = []
             session['progress_files'] = []
             session['stop_flag'] = []
+            session['database_name'] = []
 
             folder_name = os.path.join('static', 'login', str(session['login_pin']))
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
 
             if 'login_pin' in session:
-                logger = setup_csv_logger(session['login_pin'])
+                logger = setup_database_logger(session['login_pin'])
             else:
                 g.flag = 0
                 logger.error("User Session Not Found!", exc_info=True)

@@ -102,9 +102,6 @@
             <!-- Navbar End -->
             <div class="flash_msg">
                 <div id="message"></div>
-                <!-- <div class="image-container">
-                    <img id="error" class="centered-image" src="static/images/nodata.png" style="display: none;" alt="Error!">
-                </div> -->
             </div>
 
             <!-- Prompt and Summary -->
@@ -141,29 +138,25 @@
                     </div>
                     <div class="response col-lg-12 bg-light rounded p-4">
                         <div class="d-flex flex-row">
-                            <h6 class="m-2">Summary</h6>
-                            <a href="#" id="errorButton" class="m-2" data-toggle="modal" style="display: none;">
-                               Error! Click to view!
-                               <img style="width: 100px; height: 100px;" src="static/images/error400.png" alt="Error!">
-                            </a>
-                                <!-- HTML for the Popup Modal -->
-                                <div id="myModal" class="errorModal" style="display:none;">
-                                    <div class="modal-content">
-                                        <span class="close" onclick="closeModal()">&times;</span>
-                                        <div class="image-container">
-                                            <img class="centered-image" src="static/images/error400.png" alt="Error!">
-                                        </div>
-                                        <div class="modal-body" style="font-size: 14px;" id="modalBody">
-                                            <!-- Error message will be inserted here -->
-                                        </div>
+                            <h6 class="m-2 col-lg-6" >Summary</h6>
+                            <input type="date" id="summaryDate" style="width: min-content;" class="form-control rounded m-2">
+                            <button class="btn btn-primary m-2" onclick="requestSummaryHistory()">Fetch</button>
+                            <!-- HTML for the Popup Modal -->
+                            <div id="myModal" class="errorModal" style="display:none;">
+                                <div class="modal-content">
+                                    <span class="close" onclick="closeModal()">&times;</span>
+                                    <div class="image-container">
+                                        <img class="centered-image" src="static/images/error400.png" alt="Error!">
+                                    </div>
+                                    <div class="modal-body" style="font-size: 14px;" id="modalBody">
+                                        <!-- Error message will be inserted here -->
                                     </div>
                                 </div>
+                            </div>
                         </div>
                         <div id="waitImg" class="progress progress-bar progress-bar-info progress-bar-striped" style=" display:none; width:0%;"  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" >0% </div>
-                        <div class="summ" id="summaryContainer" style="overflow-y: auto; max-height: 700px;">
+                        <div class="summ m-2" id="summaryContainer" style="overflow-y: auto; height: 700px;">
                         </div>
-                        <p></p>
-                        <div class="summ" id="errorContainer"></div>
                     </div>
                 </div>
 
@@ -179,7 +172,7 @@
                     </div>
 
                     <!-- Sentiment Chart -->
-                    <div class="box bg-light rounded p-4 mb-2">
+                    <div id="summarySentiments" class="box bg-light rounded p-4 mb-2" style="display: none;">
                         <div>
                             <div class="d-flex align-items-center justify-content-center mb-2">
                                 <h6 class="mb-0">Sentiment Analysis</h6>
@@ -190,7 +183,7 @@
                     </div>
 
                     <!-- Word Cloud -->
-                    <div class="box bg-light rounded p-4 mb-2">
+                    <div id="summaryWordCloud" class="box bg-light rounded p-4 mb-2" style="display: none;">
                         <div>
                             <h6 class="mb-2" style="text-align: center;">Word Cloud</h6>
                         </div>
@@ -200,7 +193,7 @@
                     </div>
 
                     <!-- Theme and Topics -->
-                    <div class="box bg-light rounded p-4">
+                    <div id="summaryTopics" class="box bg-light rounded p-4" style="display: none;">
                         <div>
                             <h6 class="mb-2" style="text-align: center;">Themes & Topics</h6>
                         </div>
@@ -250,5 +243,6 @@
     <script src="{{ url_for('static', filename='js/Session_warning.js') }}"></script>
     <script src="{{ url_for('static', filename='js/user_details.js') }}"></script>
     <script src="{{ url_for('static', filename='js/summary_charts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/summary_history.js') }}"></script>
 </body>
 </html>
