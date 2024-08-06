@@ -138,9 +138,9 @@
                     </div>
                     <div class="response col-lg-12 bg-light rounded p-4">
                         <div class="d-flex flex-row">
-                            <h6 class="m-2 col-lg-6">Summary</h6>
-                            <!-- <input type="date" id="summaryDate" class="form-control rounded m-2" placeholder="Date Filter">
-                            <button class="btn btn-primary m-2" onclick="requestSummaryHistory()">Fetch</button> -->
+                            <h6 class="m-2 col-lg-6" >Summary</h6>
+                            <input type="date" id="summaryDate" style="width: min-content;" class="form-control rounded m-2">
+                            <button class="btn btn-primary m-2" onclick="requestSummaryHistory()">Fetch</button>
                             <!-- HTML for the Popup Modal -->
                             <div id="myModal" class="errorModal" style="display:none;">
                                 <div class="modal-content">
@@ -155,7 +155,7 @@
                             </div>
                         </div>
                         <div id="waitImg" class="progress progress-bar progress-bar-info progress-bar-striped" style=" display:none; width:0%;"  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" >0% </div>
-                        <div class="summ m-2" id="summaryContainer" style="overflow-y: auto; max-height: 700px;">
+                        <div class="summ m-2" id="summaryContainer" style="overflow-y: auto; height: 700px;">
                         </div>
                     </div>
                 </div>
@@ -172,7 +172,7 @@
                     </div>
 
                     <!-- Sentiment Chart -->
-                    <div class="box bg-light rounded p-4 mb-2">
+                    <div id="summarySentiments" class="box bg-light rounded p-4 mb-2" style="display: none;">
                         <div>
                             <div class="d-flex align-items-center justify-content-center mb-2">
                                 <h6 class="mb-0">Sentiment Analysis</h6>
@@ -183,7 +183,7 @@
                     </div>
 
                     <!-- Word Cloud -->
-                    <div class="box bg-light rounded p-4 mb-2">
+                    <div id="summaryWordCloud" class="box bg-light rounded p-4 mb-2" style="display: none;">
                         <div>
                             <h6 class="mb-2" style="text-align: center;">Word Cloud</h6>
                         </div>
@@ -193,7 +193,7 @@
                     </div>
 
                     <!-- Theme and Topics -->
-                    <div class="box bg-light rounded p-4">
+                    <div id="summaryTopics" class="box bg-light rounded p-4" style="display: none;">
                         <div>
                             <h6 class="mb-2" style="text-align: center;">Themes & Topics</h6>
                         </div>
@@ -243,6 +243,6 @@
     <script src="{{ url_for('static', filename='js/Session_warning.js') }}"></script>
     <script src="{{ url_for('static', filename='js/user_details.js') }}"></script>
     <script src="{{ url_for('static', filename='js/summary_charts.js') }}"></script>
-    <!-- <script src="{{ url_for('static', filename='js/summary_history.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/summary_history.js') }}"></script>
 </body>
 </html>

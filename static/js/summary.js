@@ -41,9 +41,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if data contains errors
         if (data.errors) {
             errorMessages = data.errors;
-            console.log(errorMessages);
+            // console.log(errorMessages);
         } else if (Array.isArray(data) && data.length > 0) {
-            console.log(data);
+            // console.log(data);
             displaySummaries(data);
         }
 
@@ -114,6 +114,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 typeWord(); // Start the typing effect
                 displayedSummaries.add(summaryKey); // Add to the set of displayed summaries
+                document.getElementById('summarySentiments').style.display = 'block';
+                document.getElementById('summaryWordCloud').style.display = 'block';
+                document.getElementById('summaryTopics').style.display = 'block';
             }
         });
     }
@@ -151,6 +154,7 @@ function clear_summ_Chat() {
     // Emit event to the server to clear chat history
     socket.emit('clear_chat_summ', {});
     socket.emit('table_update');
+    document.getElementById('summary_que').value = "";
 }
 
 // Handle the response from the server
@@ -184,28 +188,28 @@ socket.on('lda_topics_summ', function(data) {
 
 // Summary Page Word Count Slider
 document.addEventListener('DOMContentLoaded', function() {
-  const slider = document.getElementById("mySlider");
-  const valueBox = document.querySelector(".value-box");
-  const socket = io();
+    const slider = document.getElementById("mySlider");
+    const valueBox = document.querySelector(".value-box");
+    const socket = io();
 
-  // Update the value box when the slider changes
-  slider.addEventListener("input", () => {
-      valueBox.textContent = slider.value;
-  });
+    // Update the value box when the slider changes
+    slider.addEventListener("input", () => {
+        valueBox.textContent = slider.value;
+    });
 
-  // Send a Socket.IO event to the server when the slider changes
-  slider.addEventListener("change", () => {
-      socket.emit('Cogservice_Value_Updated', { value: slider.value });
-  });
+    // Send a Socket.IO event to the server when the slider changes
+    slider.addEventListener("change", () => {
+        socket.emit('Cogservice_Value_Updated', { value: slider.value });
+    });
 
-  // Handle the response from the server
-  socket.on('cogservice_response', (data) => {
-      if (data.message) {
-        //   console.log(data.message); // Log success message
-      } else if (data.error) {
-        //   console.error(data.error); // Log error message
-      }
-  });
+    // Handle the response from the server
+    socket.on('cogservice_response', (data) => {
+        if (data.message) {
+            //   console.log(data.message); // Log success message
+        } else if (data.error) {
+            //   console.error(data.error); // Log error message
+        }
+    });
 });
 
 //Summary Page Voice Recording Button
@@ -287,8 +291,6 @@ function updateImage() {
     image.src = "../static/login/"+ pin +"/wordcloud.png?t=" + timestamp;
 }
 
-// // Call updateImage function every 5 seconds
-// setInterval(updateImage, 5000);
 
 // Loading Updated wordcloud image
 document.addEventListener('DOMContentLoaded', function() {

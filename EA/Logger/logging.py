@@ -8,8 +8,9 @@ from EA.Config.configuration import (DB_USERNAME, DB_PASSWORD, DB_HOST, LOG_DB_N
 
 Base = declarative_base()
 
+
 class UserLogBase:
-    __abstract__ = True  # Make this class abstract so it doesn't create a table
+    __abstract__ = True  # Make this class abstract, so it doesn't create a table
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     timestamp = Column(DateTime, default=datetime.datetime.now)
@@ -30,12 +31,17 @@ class UserLogBase:
     def create_table(cls, engine):
         cls.__table__.create(engine, checkfirst=True)
 
+
 def create_user_log_class(user_id):
     # Create a new table class for each user
     class UserLog(Base, UserLogBase):
-        __user_id__ = user_id  # Use a class variable to store user_id
+        __tablename__ = f'logs_user_{user_id}'
+        __user_id__ = user_id
+        # This ensures if the table is redefined, it extends the existing one.
+        __table_args__ = {'extend_existing': True}
 
     return UserLog
+
 
 # Setup database engine
 DATABASE_URI = f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}/{LOG_DB_NAME}"
@@ -88,3 +94,24 @@ def setup_database_logger(user_id):
         logger.addHandler(db_handler)
 
     return CustomLoggerAdapter(logger, {'user_id': user_id})
+
+def clean_old_logs(user_id):
+    """
+    Function to clean up logs older than 2 days for a specific user's log table.
+    """
+    session = Session()
+    try:
+        # Calculate the date two days ago from today
+        two_days_ago = datetime.datetime.now() - datetime.timedelta(days=2)
+
+        # Get the user's log class and delete entries older than two days
+        user_log_class = create_user_log_class(user_id)
+        rows_deleted = session.query(user_log_class).filter(user_log_class.timestamp < two_days_ago).delete()
+        session.commit()
+        g.glag = 1
+        print(f"Deleted {rows_deleted} records from logs_user_{user_id} older than two days.")
+    except Exception as e:
+        session.rollback()
+        print(f"Error cleaning logs for user {user_id}: {e}")
+    finally:
+        session.close()
