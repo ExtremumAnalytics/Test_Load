@@ -7,7 +7,7 @@ from flask_socketio import emit
 def speak(audio, voice):
    try:
         print(voice)
-        engine = pyttsx3.init()
+        engine = pyttsx3.init(driverName='espeak')
         voices = engine.getProperty("voices")
         engine.setProperty("rate", 170)
         if voice=="male":
