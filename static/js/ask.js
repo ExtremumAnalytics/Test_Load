@@ -2,6 +2,27 @@ const socket=io();
 var pin = localStorage.getItem('pin');
 socket.emit('table_update');
 
+/// Toggle Switch
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleSwitch = document.getElementById('toggleSwitch');
+
+    if (toggleSwitch) {
+        toggleSwitch.addEventListener('change', function() {
+            if (window.location.pathname === '/Ask_Question') {
+                // Redirect to the toggle page when the switch is turned on
+                if (this.checked) {
+                    window.location.href = '/conversational_bot';
+                }
+            } else if (window.location.pathname === '/conversational_bot') {
+                // Redirect back to the main page when the switch is turned off
+                if (!this.checked) {
+                    window.location.href = '/Ask_Question';
+                }
+            }
+        });
+    }
+});
+
 // Progress Bar update
 function updateProgressBar(percentage) {
     const progressBar = document.getElementById('waitImg');

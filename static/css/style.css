@@ -719,3 +719,242 @@ th {
     height: 150px;
     width: 150px;
 }
+
+/* changes: */
+/* The switch - the box around the slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+  }
+
+  /* Hide default HTML checkbox */
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  /* The slider */
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+
+  input:checked + .slider {
+    background-color: #2196F3;
+  }
+
+  input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+  }
+
+  input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+  }
+
+  /* Rounded sliders */
+  .slider.round {
+    border-radius: 34px;
+  }
+
+  .slider.round:before {
+    border-radius: 50%;
+  }
+
+
+  /* conversational ui */
+  .animation-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 20px; /* Adds space between input section and animation */
+}
+
+
+.main{
+    position: relative;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    height:auto;
+    width:100%;
+    overflow: hidden;
+}
+
+
+.myCircle{
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: black;
+    border-radius: 50%;
+    width: 360px;
+    height: 360px;
+    box-shadow: 0 0 75px #2187e7;
+    overflow: visible;  /*latest */
+  }
+
+  .mainCircle{
+    position: relative;
+    height:310px;
+    width:310px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    overflow: visible;
+ }
+  .maincontent{
+    position: absolute;
+    top:0;
+    height: 100%;
+    width:100%;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .circle{
+    background-color: rgba(0,0,0,0);
+    opacity: .9;
+    height:310px;
+    width: 310px;
+    margin-top: 0 auto;
+    box-shadow: 0 0 75px #2187e7;
+    border-radius: 50%;
+    animation:spinPlus 2s infinite ease-in-out;
+
+  }
+
+  @keyframes spinPlus{
+    0%{
+        transform:scale(1);
+    }50%{
+        transform: scale(1.11);
+    }100%{
+        transform:scale(1);
+    }
+  }
+
+  .circle1{
+    background-color: rgba(0,0,0,0);
+    border:5px solid rgba(0,183,229,0.9);
+    margin:0 auto;
+    position: absolute;
+    top: 25px;
+    left: 25px;
+    height: 250px;
+    width: 250px;
+    border-radius :50%;
+    border-left: 5px solid rgba(0,0,0,0);
+    border-right: 5px solid rgba(0,0,0,0);
+    box-shadow: 0px 0px 75px #2187e7;
+    animation:spinPlusOff 5s infinite linear;
+  }
+
+  @keyframes spinPlusOff {
+    0%, 50%, 100%{
+        transform:rotate(0deg) scale(1.1);
+    }
+    50%{
+        transform:rotate(360deg) scale(1);
+    }
+    50%{
+        transform: rotate(-360deg) scale(1);
+    }
+  }
+
+  .bars{
+    position: absolute;
+    z-index: 3;
+    margin: 0 auto;
+    left: 49%;
+    top:50%;
+    /* bottom: 50%; */
+    width: 60px;
+    height: 60px;
+    /* margin-top: -30px; */
+    align-items: center;
+    justify-content: space-around;
+    transform: translate(-50%,-50%);
+    display: flex;
+    flex-direction: row;
+  }
+
+  .li{
+    background: #fff;
+    width: 10px;
+    height: 10px;
+    /* float: left; */
+    margin-right: 5px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    list-style: none;
+
+  }
+
+  @keyframes loaderBar{
+    0%{
+        height:10px;
+        margin-top: 25px;
+    }50%{
+        height: 50px;
+        margin-top: 0;
+    }100%{
+        height: 10px;
+        margin-top: 25px;
+    }
+  }
+
+  .li:first-child{
+    animation: loaderBar 0.6s infinite 0s;
+  }
+  .li:nth-child(2){
+    animation: loaderBar 0.6s infinite -0.3s;
+  }
+  .li:nth-child(3){
+    animation: loaderBar 0.6s infinite -0.5s;
+  }
+
+  .gif-container {
+    position: absolute;
+    top: 48%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 240px;
+    height: 240px;
+    overflow: hidden;
+    border-radius: 50%;
+}
+
+.gif-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Cover the container while maintaining aspect ratio */
+    display: none; /* Initially hide all images */
+    border-radius: 50%; /* Ensure image itself is clipped to a circle */
+}
