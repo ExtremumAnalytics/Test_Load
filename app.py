@@ -5,6 +5,8 @@ import json
 from io import BytesIO
 import re
 
+# import pyttsx3
+
 import docx
 import asyncio
 import pytz
@@ -104,6 +106,8 @@ from EA.Config.configuration import (blob_service_client, container_client, comp
 from EA.Logger.logging import setup_database_logger, CustomLoggerAdapter, clean_old_logs
 from EA.Interrupt.flag import check_stop_flag, write_stop_flag_to_csv, read_stop_flag_from_csv
 from EA.Error_Handling.checkError import check_file, check_error
+from EA.Speech.speech import speak
+
 
 chunk_size = 8000
 chunk_overlap = 400
@@ -1150,6 +1154,25 @@ def generate_followup_question(answer, chat_history, context):
     follow_up_chain = LLMChain(llm=llm, prompt=follow_up_prompt_template)
     follow_up_response = follow_up_chain.run(answer=answer, chat_history=chat_history, context=context)
     return follow_up_response
+
+
+def save_response_to_chatHistory(question,answer,source,pageNo):
+    chat_history_list = [{"question": question,
+                          "answer": answer,
+                          "source": source,
+                          "page_number": pageNo, }]
+
+    # Save chat history to the database
+    for entry in chat_history_list:
+        new_chat = ChatHistory(
+            login_pin=session['login_pin'],
+            question=entry['question'],
+            answer=entry['answer'],
+            source=entry['source'],
+            page_number=entry['page_number']
+        )
+        db.session.add(new_chat)
+    db.session.commit()
 
 
 def extract_text_from_image(file_obj, language):
@@ -2208,6 +2231,388 @@ def handle_ask_question(data):
         emit('response', {'message': 'No response generated'})
 
 
+@socketio.on('conversation')
+def handle_conversation(data):
+    # Update progress to 10%
+    print("Conversational route hit------>")
+    emit('progress', {'percentage': 10, 'pin': session['login_pin']})
+    start_time = time.time()
+    try:
+        source = data['source']
+        question = data['question']
+        print("Question received-------->", question)
+        voice = data['voice']
+
+        if not question:
+            response = "You passed an empty question ! Please tell how may I assist you"
+            save_response_to_chatHistory(question, response, "N/A", "N/A")
+            chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+            chat_history = [{"question": chat.question,
+                             "answer": chat.answer,
+                             "source": chat.source,
+                             "page_number": chat.page_number,
+                             "index": chat.id}
+                            for chat in chat_history_from_db]
+            emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+            emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
+            speak(response, voice)
+            return
+
+
+        elif "how are you" in question.lower():
+            response = "I am fine sir! Thanks for asking. How may I assist you!"
+            save_response_to_chatHistory(question, response, "N/A", "N/A")
+            chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+            chat_history = [{"question": chat.question,
+                             "answer": chat.answer,
+                             "source": chat.source,
+                             "page_number": chat.page_number,
+                             "index": chat.id}
+                            for chat in chat_history_from_db]
+            emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+            emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
+            speak(response, voice)
+
+
+        elif "remember" in question.lower():
+            remember_message = question.replace("remember,", "").strip()
+            print(remember_message)
+            response = "You told me to remember that " + remember_message
+            save_response_to_chatHistory(question, response, "N/A", "N/A")
+            chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+            chat_history = [{"question": chat.question,
+                             "answer": chat.answer,
+                             "source": chat.source,
+                             "page_number": chat.page_number,
+                             "index": chat.id}
+                            for chat in chat_history_from_db]
+            emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+            emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
+            speak(response, voice)
+
+            folder_name = str(session['login_pin'])
+            folder_path = os.path.join('static', 'login', folder_name)
+            file_path = os.path.join(folder_path, 'Remember.txt')
+
+            # Create the directory if it doesn't exist
+            os.makedirs(file_path, exist_ok=True)
+            print("file created--->")
+
+            with open(file_path, "a") as remember_file:
+                remember_file.write(remember_message + "\n")
+                print("File opened------>")
+
+
+
+        elif "what do you remember" in question.lower():
+            folder_name = str(session['login_pin'])
+            file_path = os.path.join('static', 'login', folder_name, 'Remember.txt')
+
+            if os.path.exists(file_path):
+                with open(file_path, "r") as remember_file:
+                    remembered_content = remember_file.read()
+                save_response_to_chatHistory(question, remembered_content, "N/A", "N/A")
+                chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+                chat_history = [{"question": chat.question,
+                                 "answer": chat.answer,
+                                 "source": chat.source,
+                                 "page_number": chat.page_number,
+                                 "index": chat.id}
+                                for chat in chat_history_from_db]
+                emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+                emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
+                speak("You told me to remember that " + remembered_content, voice)
+
+            else:
+                emit('response', {'answer': "I don't have any memories recorded yet."})
+                speak("I don't have any memories recorded yet.", voice)
+
+        elif "who are you" in question.lower():
+            response = "I am Eva, a conversational assistant designed by: Extremum Analytics. How may I assist you!"
+            save_response_to_chatHistory(question, response, "N/A", "N/A")
+            chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+            chat_history = [{"question": chat.question,
+                             "answer": chat.answer,
+                             "source": chat.source,
+                             "page_number": chat.page_number,
+                             "index": chat.id}
+                            for chat in chat_history_from_db]
+            emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+            emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
+            speak(response, voice)
+
+        elif "stop" in question.lower():
+            response = "Goodbye sir!"
+            emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+            emit('response', {'answer': response})
+            speak(response, voice)
+
+
+
+        elif "hello" in question.lower():
+            response = "Hello sir, how are you?"
+            save_response_to_chatHistory(question, response, "N/A", "N/A")
+            chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+            chat_history = [{"question": chat.question,
+                             "answer": chat.answer,
+                             "source": chat.source,
+                             "page_number": chat.page_number,
+                             "index": chat.id}
+                            for chat in chat_history_from_db]
+            emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+            emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
+            speak(response, voice)
+
+        else:
+
+            if source == "webInternet":
+                llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
+
+                # Web search tool
+                wrapper = DuckDuckGoSearchAPIWrapper(max_results=25)
+                emit('progress', {'percentage': 25, 'pin': session['login_pin']})
+                web_search_tool = DuckDuckGoSearchRun(api_wrapper=wrapper)
+
+                context = web_search_tool.invoke({"query": question})
+
+                # print("context generated---------->",context)
+                generate_prompt = PromptTemplate(
+                    template="""
+
+                    <|begin_of_text|>
+
+                    <|start_header_id|>system<|end_header_id|> 
+
+                    You are an AI assistant for Web surfing, that synthesizes web search results. 
+                    Strictly use the following pieces of web search context to answer the question. If you don't know the answer, just say that you don't know. 
+                    keep the answer concise, and in a human friendly way. 
+                    Only make direct references to material if provided in the context.
+
+                    <|eot_id|>
+
+                    <|start_header_id|>user<|end_header_id|>
+
+                    Question: {question} 
+                    Web Search Context: {context} 
+                    Answer: 
+
+                    <|eot_id|>
+
+                    <|start_header_id|>assistant<|end_header_id|>""",
+                    input_variables=["question", "context"],
+                )
+
+                # Chain
+                generate_chain = generate_prompt | llm
+                emit('progress', {'percentage': 50, 'pin': session['login_pin']})
+
+                answer = generate_chain.invoke({"question": question, "context": context})
+                response_content = answer.content if isinstance(answer, AIMessage) else str(answer)
+
+                save_response_to_chatHistory(question, response_content, "Web/Internet", "N/A")
+                # chat_history_list = [{"question": question,
+                #                       "answer": response_content,
+                #                       "source": "Web/Internet",
+                #                       "page_number": "N/A", }]
+                # # print("chat_history_list--->", chat_history_list)
+                #
+                # # Save chat history to the database
+                # for entry in chat_history_list:
+                #     new_chat = ChatHistory(
+                #         login_pin=session['login_pin'],
+                #         question=entry['question'],
+                #         answer=entry['answer'],
+                #         source=entry['source'],
+                #         page_number=entry['page_number']
+                #     )
+                #     db.session.add(new_chat)
+                # db.session.commit()
+                emit('progress', {'percentage': 75, 'pin': session['login_pin']})
+
+                # Retrieve chat history from the database
+                chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+                chat_history = [{"question": chat.question,
+                                 "answer": chat.answer,
+                                 "source": chat.source,
+                                 "page_number": chat.page_number,
+                                 "index": chat.id}
+                                for chat in chat_history_from_db]
+                emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+                emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
+                speak(response_content, voice)
+
+
+            else:
+                question_embeddings = embeddings.embed_query(question)
+
+                search_client = SearchClient(
+                    endpoint=vector_store_address,
+                    index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
+                    credential=AzureKeyCredential(vector_store_password)
+                )
+
+                # Perform the search
+                results = search_client.search(search_text=question_embeddings,
+                                               select="*",
+                                               top=5,
+                                               vector_queries=[VectorizedQuery(vector=question_embeddings,
+                                                                               k_nearest_neighbors=5,
+                                                                               fields="content_vector")]
+                                               )
+                documents = []
+                for result in results:
+                    doc = {
+                        'content': result['content'],
+                        'score': result['@search.score']  # Access the relevance score
+                    }
+                    documents.append(doc)
+
+                sorted_documents = sorted(documents, key=lambda x: x['score'], reverse=True)
+                # print("sorted documents------------>", sorted_documents)
+
+                vector_store: AzureSearch = AzureSearch(
+                    azure_search_endpoint=vector_store_address,
+                    azure_search_key=vector_store_password,
+                    index_name=f"cognilink-{session['env_map']}-{session['login_pin']}",
+                    embedding_function=embeddings.embed_query,
+                )
+
+                # Update progress to 25%
+                emit('progress', {'percentage': 25, 'pin': session['login_pin']})
+
+                # Create the conversation chain handler
+                retriever = vector_store.as_retriever(sorted_documents=sorted_documents)
+                conversation_chain_handler = get_conversation_chain(retriever, source)
+                response = conversation_chain_handler(question)
+                # print("Conversational result----------->", response)
+
+                # Update progress to 50%
+                emit('progress', {'percentage': 50, 'pin': session['login_pin']})
+                sorry_phrases = ['Sorry, there is no information available.', 'Sorry', 'I am sorry',
+                                 "I can't see anyting relevant", "I'm sorry"]
+
+                if (
+                        any(response["answer"].startswith(phrase) for phrase in sorry_phrases) or
+                        not response.get("source_documents") or
+                        (response.get("source_documents") and not response["source_documents"][0])
+                ):
+                    doc_source = ["N|A"]
+                    doc_page_num = ["N|A"]
+
+                else:
+                    # Initialize a set to track seen pages and lists for sources and page numbers
+                    seen_pages = set()
+                    doc_source = []
+                    doc_page_num = []
+                    docx_sources = []
+                    docx_page = []
+
+                    if source == "all":
+                        doc_source.append("Web|Internet")
+                        doc_page_num.append("N|A")
+
+                    # Iterate over source documents in the response
+                    for doc in response["source_documents"]:
+                        source = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/" + doc.metadata.get(
+                            "source", "N/A")
+                        page = doc.metadata.get("page", "N|A")
+
+                        # Add the source to the set of sources
+                        if source.endswith('.docx') or page == "N|A":
+                            docx_sources.append(source)
+                            docx_page.append(page)
+
+                        else:
+                            # Adjust the page number to start from 1 if it starts from 0
+                            if isinstance(page, int) and page == 0:
+                                page = 1
+                            elif isinstance(page, int):
+                                page += 1
+
+                            page_str = str(page)
+
+                            # Add source and page to the lists if the page has not been seen before
+                            if page_str != 'N|A' and page_str not in seen_pages:
+                                seen_pages.add(page_str)
+                                doc_source.append(source)
+                                doc_page_num.append(page_str)
+                    doc_source.extend(list(set(docx_sources)))
+                    doc_page_num.extend(docx_page)
+
+                # Flatten the lists to ensure each Q&A pair is aligned with the corresponding sources
+                final_chat_hist = [(response['chat_history'][i].content if response['chat_history'][i] else "",
+                                    response['chat_history'][i + 1].content if response['chat_history'][i + 1] else "",
+                                    ", ".join(doc_source), ", ".join(doc_page_num))
+                                   for i in range(0, len(response['chat_history']), 2)]
+
+                # Create a list of dictionaries for the chat history
+                chat_history_list = [{"question": chat_pair[0],
+                                      "answer": chat_pair[1],
+                                      "source": chat_pair[2],
+                                      "page_number": chat_pair[3]}
+                                     for chat_pair in final_chat_hist]
+
+                # Generate follow-up question
+                chat_history = conversation_chain_handler.memory.chat_memory.messages
+                context = "Use the following pieces of context from the provided files only. Do not use any information from the internet to answer the question at the end."
+                follow_up_question = generate_followup_question(response['answer'], chat_history, context)
+                # print("Followup_question------------->", follow_up_question)
+
+                # Update progress to 75%
+                emit('progress', {'percentage': 75, 'pin': session['login_pin']})
+
+                # Save chat history to the database
+                for entry in chat_history_list:
+                    new_chat = ChatHistory(
+                        login_pin=session['login_pin'],
+                        question=entry['question'],
+                        answer=entry['answer'],
+                        source=entry['source'],
+                        page_number=entry['page_number']
+                    )
+                    db.session.add(new_chat)
+                db.session.commit()
+
+                # Update progress to 100%
+                emit('progress', {'percentage': 100, 'pin': session['login_pin']})
+                elapsed_time = time.time() - start_time
+                g.flag = 1
+                logger.info(f'Answer Generated in {elapsed_time} seconds')
+
+                # Retrieve chat history from the database
+                chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
+                chat_history = [{"question": chat.question,
+                                 "answer": chat.answer,
+                                 "source": chat.source,
+                                 "page_number": chat.page_number,
+                                 "index": chat.id}
+                                for chat in chat_history_from_db]
+                emit('response', {'chat_history': chat_history[::-1], 'follow_up': follow_up_question})
+                speak(response["answer"], voice)
+                speak(follow_up_question, voice)
+
+    except Exception as e:
+        g.flag = 0
+        logger.error('Ask CogniLink answer generation error', exc_info=True)
+        print("Exception of ask_question:", str(e))
+        emit('response', {'message': 'No response generated'})
+
+
+@socketio.on('greetme')
+def greetMe(data):
+    voice=data['voice']
+    print("Voice received greetme------>",voice)
+    hour  = int(datetime.datetime.now().hour)
+    if hour>=0 and hour<=12:
+        speak("Good Morning,sir! Please tell me, How may I assist you ?",voice)
+    elif hour >12 and hour<=18:
+        speak("Good Afternoon ,sir! Please tell me, How may I assist you ?",voice)
+    else:
+        speak("Good Evening,sir! Please tell me, How may I assist you ?",voice)
+    emit('greetMeResponse', {'message': "Done Speaking"})
+
+
+
 @socketio.on('clear_chat')
 def handle_clear_chat():
     try:
@@ -3003,7 +3408,8 @@ def home():
         pin = request.form.get('authpin')
         group_user = request.form.get('Grp_usr')
         engine = request.form.get('engine')
-        print(group_user, pin, engine)
+        voices=request.form.get('voices')
+        print(group_user, pin, engine,voices)
 
         role_id_mapping = {'Admin': 1, 'Guest': 2, 'ML Engine': 3}
         role_id = role_id_mapping.get(group_user)
@@ -3091,6 +3497,12 @@ def data_source():
 @app.route('/Ask_Question', methods=['GET', 'POST'])
 def ask():
     return render_template('ask.html')
+
+@app.route('/conversational_bot')
+def conversational_bot():
+    return render_template('conversational_bot.html')
+
+
 
 
 @app.route("/Summary", methods=['GET', 'POST'])

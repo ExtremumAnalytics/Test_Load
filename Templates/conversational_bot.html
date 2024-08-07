@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>CogniLink</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="" name="keywords">
+    <meta content="" name="description">
+
+    <!-- Favicon -->
+    <link href="static/img/ea_symbol.png" style="width: 20px; height: 15px;" rel="icon">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="{{ url_for('static', filename='api/Google_web_fonts.css') }}" rel="stylesheet">
+
+    <!-- Icon Font Stylesheet -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <script src="static/api/jquery.min.js"></script>
+    <script src="static/api/chart.js"></script>
+    <script src="static/api/Chart.bundle.js"></script>
+    <script src="static/api/chartjs-gauge.js"></script>
+    
+    <link href="static/api/bootstrap.min.css" rel="stylesheet">
+    <script src="static/api/google_apis_jquery.min.js"></script>
+
+     <!-- jQuery UI CSS -->
+    <link href="{{ url_for('static', filename='api/jquery-ui.css') }}" rel="stylesheet">
+
+    <!-- jQuery and jQuery UI JS -->
+    <script src="static/api/jquery-ui.js"></script>
+
+    <!-- Socket IO library-->
+    <script src="static/api/socketio.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+    
+    
+    <link href="{{ url_for('static', filename='lib/owlcarousel/assets/owl.carousel.min.css')}}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='lib/tempusdominus/css/tempusdominus-bootstrap-4.min.css')}}" rel="stylesheet" />
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+
+    <!-- Template Stylesheet -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+
+    <style>
+
+       
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Animated Interface Styles */
+        .animated-interface {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background-color: #0e0e0e;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(0, 128, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .animated-interface::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 150%;
+            height: 150%;
+            background: radial-gradient(circle, transparent 60%, #0e0e0e 60%);
+            transform: translate(-50%, -50%) rotate(0deg);
+            transform-origin: center;
+            animation: rotate 3s linear infinite;
+        }
+
+        .animated-interface span {
+            font-size: 40px;
+            color: #fff;
+            z-index: 1;
+        }
+
+        @keyframes rotate {
+            from {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+    </style>
+
+</head>
+
+<body>
+    <div class="container-xxl position-relative bg-white d-flex p-0">
+        <!-- Sidebar Start -->
+        <div class="sidebar pe-4 pb-2">
+            <nav class="navbar">
+                <a href="{{url_for('data_source')}}" class="navbar-brand mx-2 mb-2">
+                    <img class="logo" src="static/img/ea_logo.png" alt="EA Logo">
+                </a>
+                <ul class="navbar-nav">
+                    <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-database"></i>Data Source</a></li>
+                    <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-question-circle"></i>Ask Question</a></li>
+                    <li><a href="{{url_for('summary')}}" class="nav-link"><i class="fa fa-list-alt"></i>Summary</a></li>
+                    <li><a href="{{url_for('virtual_analyst')}}" class="nav-link"><i class="fa fa-chart-bar"></i>Virtual Analyst</a></li>
+                    <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-chart-pie"></i>Virtual Data Scientist</a></li>
+                </ul>
+            </nav>
+        </div>
+        <!-- Sidebar End -->
+
+
+        <!-- Content Start -->
+        <div class="content">
+            <!-- Navbar Start -->
+            <nav class="navbar navbar-expand bg-light navbar-light sticky-top px-4 py-0">
+                <a href="{{url_for('data_source')}}" class="navbar-brand d-flex d-lg-none me-4">
+                    <h2 class="text-primary mb-0"><img src="static/img/ea_symbol.png" style="width: 35px; height: 30px;"></h2>
+                </a>
+                <a href="#" class="sidebar-toggler flex-shrink-0">
+                    <i class="fa fa-bars"></i>
+                </a>
+                <form class="d-none d-md-flex ms-4">
+                    <input class="form-control border-0" type="search" placeholder="Search">
+                </form>
+                <div class="navbar-nav align-items-center ms-auto">
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                            <img class="rounded-2 me-lg-2" src="static/img/ea_symbol.png" alt="" style="width: 35px; height: 25px;">
+                            <span id="userName" class="d-none d-lg-inline-flex">
+                                <!-- User Name  -->
+                            </span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
+                            <a href="#" class="dropdown-item">My Profile</a>
+                            <a href="#" class="dropdown-item">Settings</a>
+                            <a href="{{url_for('logout')}}" class="dropdown-item">Log Out</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            <!-- Navbar End -->
+
+            <div class="container-ask mt-2">
+                <div class="d-flex flex-row">
+                    <h4 class="welcome">Talk With CogniLink!</h4>
+                    <label class="m-2"><b>Conversation Mode</b></label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggleSwitch" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <hr class="dropdown-divider">
+            </div> 
+
+            <div class="flash_msg">
+                <div id="message"></div>
+            </div>
+            
+             <!-- Ask Form Start -->
+             <div class="container-fluid d-flex flex-row mx-n2">
+                <div class="container-fluid d-flex flex-column px-2">
+                    <div class="col-lg-12 bg-light rounded p-4 mb-2 px-2">
+                        <div class="d-flex flex-row">
+                            <h6 class="p-3 col-lg-6">Ask Your Question?</h6>
+                            <!-- Source Dropdown -->
+                            <select id="selectSource" class="dropdown form-control m-2" name="source" style="width: auto;">
+                                <option value="default">Select Source:</option>
+                                <option value="all">All</option>
+                                <option value="myFiles">My Files</option>
+                                <option value="webInternet">Web/Internet</option>
+                            </select>
+                            
+                        </div>
+                        <div class="d-flex flex-row m-2 col-lg-12">
+                            <input type="text" class="question form-control" id="question" placeholder="Type your question here!">
+                            <button id="recordButton" class="btn1 rounded m-2" style="font-size: 18px; padding: 10px 20px;"></button>                                
+                        </div>
+                        <div class="col-lg-12 d-flex ">
+                            <!-- <img src="static/img/conversation_background.jpg" alt="Listen" style="height: 100px; ; width: 100px; margin-right: 5px;"> -->
+                            <div class="d-flex flex-row m-2 col-lg-12 justify-content-center">
+                                <!-- <img src="static/img/conversation_background.jpg" alt="Listen" style="height: 50px; ; width: 100px; margin-right: 5px;"> -->
+                                <button id="stopNaration" class="btn btn-primary m-2" style="font-size: 14px;" onclick="stopNarration()">Stop </button>
+                                <button type="button" id="clarChat" onclick="clearChat()" class="btn btn-primary m-2" style="font-size: 14px;">Clear Chat</button>
+                                <button type="button" id="sendQuestion" onclick="sendQuestion()" class="btn btn-primary m-2" style="visibility: hidden; font-size: 14px ;">Generate</button>
+
+
+                            </div>
+                        </div>
+                    </div>
+                    <!-- <div class="response col-lg-12 bg-light rounded p-4"> -->
+                    <div class="animation-container d-flex justify-content-center">
+                        
+                        
+                        <div class="main">
+
+                        
+                           
+                        <div class="myCircle"> <!-- Div for the circle element -->
+                                <div class="mainCircle"> <!-- Div for the main circle -->
+                                    <div class="circle"></div> <!-- First circle div -->
+                                    <div class="circle1"></div> <!-- Second circle div -->
+                                    
+                                    <div class="maincontent">  <!--Div for the main content -->
+                                        <!-- Male -->
+                                        <div class="gif-container">
+                                            <img id="loadingGifMale" src="static/img/Wait_male.gif" alt="Loading" >
+                                            <img id="speakingGifMale" src="static/img/speak_male.gif" alt="Loading" >
+                                        </div>
+                                        <!-- Female -->
+                                        <div class="gif-container">
+                                            <img id="loadingGifFemale" src="static/img/Wait_female.gif" alt="Loading Female" >
+                                            <img id="speakingGifFemale" src="static/img/speak_female.gif" alt="Speaking Female" >
+                                        </div>
+                                    </div> <!--  Ends the main content div -->
+                                </div> <!-- Ends the main circle div -->
+                            </div> <!-- Ends the circle div -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Charts start -->
+                <div class="col-lg-4 d-flex flex-column">
+                    <div class="box bg-light justify-content-center rounded p-4 mb-2">
+                        <div class="d-flex justify-content-center mb-2 align-items-center">
+                            <h6>Overall Readiness</h6>
+                        </div>
+                        <div style="text-align:center;" class="d flex justify-content-center m-2" id="readiness_value"></div>
+<!--                        <canvas id="readiness_chart"></canvas>-->
+                    </div>
+                    <div>
+                        <h6 class="mb-2 justify-content-center d-flex ">Response</h6>
+                        <div class="Answer" id="followUp"></div>
+                        <div class="Answer" id="questionAnswer" style="overflow-y: auto; height: 500px;">
+                                    <!-- Response will be produced here using JS -->
+                        </div>
+                    </div>
+                    
+                    
+                </div>
+            </div>    
+
+            <!-- Footer Start -->
+            <div class="container-fluid pt-4 px-4">
+                <div class="bg-light rounded-top p-4">
+                    <div class="row">
+                        <div class="col-12 col-sm-6 text-center text-sm-start">
+                            &copy; <a href="{{url_for('data_source')}}">CogniLink</a>, All Right Reserved. 
+                        </div>
+                        <div class="col-12 col-sm-6 text-center text-sm-end">
+                            Powered By <a href="www.extremumanalytics.com">Extremum Analytics</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Footer End -->
+        </div>
+        <!-- Content End -->
+
+
+        <!-- Back to Top -->
+        <a href="#" class="btn btn-lg btn-primary btn-lg-square back-to-top"><i class="bi bi-arrow-up"></i></a>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="static/api/jquery-3.4.1.min.js"></script>
+    <script src="static/api/bootstrap.bundle.min.js"></script>
+    <script src="static/lib/chart/chart.min.js"></script>
+    <script src="static/lib/easing/easing.min.js"></script>
+    <script src="static/lib/waypoints/waypoints.min.js"></script>
+    <script src="static/lib/owlcarousel/owl.carousel.min.js"></script>
+    <script src="static/lib/tempusdominus/js/moment.min.js"></script>
+    <script src="static/lib/tempusdominus/js/moment-timezone.min.js"></script>
+    <script src="static/lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js"></script>    
+    <script src="static/api/chartjs-plugin-datalabels.min.js"></script>
+
+
+    <!-- Template Javascript -->
+    <script src="{{ url_for('static', filename='js/Layout.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/conversational_bot.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Session_warning.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/user_details.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/history.js') }}"></script>
+</body>
+
+</html>

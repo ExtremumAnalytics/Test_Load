@@ -6,14 +6,19 @@ document.getElementById("submitButton").addEventListener("click", function (even
     // Get the PIN value and group user
     var pin = document.getElementById("main_UserPin").value;
     localStorage.setItem('pin', pin);
+    // Get the voice value
+    var voices = document.querySelector('[name="voices"]').value;
+    localStorage.setItem('voice', voices);
+
     var guser = document.querySelector('[name="user_roles"]').value;
     var engine = document.querySelector('[name="engine_menu"]').value; // Get the selected engine
+    var voices=document.querySelector('[name="voices"]').value;
 
     var formData = new FormData();
     formData.append('authpin', pin);
     formData.append('Grp_usr', guser);
     formData.append('engine', engine); // Include the engine in the FormData
-
+    formData.append('voices',voices);
     // Perform an AJAX request
     fetch('/', {
         method: 'POST',
