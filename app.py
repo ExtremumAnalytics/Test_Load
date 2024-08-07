@@ -2714,7 +2714,7 @@ def table_update(search_term=None):
         blobs_chart = container_client.list_blobs(
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
         blob_list = [blob for blob in blobs_chart if
-                     not (blob.name.lower().endswith('.csv') or blob.name.lower().endswith('.mp3'))]
+                     not (blob.name.lower().endswith('.csv') or blob.name.lower().endswith('_schema.xlsx')  or blob.name.lower().endswith('.mp3'))]
         new_blob_list_jpg = [blob for blob in blob_list if
                              not (blob.name.lower().endswith('.jpg') or blob.name.lower().endswith(
                                  '.png') or blob.name.lower().endswith('.jpeg'))]
@@ -3528,3 +3528,4 @@ def file_manager():
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
+
