@@ -398,9 +398,6 @@
     border-radius: 8px;
     width: 400;
     height: 300;
-    /* height:40vh; */
-    /* flex-grow: 1; Let the container grow to take maximum available space */
-    /* flex-direction: row; */
 }
 
 .tri-button,

@@ -23,6 +23,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Files Dropdown
+document.addEventListener('DOMContentLoaded', function() {
+    socket.emit('get_files_dropdown_data');
+
+    socket.on('files_dropdown_data', function(data) {
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        const filesDropdown = document.getElementById('selectFiles');
+        console.log(data);
+        // Populate files dropdown
+        data.files.forEach(file => {
+            const option = document.createElement('option');
+            option.value = file; 
+            option.text = file;  
+            filesDropdown.add(option);
+        });
+    });
+});
+
 // Progress Bar update
 function updateProgressBar(percentage) {
     const progressBar = document.getElementById('waitImg');
@@ -32,10 +54,24 @@ function updateProgressBar(percentage) {
     progressBar.innerText = percentage + '% ';
 }
 
+document.getElementById('selectFiles').addEventListener('change', function() {
+    const selectSource = document.getElementById('selectSource');
+    if (this.value !== 'default') {
+        selectSource.value = 'myFiles';
+    } else {
+        selectSource.value = 'default';
+    }
+});
+
 function sendQuestion() {
     var question = document.getElementById("question").value.trim(); // Trim the question
     var source = document.getElementById("selectSource").value;
+    var selected_file = document.getElementById('selectFiles').value;
+    console.log(selected_file);    
 
+    if (selected_file === 'default') {
+        selected_file = false
+    }
     if (source === 'default') {
         alert('Please select a source!');
         return;
@@ -47,7 +83,7 @@ function sendQuestion() {
     }
     document.getElementById("waitImg").style.display = 'block'; // Show the loading image
 
-    socket.emit('ask_question', { question: question, source: source });
+    socket.emit('ask_question', { question: question, source: source, file_name: selected_file });
 
     socket.on('progress', function(data) {
         if (data.pin === pin) {
@@ -120,6 +156,7 @@ function sendQuestion() {
                 }, 50);
                 document.getElementById('askSentiments').style.display = 'block';
                 document.getElementById('askTopics').style.display = 'block';
+                document.getElementById('sideImage').style.display = 'none';
             } else {
                 preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>" + item.answer + "<br>" + sourceLink + "\n\n";
             }
@@ -151,17 +188,26 @@ function showFollowUpQuestion(followUpText) {
     });
 }
 
-
-
 function openFileInNewTab(url) {
     try {
         const pattern = /https:\/\/.+\/https:\/\/.+/;
-        // console.log(url);
+        const pattern2 = /https:\/\/.+/;
+        
+        // Search for the pattern in the input string
         const match = url.match(pattern);
+        const match_web_url = url.match(pattern2);
         if(match){
             const extractedUrl = match[0].split('https://').slice(2).join('https://');
             const finalUrl = `https://${extractedUrl}`;
             var win = window.open(finalUrl, '_blank');
+            if (win) {
+                win.focus();
+            } else {
+                console.error("Failed to open new tab. Popup blocker might be enabled.");
+            }
+        }
+        else if (match_web_url) {
+            var win = window.open(url, '_blank');
             if (win) {
                 win.focus();
             } else {
@@ -229,15 +275,19 @@ function openPopup(sources, pageNumbers) {
     function extractFileName(url) {
         // Regular expression to find the URL after the changeable part
         const pattern = /https:\/\/.+\/https:\/\/.+/;
-
+        const pattern2 = /https:\/\/.+/;
+        
         // Search for the pattern in the input string
         const match = url.match(pattern);
-
+        const match_web_url = url.match(pattern2);
         if (match) {
             // Extract the URL part after the last occurrence of 'https://'
             const extractedUrl = match[0].split('https://').slice(2).join('https://');
             // console.log("Extracted URL:", `https://${extractedUrl}`);
             return extractedUrl;
+        }
+        else if (match_web_url) {
+            return url;
         }
         else{
             return url.split('/').pop();
@@ -306,8 +356,13 @@ function clearChat() {
             var historyContainer = document.getElementById("questionAnswer");
             var followup_list = document.getElementById("followUp");
             document.getElementById("question").value = "";
+            document.getElementById("selectSource").value = "default";
+            document.getElementById("selectFiles").value = "default";
             historyContainer.innerHTML = "";
             followup_list.innerHTML = "";
+            document.getElementById('sideImage').style.display = 'block';
+            document.getElementById('askSentiments').style.display = 'none';
+            document.getElementById('askTopics').style.display = 'none';
         } else {
             alert("An error occurred while clearing chat history.");
         }

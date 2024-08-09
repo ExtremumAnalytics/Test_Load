@@ -433,97 +433,97 @@ async function downloadPDF(blobUrl, filename) {
     }
 }
 
-
 socket.emit('table_update');
 function updateTable(searchTerm) {
     socket.emit('table_update', searchTerm);
     socket.on('update_vault_table', function(response) {
-        $('#table-body').empty();
+        if (response.pin==pin){
+            $('#table-body').empty();
 
-        // Populate the table with new data
-        response.forEach(function(blob) {
-            // Extract the name from the URL
-            var url_blob = blob.source_url;
-            var name = blob.name.split('/').pop();
+            // Populate the table with new data
+            response.data.forEach(function(blob) {
+                // Extract the name from the URL
+                var url_blob = blob.source_url;
+                var name = blob.name.split('/').pop();
 
-            // If search term is provided and the filename doesn't match, skip
-            if (searchTerm && name.toLowerCase().indexOf(searchTerm.toLowerCase()) === -1) {
-                return;
-            }
+                // If search term is provided and the filename doesn't match, skip
+                if (searchTerm && name.toLowerCase().indexOf(searchTerm.toLowerCase()) === -1) {
+                    return;
+                }
 
-            // Extract the last modified date and format it as needed
-            // var lastModifiedDate = new Date(blob.last_modified).toLocaleDateString();
-            // Replace 'T' with a space and remove the timezone part
-            var Date = blob.date.replace("T", " ").split("+")[0];
+                // Extract the last modified date and format it as needed
+                // var lastModifiedDate = new Date(blob.last_modified).toLocaleDateString();
+                // Replace 'T' with a space and remove the timezone part
+                var Date = blob.date.replace("T", " ").split("+")[0];
 
-            // Construct the row with customized column headers
-            var checkboxValue, nameDisplay;
+                // Construct the row with customized column headers
+                var checkboxValue, nameDisplay, lastPart;
 
-            if (blob.name === "https:") {
-                // Split the URL by slashes
-                const parts = url_blob.split('/');
+                if (blob.name === "https:") {
+                    // Split the URL by slashes
+                    const parts = url_blob.split('/');
 
-                // Extract the specific parts
-                const domain = parts[2]; // "flask-socketio.readthedocs.io"
-                lastPart = parts[parts.length - 1]; // "flask_socketio.SocketIOTestClient.get_received"
+                    // Extract the specific parts
+                    const domain = parts[2]; // "flask-socketio.readthedocs.io"
+                    lastPart = parts[parts.length - 1]; // "flask_socketio.SocketIOTestClient.get_received"
 
-                checkboxValue = url_blob;
-                nameDisplay = domain + '/' + lastPart; // Extracted domain
-            } else {
-                checkboxValue = blob.name;
-                nameDisplay = blob.name;
-                lastPart = ""; // No last part to display when blob.name is not "https:"
-            }
+                    checkboxValue = url_blob;
+                    nameDisplay = domain + '/' + lastPart; // Extracted domain
+                } else {
+                    checkboxValue = blob.name;
+                    nameDisplay = blob.name;
+                    lastPart = ""; // No last part to display when blob.name is not "https:"
+                }
 
-            var row = '<tr>' +
-                        '<td style="text-align: center;"><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + checkboxValue + '"></td>' +
-                        '<td style="text-align: center;">' + nameDisplay + '</td>' +
-                        '<td style="text-align: center;">';
+                var row = '<tr>' +
+                            '<td style="text-align: center;"><input type="checkbox" id="select-checkbox" name="selected_blob" onclick="updateHeaderCheckbox()" value="' + checkboxValue + '"></td>' +
+                            '<td style="text-align: center;">' + nameDisplay + '</td>' +
+                            '<td style="text-align: center;">';
 
-            if (isExcel(name)) {
-                // If it's an Excel file, open it in a new tab
-                row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
-            } else if (isPDF(name)) {
-                // If it's a PDF, open it in a new tab
-                row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
-            } else if (isWord(name)) {
-                // If it's a Word document, open it in a new tab
-                row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
-            } else if (isImage(name)) {
-                // If it's an image, open it directly in the browser
-                row += '<a href="' + blob.url + '" target="_blank">View Image</a>';
-            } else if (isPowerPoint(name)) {
-                // If it's a PowerPoint presentation, open it in a new tab
-                row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
-            } else if (blob.name === "https:") {
-                row += '<a href="' + url_blob + '" target="_blank">View Website</a>';
-            } else {
-                // If it's none of the above, open it directly in the browser
-                row += '<a href="' + blob.url + '" target="_blank">View</a>';
-            }
+                if (isExcel(name)) {
+                    // If it's an Excel file, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Excel</a>';
+                } else if (isPDF(name)) {
+                    // If it's a PDF, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openInNewTab(\'' + blob.url + '\')">View PDF</a>';
+                } else if (isWord(name)) {
+                    // If it's a Word document, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View Word</a>';
+                } else if (isImage(name)) {
+                    // If it's an image, open it directly in the browser
+                    row += '<a href="' + blob.url + '" target="_blank">View Image</a>';
+                } else if (isPowerPoint(name)) {
+                    // If it's a PowerPoint presentation, open it in a new tab
+                    row += '<a href="javascript:void(0);" onclick="openFileInNewTab(\'' + blob.url + '\')">View PowerPoint</a>';
+                } else if (blob.name === "https:") {
+                    row += '<a href="' + url_blob + '" target="_blank">View Website</a>';
+                } else {
+                    // If it's none of the above, open it directly in the browser
+                    row += '<a href="' + blob.url + '" target="_blank">View</a>';
+                }
 
-            row += '</td><td style="text-align: center;" class="action-links">';
+                row += '</td><td style="text-align: center;" class="action-links">';
 
-            if (isPDF(name)) {
-                // Provide download link specifically for PDFs
-                row += '<a href="javascript:void(0);" onclick="downloadPDF(\'' + blob.url + '\', \'' + name + '\')">Download</a>';
-            } else if (isImage(name)) {
-                // Provide download link specifically for Images
-                row += '<a href="javascript:void(0);" onclick="downloadImage(\'' + blob.url + '\', \'' + name + '\')">Download</a>';
-            } else if (blob.name === "https:") {
-                row += 'N/A';  // Display 'N/A' if url_blob exists
-            } else {
-                row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';  // Provide download link for other types
-            }
+                if (isPDF(name)) {
+                    // Provide download link specifically for PDFs
+                    row += '<a href="javascript:void(0);" onclick="downloadPDF(\'' + blob.url + '\', \'' + name + '\')">Download</a>';
+                } else if (isImage(name)) {
+                    // Provide download link specifically for Images
+                    row += '<a href="javascript:void(0);" onclick="downloadImage(\'' + blob.url + '\', \'' + name + '\')">Download</a>';
+                } else if (blob.name === "https:") {
+                    row += 'N/A';  // Display 'N/A' if url_blob exists
+                } else {
+                    row += '<a href="' + blob.url + '" download="' + name + '">Download</a>';  // Provide download link for other types
+                }
 
-            row += '</td><td style="text-align: center;">' + blob.status + '</td>' +
-                    '<td style="text-align: center;">' + Date + '</td>' + // Add the date column
-                    '</tr>';
-            $('#table-body').append(row);
-        });
+                row += '</td><td style="text-align: center;">' + blob.status + '</td>' +
+                        '<td style="text-align: center;">' + Date + '</td>' + // Add the date column
+                        '</tr>';
+                $('#table-body').append(row);
+            });
+        }
     });
 }
-
 
 
 // Function to set all checkboxes to the same state as the "Select All" checkbox

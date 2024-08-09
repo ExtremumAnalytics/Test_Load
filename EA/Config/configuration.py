@@ -11,10 +11,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Check if running in production or development environment
-IS_PRODUCTION = os.getenv('IS_PRODUCTION', 'false').lower() == 'true'
-print(f"IS_PRODUCTION: {IS_PRODUCTION}")
+IS_DEVELOPMENT = os.getenv('IS_DEVELOPMENT', 'false').lower() == 'true'
+print(f"IS_DEVELOPMENT: {IS_DEVELOPMENT}")
 
-if not IS_PRODUCTION:
+if not IS_DEVELOPMENT:
     print("Running in production mode.")
     # For default Azure account use only
     vectorsecret = "vectordatabsekey"
@@ -74,7 +74,7 @@ vector_store_address = "https://cognilink-vectordb.search.windows.net"
 vector_store_password = vector_store
 
 # Blob Storage setup
-if not IS_PRODUCTION:
+if not IS_DEVELOPMENT:
     account_name = "testcongnilink"
     container_name = "congnilink-container"
     account_url = "https://testcongnilink.blob.core.windows.net"
@@ -95,4 +95,4 @@ container_client = blob_service_client.get_container_client(container_name)
 embeddings = AzureOpenAIEmbeddings(azure_deployment='text-embedding')
 
 # Print a message indicating the environment
-print("Running in production" if not IS_PRODUCTION else "Running in development")
+print("Running in production" if not IS_DEVELOPMENT else "Running in development")
