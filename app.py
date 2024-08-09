@@ -2762,8 +2762,7 @@ def table_update(search_term=None):
         unique_documents = set()
 
         for result in results:
-            embeddings_dict = json.loads(result['metadata'])
-            document = embeddings_dict.get('documents')
+            document = result.get('file_name')
             if document and document not in unique_documents:
                 vector_list.append(document)
                 unique_documents.add(document)
@@ -2786,9 +2785,9 @@ def table_update(search_term=None):
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
 
         # Extract names from delete_file
-        delete_file_names = {blob.name.split('/')[-1] for blob in delete_file}
+        delete_file_names = [blob.name.split('/')[-1] for blob in delete_file]
         # Compare delete_file_names with new_blob_list and add items that are not in new_blob_names
-        new_blob_names = {blob.name.split('/')[-1] for blob in new_blob_list_jpg}
+        new_blob_names = [blob.name.split('/')[-1] for blob in new_blob_list_jpg]
         for file_name in delete_file_names:
             if file_name not in new_blob_names:
                 deleted_files_list.append(file_name)
@@ -2803,7 +2802,7 @@ def table_update(search_term=None):
                 name_source = 'N|A'
             if blob.name.split('/')[2] != 'draft':
                 file_name = blob.name.split('/')[2]
-                if file_name and name_source in vector_list:
+                if file_name or name_source in vector_list:
                     status = 'U | EC'
                 elif file_name in deleted_files_list:
                     status = 'U | N/A'
@@ -3619,3 +3618,4 @@ def handle_get_dropdown_data():
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
+
