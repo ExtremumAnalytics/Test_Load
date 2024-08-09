@@ -2028,6 +2028,10 @@ def handle_ask_question(data):
             # Combine snippets and URLs into context and sources
             context_str = "\n".join(snippet.strip() for snippet in snippets if snippet.strip())
             sources_str = ",".join(urls)
+            page_num = []
+            for i in range(len(urls)):
+                page_num.append('N/A')
+            page_num = ",".join(page_num)
             generate_prompt = PromptTemplate(
                 template="""
 
@@ -2065,7 +2069,7 @@ def handle_ask_question(data):
             chat_history_list = [{"question": question,
                                   "answer": response_content,
                                   "source": sources_str,
-                                  "page_number": "N/A",
+                                  "page_number": page_num,
                                   "date": datetime.datetime.now()}]
 
             # Save chat history to the database
@@ -2379,6 +2383,7 @@ def handle_conversation(data):
 
             with open(file_path, "a") as remember_file:
                 remember_file.write(remember_message + "\n")
+
 
 
         elif "what do you remember" in question.lower():
@@ -3614,4 +3619,3 @@ def handle_get_dropdown_data():
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
-
