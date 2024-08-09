@@ -2762,7 +2762,8 @@ def table_update(search_term=None):
         unique_documents = set()
 
         for result in results:
-            document = result.get('file_name')
+            embeddings_dict = json.loads(result['metadata'])
+            document = embeddings_dict.get('documents')
             if document and document not in unique_documents:
                 vector_list.append(document)
                 unique_documents.add(document)
@@ -2785,9 +2786,9 @@ def table_update(search_term=None):
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
 
         # Extract names from delete_file
-        delete_file_names = [blob.name.split('/')[-1] for blob in delete_file]
+        delete_file_names = {blob.name.split('/')[-1] for blob in delete_file}
         # Compare delete_file_names with new_blob_list and add items that are not in new_blob_names
-        new_blob_names = [blob.name.split('/')[-1] for blob in new_blob_list_jpg]
+        new_blob_names = {blob.name.split('/')[-1] for blob in new_blob_list_jpg}
         for file_name in delete_file_names:
             if file_name not in new_blob_names:
                 deleted_files_list.append(file_name)
@@ -2796,13 +2797,16 @@ def table_update(search_term=None):
         # Prepare data with updated statuses
         data = []
         for blob in blobs:
-            if 'https://' in blob.name or 'http://' in blob.name:
+            if 'https://' or 'http://' in blob.name:
                 name_source = blob.name.split(str(session['login_pin']) + '/')[1]
-            else:
-                name_source = 'N|A'
+
+                # Convert the date to IST
+                date = blob['last_modified']
+                date_str = convert_to_ist(date)
+
             if blob.name.split('/')[2] != 'draft':
                 file_name = blob.name.split('/')[2]
-                if file_name or name_source in vector_list:
+                if file_name and name_source in vector_list:
                     status = 'U | EC'
                 elif file_name in deleted_files_list:
                     status = 'U | N/A'
@@ -2816,9 +2820,6 @@ def table_update(search_term=None):
                 # Filter based on search term
                 if search_term and search_term.lower() not in file_name.lower():
                     continue
-                # Convert the date to IST
-                date = blob.last_modified
-                date_str = convert_to_ist(date)
 
                 data.append({
                     'name': file_name,
