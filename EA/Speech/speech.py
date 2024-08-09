@@ -2,8 +2,6 @@ import pyttsx3
 from flask_socketio import emit
 
 
-
-
 def speak(audio, voice):
    try:
         print(voice)

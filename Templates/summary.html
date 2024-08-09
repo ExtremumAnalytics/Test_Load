@@ -109,24 +109,35 @@
                 <div class="container-fluid d-flex flex-column px-2">
                     <div class="col-lg-12 bg-light rounded p-4 mb-2 px-4">
                         <div class="d-flex flex-row">
-                            <div class="col-lg-8 d-flex flex-column">
-                                <h6 class="mb-2">Enter Prompt</h6>
-                                <div class="d-flex flex-row mb-2">
-                                    <input type="text" class="question form-control" id="summary_que" placeholder="Type here">
-                                    <button id="recordButton" class="btn1 rounded mx-2"><i class="fa fa-microphone p-1"></i></button>
-                                </div>
-                            </div>
-                            <div class="mx-2">
-                                <label class="data"><b>Select No. of Words</b></label>
-                                <div class="slider-container">
-                                    <div class="slidebox">
-                                        <div class="value-box" style="text-align: center; color: #000000;">
-                                            0
+                            <div class="col-lg-12 d-flex flex-column">
+                                <div class="m-2 d-flex flex-column">
+                                    <div class="d-flex flex-row">
+                                        <h6 class="col-lg-4 m-2 mt-4">Enter Prompt</h6>
+                                        <!-- Files Dropdown -->
+                                        <select id="selectFiles" class="dropdown form-control m-2" name="files" style="max-width: 150px; max-height: 50px;">
+                                            <option value="default">Select Files:</option>
+                                            <!-- To be updated dynamically -->
+                                        </select>
+                                        <div class="m-2 d-flex flex-row">
+                                            <label class="data m-2"><b>No. of Words</b></label>
+                                            <div class="slider-container">
+                                                <div class="slidebox">
+                                                    <div class="value-box" style="text-align: center; color: #000000;">
+                                                        0
+                                                    </div>
+                                                </div>
+                                                <input type="range" min="0" max="1000" value="0" class="word-slider" id="mySlider">
+                                            </div>
                                         </div>
                                     </div>
-                                    <input type="range" min="0" max="1000" value="0" class="word-slider" id="mySlider">
+                                    <div class="d-flex flex-row m-2">
+                                        <input type="text" class="question form-control" id="summary_que" placeholder="Type here">
+                                        <button id="recordButton" class="btn1 rounded m-2"></button>
+                                    </div>
+
                                 </div>
                             </div>
+                            
                         </div>
                         
                         <div class="col-lg-12 d-flex justify-content-center">
@@ -170,7 +181,13 @@
                         <!-- <div id="gauge-cogni"></div> -->
                         <canvas class="gauge" id="readiness_chart"></canvas>
                     </div>
-
+                    
+                    <!-- Image -->
+                    <div id="sideImage" class="box bg-light rounded p-4 mb-2">
+                        <div class="d-flex justify-content-center mb-2">
+                            <img style="width: 100%; height: auto" src="static/images/chat.png">
+                        </div>
+                    </div>
                     <!-- Sentiment Chart -->
                     <div id="summarySentiments" class="box bg-light rounded p-4 mb-2" style="display: none;">
                         <div>

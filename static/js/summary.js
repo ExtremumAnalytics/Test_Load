@@ -7,6 +7,39 @@ function closeModal() {
     document.getElementById('myModal').style.display = 'none';
 }
 
+// Files Dropdown
+document.addEventListener('DOMContentLoaded', function() {
+    socket.emit('get_files_dropdown_data');
+
+    socket.on('files_dropdown_data', function(data) {
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        const filesDropdown = document.getElementById('selectFiles');
+        console.log(data);
+        // Populate files dropdown
+        data.files.forEach(file => {
+            const option = document.createElement('option');
+            option.value = file; 
+            option.text = file;  
+            filesDropdown.add(option);
+        });
+    });
+});
+
+// Change question input based on file selection
+document.getElementById('selectFiles').addEventListener('change', function() {
+    const input = document.getElementById('summary_que');
+    const selected_file = document.getElementById('selectFiles').value;
+    if (this.value !== 'default') {
+        input.value = `Generate summary of  ${selected_file}`;
+    } else {
+        input.value = `Generate summary of all files`;
+    }
+});
+
 // Generate Summary Button
 document.addEventListener('DOMContentLoaded', function() {
     const fetchSummaryBtn = document.getElementById('fetchSummaryBtn');
@@ -30,11 +63,14 @@ document.addEventListener('DOMContentLoaded', function() {
         $("#waitImg").show(); // Show the loading image
         updateProgressBar(0);
         const summary_que = document.getElementById('summary_que').value; // Get the value of the input field
-        
+        var selected_file = document.getElementById('selectFiles').value;
+        if (selected_file === 'default') {
+            selected_file = false
+        }
         // Clear previous summaries and errors
         clearOldData();
 
-        socket.emit('summary_input', { summary_que: summary_que, value: slider.value });
+        socket.emit('summary_input', { summary_que: summary_que, value: slider.value, file_name: selected_file });
     });
 
     socket.on('summary_response', function(data) {
@@ -114,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 typeWord(); // Start the typing effect
                 displayedSummaries.add(summaryKey); // Add to the set of displayed summaries
+                document.getElementById('sideImage').style.display = 'none';
                 document.getElementById('summarySentiments').style.display = 'block';
                 document.getElementById('summaryWordCloud').style.display = 'block';
                 document.getElementById('summaryTopics').style.display = 'block';
@@ -155,6 +192,11 @@ function clear_summ_Chat() {
     socket.emit('clear_chat_summ', {});
     socket.emit('table_update');
     document.getElementById('summary_que').value = "";
+    document.getElementById("selectFiles").value = "default";
+    document.getElementById('sideImage').style.display = 'block';
+    document.getElementById('summarySentiments').style.display = 'none';
+    document.getElementById('summaryWordCloud').style.display = 'none';
+    document.getElementById('summaryTopics').style.display = 'none';
 }
 
 // Handle the response from the server

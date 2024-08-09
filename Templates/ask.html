@@ -123,7 +123,14 @@
                 <div class="container-fluid d-flex flex-column px-2">
                     <div class="col-lg-12 bg-light rounded p-4 mb-2 px-2">
                         <div class="d-flex flex-row">
-                            <h6 class="p-3 col-lg-8">Ask Your Question?</h6>
+                            <h6 class="p-3 col-lg-4">Ask Your Question?</h6>
+
+                            <!-- Files Dropdown -->
+                            <select id="selectFiles" class="dropdown form-control m-2" name="files" style="max-width: fit-content;">
+                                <option value="default">Select Files:</option>
+                                <!-- To be updated dynamically -->
+                            </select>
+
                             <!-- Source Dropdown -->
                             <select id="selectSource" class="dropdown form-control m-2" name="source" style="width: auto;">
                                 <option value="default">Select Source:</option>
@@ -145,7 +152,7 @@
                     </div>
                     <div class="response col-lg-12 bg-light rounded p-4">
                         <div class="d-flex flex-row m-2">
-                            <h6 class="m-2 col-lg-6">Response</h6>
+                            <h6 class="m-2 col-lg-4">Response</h6>
                             <input type="date" id="chatDate" style="width: min-content;" class="form-control rounded m-2">
                             <button class="btn btn-primary m-2" onclick="requestChatHistory()">Chat History</button>
                         </div>
@@ -160,12 +167,20 @@
                 </div>
                 <!-- Charts start -->
                 <div class="col-lg-4 d-flex flex-column">
+                    <!-- Readiness Chart -->
                     <div class="box bg-light rounded p-4 mb-2">
                         <div class="d-flex justify-content-center mb-2">
                             <h6>Overall Readiness</h6>
                         </div>
-                        <canvas id="readiness_chart"></canvas>
+                        <canvas id="readiness_chart" style="width: 100%; height: auto;"></canvas>
                     </div>
+                    <!-- Image -->
+                    <div id="sideImage" class="box bg-light rounded p-4 mb-2">
+                        <div class="d-flex justify-content-center mb-2">
+                            <img style="width: 100%; height: auto" src="static/images/chat.png">
+                        </div>
+                    </div>
+                    <!-- Sentiment Chart -->
                     <div id="askSentiments" class="box bg-light rounded p-4 mb-2" style="display: none;">
                         <div>
                             <div class="d-flex align-items-center justify-content-center mb-2">
@@ -174,6 +189,7 @@
                             <canvas id="ask_qa_senti_chart"></canvas>
                         </div>
                     </div>
+                    <!-- Themes and Topics -->
                     <div id="askTopics" class="box bg-light rounded p-4" style="display: none;">
                         <div>
                             <h6 class="mb-2" style="text-align: center;">Themes & Topics</h6>
