@@ -66,7 +66,7 @@ function sendQuestion() {
     var question = document.getElementById("question").value.trim(); // Trim the question
     var source = document.getElementById("selectSource").value;
     var selected_file = document.getElementById('selectFiles').value;
-    console.log(selected_file);    
+    // console.log(selected_file);    
 
     if (selected_file === 'default') {
         selected_file = false
@@ -272,7 +272,7 @@ function openPopup(sources, pageNumbers) {
 
     // Function to extract file name from URL
     function extractFileName(url) {
-        console.log(url);
+        // console.log(url);
         // Regular expression to find the URL after the changeable part
         const pattern = /https:\/\/.+\/https:\/\/.+/;
         const pattern2 = /https:\/\/.*testcongnilink.blob.core.windows.net/;        
@@ -285,7 +285,7 @@ function openPopup(sources, pageNumbers) {
         else if (match) {
             // Extract the URL part after the last occurrence of 'https://'
             const extractedUrl = match[0].split('https://').slice(2).join('https://');
-            console.log("Extracted URL:", `https://${extractedUrl}`);
+            // console.log("Extracted URL:", `https://${extractedUrl}`);
             return extractedUrl;
         }
         else{
@@ -301,7 +301,6 @@ function openPopup(sources, pageNumbers) {
         var sourceLink = document.createElement('a');
 
         var fileName = extractFileName(sources[i]);  // Extract the file name from the URL
-        console.log(fileName);
         sourceLink.href = 'javascript:void(0)';  // Prevent default link behavior
         if(fileName.length>40){
             sourceLink.textContent = fileName.substring(0, 40) + '...';
