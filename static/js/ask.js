@@ -95,9 +95,12 @@ function sendQuestion() {
             document.getElementById("waitImg").style.display = 'none';
         }, 1500);
 
+        var historyContainer = document.getElementById("questionAnswer");
+        historyContainer.innerHTML = "<p>";
+
         var chatHistory = response.chat_history;
-        // console.log(chatHistory);
-        var latestItem = chatHistory[0];
+        const sortedChatHistory = chatHistory.slice().sort((a, b) => a.index - b.index);
+        const latestItem = sortedChatHistory[sortedChatHistory.length - 1];
 
         chatHistory.forEach(function(item) {
             // Create the list item element
@@ -179,9 +182,9 @@ function sendQuestion() {
             // Append the question container and answer to the list item
             listItem.appendChild(questionContainer);
             listItem.appendChild(preElement);
-
+            historyContainer.appendChild(listItem);
             // Append the list item to the chat history list (assumed to be a div)
-            document.getElementById('questionAnswer').appendChild(listItem); // Assume there's a div with this ID
+            // document.getElementById('questionAnswer').appendChild(listItem);
         });
 
         document.querySelectorAll('.source-link').forEach(function(link) {
