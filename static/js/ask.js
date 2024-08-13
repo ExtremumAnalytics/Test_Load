@@ -95,14 +95,9 @@ function sendQuestion() {
             document.getElementById("waitImg").style.display = 'none';
         }, 1500);
 
-        var historyContainer = document.getElementById("questionAnswer");
-        historyContainer.innerHTML = "<ul id='chatHistoryList'></ul>";
-
-        var historyList = document.getElementById("chatHistoryList");
         var chatHistory = response.chat_history;
-
-        var latestItem = chatHistory.reduce((maxItem, currentItem) =>
-            currentItem.index > maxItem.index ? currentItem : maxItem, chatHistory[0]);
+        // console.log(chatHistory);
+        var latestItem = chatHistory[0];
 
         chatHistory.forEach(function(item) {
             // Create the list item element
