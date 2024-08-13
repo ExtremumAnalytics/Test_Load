@@ -104,12 +104,7 @@
 
              <div class="container-ask mt-2">
                 <div class="d-flex flex-row">
-                    <h4 class="welcome">Ask CogniLink!</h4>
-                    <label class="m-2"><b>Chat Mode</b></label>
-                    <label class="switch">
-                        <input type="checkbox" id="toggleSwitch">
-                        <span class="slider round"></span>
-                    </label>
+                    <h4 class="welcome">Archived Chats</h4>
                 </div>
                 <hr class="dropdown-divider">
             </div>
@@ -119,115 +114,26 @@
                 <div id="message"></div>
             </div>
             
-            <!-- Ask Form Start -->
-            <div class="container-fluid d-flex flex-row mx-n2">
+            <!-- Archive Data Start -->
+            <div class="container-fluid d-flex flex-row px-4 mx-n2">
                 <div class="container-fluid d-flex flex-column px-2">
-                    <div class="col-lg-12 bg-light rounded p-4 mb-2 px-2">
-                        <div class="d-flex flex-row">
-                            <h6 class="p-3 col-lg-4">Ask Your Question?</h6>
+                    <div class="col-lg-12 bg-light rounded p-4">
+                        <h5>Archived Data</h5>
+                        <div class="bg-light rounded p-4" style="height: 700px; overflow-y: auto;" id="archivedChatsContainer">
 
-                            <!-- Files Dropdown -->
-                            <select id="selectFiles" class="dropdown form-control m-2" name="files" style="max-width: fit-content;">
-                                <option value="default">Select Files:</option>
-                                <!-- To be updated dynamically -->
-                            </select>
-
-                            <!-- Source Dropdown -->
-                            <select id="selectSource" class="dropdown form-control m-2" name="source" style="width: auto;">
-                                <option value="default">Select Source:</option>
-                                <option value="all">All</option>
-                                <option value="myFiles">My Files</option>
-                                <option value="webInternet">Web/Internet</option>
-                            </select>
                         </div>
-                        <div class="d-flex flex-row m-2 col-lg-12">
-                            <input type="text" class="question form-control" id="question" placeholder="Type your question here!">
-                            <button id="recordButton" class="btn1 rounded m-2"></button>
+                        <div class="d-flex flex-row justify-content-center m-2">
+                            <button id="emailArchivedChats" class="btn btn-primary m-2" onclick="emailArchivedChats()">Email Archived Chats</button>
+                            <button id="saveArchivedChats" class="btn btn-primary m-2" onclick="saveArchivedChats()">Save to File</button>    
                         </div>
-                        <div class="col-lg-12 d-flex justify-content-center">
-                            <div class="button-group mt-2">
-                                <button type="button" id="sendQuestion" onclick="sendQuestion()" class="btn btn-primary m-2" style="font-size: 14px;">Generate</button>
-                                <button type="button" id="clearChat" onclick="clearChat()" class="btn btn-primary m-2" style="font-size: 14px;">Clear Chat</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="response col-lg-12 bg-light rounded p-4">
-                        <div class="d-flex flex-row m-2">
-                            <h6 class="m-2 col-lg-10">Response</h6>
-                            <!-- Dropdown container including the hamburger menu icon -->
-                            <div class="dropdown">
-                                <div class="container" onclick="toggleDropdown(this)">
-                                    <div class="bar1"></div>
-                                    <div class="bar2"></div>
-                                    <div class="bar3"></div>
-                                </div>
-
-                                <!-- Dropdown content with your elements -->
-                                <div class="dropdown-content" id="dropdownMenu">
-                                    <div class="d-flex flex-row">
-                                        <input type="date" id="chatDate" class="form-control rounded m-2">
-                                        <button class="btn btn-primary m-2" onclick="requestChatHistory()">Filter</button>
-                                    </div>
-                                    <div class="d-flex flex-row justify-content-center">
-                                        <a href="#" class="email-icon m-2" id="requestChatHistory"><i class="fas fa-envelope"></i></a>
-                                        <a href="#" class="m-2" id="archiveChats" onclick="archiveSelectedChats()"><i class="fa fa-archive"></i></a>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- <input type="date" id="chatDate" style="width: min-content;" class="form-control rounded m-2">
-                            <button class="btn btn-primary m-2" onclick="requestChatHistory()">Chat History</button>
-                            <a href="#"  class="email-icon m-2" id="requestChatHistory"><i style="font-size:28px;" class="fas fa-envelope"></i></a>
-                            <a href="#" id="archiveChats" class="m-2" onclick="archiveSelectedChats()"><i class="fa fa-archive" style="font-size:28px;"></i></a> -->
-                        </div>
-
-                        <div class="d-flex flex-column col-lg-12">
-                            <div id="waitImg" class="progress progress-bar progress-bar-info progress-bar-striped" style=" display:none; width:0%;"  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" >0% </div>
-                            <div class="Answer" id="followUp"></div>
-                            <div class="Answer m-2" id="questionAnswer" style="overflow-y: auto; height: 500px;">
-                                <!-- Response will be produced here using JS -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Charts start -->
-                <div class="col-lg-4 d-flex flex-column">
-                    <!-- Readiness Chart -->
-                    <div class="box bg-light rounded p-4 mb-2">
-                        <div class="d-flex justify-content-center mb-2">
-                            <h6>Overall Readiness</h6>
-                        </div>
-                        <canvas id="readiness_chart" style="width: 100%; height: auto;"></canvas>
-                    </div>
-                    <!-- Image -->
-                    <div id="sideImage" class="box bg-light rounded p-4 mb-2">
-                        <div class="d-flex justify-content-center mb-2">
-                            <img style="width: 100%; height: auto" src="static/images/chat.png">
-                        </div>
-                    </div>
-                    <!-- Sentiment Chart -->
-                    <div id="askSentiments" class="box bg-light rounded p-4 mb-2" style="display: none;">
-                        <div>
-                            <div class="d-flex align-items-center justify-content-center mb-2">
-                                <h6 class="mb-0">Response Sentiment</h6>
-                            </div>
-                            <canvas id="ask_qa_senti_chart"></canvas>
-                        </div>
-                    </div>
-                    <!-- Themes and Topics -->
-                    <div id="askTopics" class="box bg-light rounded p-4" style="display: none;">
-                        <div>
-                            <h6 class="mb-2" style="text-align: center;">Themes & Topics</h6>
-                        </div>
-                        <div class="theme_topics" id="ldaQAText"></div>
                     </div>
                 </div>
             </div>
-            
+            <!-- Archive Data End -->
 
 
             <!-- Footer Start -->
-            <div class="container-fluid pt-4 px-4">
+            <div class="container-fluid pt-4 px-4 mx-n2">
                 <div class="bg-light rounded-top p-4">
                     <div class="row">
                         <div class="col-12 col-sm-6 text-center text-sm-start">
@@ -240,9 +146,9 @@
                 </div>
             </div>
             <!-- Footer End -->
+
         </div>
         <!-- Content End -->
-
 
         <!-- Back to Top -->
         <a href="#" class="btn btn-lg btn-primary btn-lg-square back-to-top"><i class="bi bi-arrow-up"></i></a>
@@ -263,10 +169,9 @@
 
     <!-- Template Javascript -->
     <script src="{{ url_for('static', filename='js/Layout.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ask.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/archive.js') }}"></script>
     <script src="{{ url_for('static', filename='js/Session_warning.js') }}"></script>
     <script src="{{ url_for('static', filename='js/user_details.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/chat_history.js') }}"></script>
 </body>
 
 </html>
