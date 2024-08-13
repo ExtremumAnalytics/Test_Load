@@ -230,6 +230,7 @@ function runDefaultProgram(called_from) {
     document.getElementById('fileInput').value='';
     document.getElementById('mp3Input').value = '';
     document.getElementById('input_image').value = '';
+    document.getElementById('sourceUrl').value = '';
 }
 
 socket.on('uploadError', function(response) {
@@ -439,7 +440,6 @@ function updateTable(searchTerm) {
     socket.on('update_vault_table', function(response) {
         if (response.pin==pin){
             $('#table-body').empty();
-
             // Populate the table with new data
             response.data.forEach(function(blob) {
                 // Extract the name from the URL

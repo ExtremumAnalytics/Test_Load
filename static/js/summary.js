@@ -120,35 +120,61 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displaySummaries(summaries) {
+        console.log(summaries);
         const summaryContainer = document.getElementById('summaryContainer');
-
-        // Create or select the existing unordered list element
-        let list = summaryContainer.querySelector('ul');
-        if (!list) {
-            list = document.createElement('ul');
-            summaryContainer.appendChild(list);
+    
+        // Create or select the existing div element to hold the checkboxes
+        let checkboxContainer = summaryContainer.querySelector('.checkbox-container');
+        if (!checkboxContainer) {
+            checkboxContainer = document.createElement('div');
+            checkboxContainer.classList.add('checkbox-container');
+            summaryContainer.appendChild(checkboxContainer);
         }
-
+    
         summaries.forEach(summary => {
             // Check if the summary has already been displayed
             const summaryKey = `${summary.key}:${summary.value}`;
             if (!displayedSummaries.has(summaryKey)) {
-                const listItem = document.createElement('li'); // Create a list item element
-                list.appendChild(listItem); // Append the list item to the list
-
+                const checkboxWrapper = document.createElement('div'); // Create a div to wrap checkbox and label
+                checkboxWrapper.classList.add('checkbox-wrapper');
+                checkboxWrapper.style.display = 'flex';
+                checkboxWrapper.style.alignItems = 'flex-start'; // Align items vertically at the top
+        
+                // Create the checkbox for the summary
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.classList.add('select-summary-checkbox');
+                checkbox.dataset.index = summary.index;
+        
+                // Create the label for the summary
+                const label = document.createElement('label');
+                label.classList.add('summary-label');
+                label.style.fontFamily = 'Times New Roman';
+                label.style.fontSize = '16px';
+                label.style.marginLeft = '10px'; // Add some spacing between checkbox and label
+                label.style.lineHeight = '1.5'; // Line height for better alignment with checkbox
+        
                 const words = `<b>${summary.key}</b>: ${summary.value.replace(/- /g, "<br>- ")}`.split(' ');
                 let wordIndex = 0;
-
+        
                 function typeWord() {
                     if (wordIndex < words.length) {
-                        listItem.innerHTML += words[wordIndex] + ' ';
+                        label.innerHTML += words[wordIndex] + ' ';
                         wordIndex++;
                         setTimeout(typeWord, 50); // Adjust the delay as needed (50ms in this case)
                     } else {
-                        listItem.innerHTML += '<p></p>'; // Add the paragraph break after the summary
+                        label.innerHTML += '<p></p>'; // Add the paragraph break after the summary
                     }
                 }
                 typeWord(); // Start the typing effect
+        
+                // Append the checkbox and label to the checkbox wrapper
+                checkboxWrapper.appendChild(checkbox);
+                checkboxWrapper.appendChild(label);
+        
+                // Append the checkbox wrapper to the container
+                checkboxContainer.appendChild(checkboxWrapper);
+        
                 displayedSummaries.add(summaryKey); // Add to the set of displayed summaries
                 document.getElementById('sideImage').style.display = 'none';
                 document.getElementById('summarySentiments').style.display = 'block';
@@ -156,7 +182,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('summaryTopics').style.display = 'block';
             }
         });
+        
     }
+    
 
     function displayErrors(errors) {
         const error = document.getElementById('modalBody');
@@ -360,3 +388,53 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(fullImageOverlay);
     });
 });
+
+// Archive Summary
+function archiveSelectedChats() {
+    var selectedIndexes = [];
+    document.querySelectorAll('.select-summary-checkbox:checked').forEach(function(checkbox) {
+        var index = checkbox.dataset.index;
+        selectedIndexes.push(index);  // Collect the selected indexes
+    });
+
+    if (selectedIndexes.length === 0) {
+        alert("Please select at least one summary to archive.");
+        return;
+    }
+
+    // Emit the selected indexes to the backend via SocketIO
+    socket.emit('archive_chats', { indexes: selectedIndexes, type: 'summary_history'});
+
+    // Listen for the response from the server
+    socket.on('archive_response', function(data) {
+        if (data.success) {
+            var selectedChats = [];
+            // Iterate through the returned chat history and push each chat to selectedChats
+            data.chat_history.forEach(item => {
+                // console.log(item);
+                selectedChats.push(item);
+            });
+            // Retrieve existing archived chats from localStorage
+            var archivedSummary = JSON.parse(localStorage.getItem('archivedSummary')) || [];
+            var archivedSummary = archivedSummary.concat(selectedChats);
+            // console.log(selectedChats);
+            // Save the updated archived chats back to localStorage
+            localStorage.setItem('archivedSummary', JSON.stringify(archivedSummary));
+            alert("Selected summary have been archived successfully.");
+
+            // Optionally clear the selected checkboxes after archiving
+            document.querySelectorAll('.select-summary-checkbox:checked').forEach(function(checkbox) {
+                checkbox.checked = false;
+            });
+        } else {
+            alert("Failed to archive summary: " + data.message);
+        }
+    });
+}
+
+// Function to toggle the menu visibility
+function toggleDropdown(x) {
+    x.classList.toggle("change");
+    var dropdownMenu = document.getElementById("dropdownMenu");
+    dropdownMenu.classList.toggle("show");
+}

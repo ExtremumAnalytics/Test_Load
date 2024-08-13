@@ -56,6 +56,7 @@
                     <li><a href="{{url_for('ask')}}" class="nav-link"><i class="fa fa-question-circle"></i>Ask Question</a></li>
                     <li><a href="{{url_for('summary')}}" class="nav-link"><i class="fa fa-list-alt"></i>Summary</a></li>
                     <li><a href="{{url_for('virtual_analyst')}}" class="nav-link"><i class="fa fa-chart-bar"></i>Virtual Analyst</a></li>
+                    <li><a href="{{url_for('archive')}}" class="nav-link"><i class="fa fa-chart-bar"></i>Archived Data</a></li>
                     <li><a href="{{url_for('data_source')}}" class="nav-link"><i class="fa fa-chart-pie"></i>Virtual Data Scientist</a></li>
                 </ul>
             </nav>
@@ -134,7 +135,6 @@
                                         <input type="text" class="question form-control" id="summary_que" placeholder="Type here">
                                         <button id="recordButton" class="btn1 rounded m-2"></button>
                                     </div>
-
                                 </div>
                             </div>
                             
@@ -149,9 +149,31 @@
                     </div>
                     <div class="response col-lg-12 bg-light rounded p-4">
                         <div class="d-flex flex-row">
-                            <h6 class="m-2 col-lg-4" >Summary</h6>
-                            <input type="date" id="summaryDate" style="width: min-content;" class="form-control rounded m-2">
-                            <button class="btn btn-primary m-2" onclick="requestSummaryHistory()">Chat History</button>
+                            <h6 class="m-2 col-lg-10">Summary</h6>
+                            <!-- Dropdown container including the hamburger menu icon -->
+                            <div class="dropdown">
+                                <div class="container" onclick="toggleDropdown(this)">
+                                    <div class="bar1"></div>
+                                    <div class="bar2"></div>
+                                    <div class="bar3"></div>
+                                </div>
+
+                                <!-- Dropdown content with your elements -->
+                                <div class="dropdown-content" id="dropdownMenu">
+                                    <div class="d-flex flex-row">
+                                        <input type="date" id="summaryDate" class="form-control rounded m-2">
+                                        <button class="btn btn-primary m-2" onclick="requestSummaryHistory()">Filter</button>
+                                    </div>
+                                    <div class="d-flex flex-row justify-content-center">
+                                        <a href="#" class="email-icon m-2" id="requestSummaryHistory"><i class="fas fa-envelope"></i></a>
+                                        <a href="#" class="m-2" id="archiveChats" onclick="archiveSelectedChats()"><i class="fa fa-archive"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- <input type="date" id="summaryDate" style="width: min-content;" class="form-control rounded m-2">
+                            <button class="btn btn-primary m-2" onclick="requestSummaryHistory()">Chat History</button> -->
+                            <!-- <a href="#" class="email-icon m-2" id="requestSummaryHistory"><i style="font-size:33px;" class="fas fa-envelope"></i></a> -->
                             <!-- HTML for the Popup Modal -->
                             <div id="myModal" class="errorModal" style="display:none;">
                                 <div class="modal-content">
@@ -178,7 +200,6 @@
                         <div class="d-flex align-items-center justify-content-center mb-2">
                             <h6 class="mb-0">Overall Readiness</h6>
                         </div>
-                        <!-- <div id="gauge-cogni"></div> -->
                         <canvas class="gauge" id="readiness_chart"></canvas>
                     </div>
                     
@@ -195,7 +216,6 @@
                                 <h6 class="mb-0">Sentiment Analysis</h6>
                             </div>
                             <canvas id="sentiment_chart"></canvas>
-                        <!-- <div class="gauge" id="sentiment_chart"></div> -->
                         </div>
                     </div>
 

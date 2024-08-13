@@ -10,6 +10,8 @@ import re
 import docx
 import asyncio
 import pytz
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches
 from sqlalchemy.orm import sessionmaker
 from werkzeug.utils import secure_filename
 
@@ -19,6 +21,13 @@ from azure.search.documents.indexes._generated.models import SemanticConfigurati
 from flask import Flask, jsonify, url_for, flash
 from flask import render_template, request, g, redirect, session
 import tempfile
+
+#for email
+from docx import Document
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 
 # For Virtual Analyst DB integration
 from sqlalchemy import create_engine, inspect
@@ -1322,6 +1331,140 @@ def is_url_valid(url):
         return False
 
 
+def create_chat_history_docx(chat_history, type, file_path):
+    # Check if the file exists; if it does, open it, otherwise create a new document
+    if os.path.exists(file_path):
+        doc = docx.Document(file_path)
+    else:
+        doc = docx.Document()
+
+    if type == 'chat_history':
+        if not os.path.exists(file_path):
+            doc.add_heading('History', level=1)
+
+        for chat in chat_history:
+            doc.add_heading('Question:', level=2)
+            doc.add_paragraph(chat['question'])
+            doc.add_heading('Answer:', level=2)
+            doc.add_paragraph(chat['answer'])
+            doc.add_heading('Source:', level=2)
+            doc.add_paragraph(chat['source'])
+            doc.add_heading('Page Number:', level=2)
+            doc.add_paragraph(str(chat['page_number']))
+
+    elif type == 'summary_history':
+        if not os.path.exists(file_path):
+            doc.add_heading('History', level=1)
+
+        for summary in chat_history:
+            doc.add_heading('Filename:', level=2)
+            doc.add_paragraph(summary['filename'])
+            doc.add_heading('Summary:', level=2)
+            doc.add_paragraph(summary['summary'])
+
+    elif type == 'virtual_analyst_history':
+        if not os.path.exists(file_path):
+            # doc.add_heading('History', level=1)
+            # Add the heading
+            heading = doc.add_heading('History', level=1)
+
+            # Center-align the heading
+            heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        image_path = f"static/files/{session['login_pin']}/image"
+
+        # Parse the HTML
+        soup = BeautifulSoup(chat_history['Answer'], 'html.parser')
+        # Extract and add the "Output" section to the document
+        output_b_tag = soup.find('b', text='Output:')
+        if output_b_tag and output_b_tag.next_sibling:
+            output_text = output_b_tag.next_sibling.strip()
+            doc.add_heading('Question:', level=2)
+            doc.add_paragraph(chat_history['Question'])
+            doc.add_heading('Output:', level=1)
+            doc.add_paragraph(output_text)
+        else:
+            pass
+        # Extract and add the "Query" section to the document
+        query_b_tag = soup.find('b', text='Query:')
+        if query_b_tag and query_b_tag.next_sibling:
+            query_text = query_b_tag.next_sibling.strip()
+            doc.add_heading('Question:', level=2)
+            doc.add_paragraph(chat_history['Question'])
+            doc.add_heading('Query:', level=1)
+            doc.add_paragraph(query_text)
+        else:
+            pass
+        table = soup.find('table')
+        if table:
+            doc.add_heading('Question:', level=2)
+            doc.add_paragraph(chat_history['Question'])
+            # Add a heading (optional)
+            doc.add_heading('Data Table:', level=2)
+
+            # Get the number of rows and columns
+            rows = table.find_all('tr')
+            columns = rows[0].find_all('th')
+
+            # Add a table to the document
+            doc_table = doc.add_table(rows=len(rows), cols=len(columns))
+
+            # Add table headers
+            for i, th in enumerate(columns):
+                doc_table.cell(0, i).text = th.text
+
+            # Add table rows
+            for row_idx, row in enumerate(rows[1:], start=1):  # Skip the header row
+                cells = row.find_all('td')
+                for col_idx, cell in enumerate(cells):
+                    doc_table.cell(row_idx, col_idx).text = cell.text
+        else:
+            pass
+        if os.path.exists(image_path):
+            for file_name in os.listdir(image_path):
+                if file_name.endswith('.png'):
+                    png_file = os.path.join(image_path, file_name)
+                    doc.add_heading('Question:', level=2)
+                    doc.add_paragraph(chat_history['Question'])
+                    doc.add_heading('Image:', level=2)
+                    doc.add_picture(png_file, width=Inches(4.0))
+                    os.remove(png_file)
+                else:
+                    pass
+        else:
+            # for chat in chat_history:
+            doc.add_heading('Question:', level=2)
+            doc.add_paragraph(chat_history['Question'])
+            doc.add_heading('Answer:', level=2)
+            doc.add_paragraph(chat_history['Answer'])
+
+    doc.save(file_path)
+
+
+def send_email_with_attachment(recipient, subject, body, attachment_path):
+    sender_email = 'emotionx.piet@gmail.com'
+    sender_password = 'awre mfjs ilbt swub'
+    smtp_server = 'smtp.gmail.com'
+    smtp_port = 587
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    with open(attachment_path, 'rb') as attachment:
+        part = MIMEApplication(attachment.read(), Name=os.path.basename(attachment_path))
+        part['Content-Disposition'] = f'attachment; filename="{os.path.basename(attachment_path)}"'
+        msg.attach(part)
+
+    with smtplib.SMTP(smtp_server, smtp_port) as server:
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, recipient, msg.as_string())
+
+
+
 @app.route('/checksession')
 def check_session():
     if 'login_pin' in session:
@@ -1336,6 +1479,7 @@ def check_session():
 @socketio.on('request_chat_history')
 def handle_request_chat_history(data):
     date_str = data.get('date')
+    request_type = data.get('type')
 
     if date_str:
         selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
@@ -1362,16 +1506,38 @@ def handle_request_chat_history(data):
             'answer': chat.answer,
             'source': chat.source,
             'page_number': chat.page_number,
+            'index': chat.id
         }
         for chat in chat_histories]
 
     # Convert summary history objects to a list of dictionaries
     summary_history_data = [
         {
+            'index': summary.id,
             'filename': summary.filename,
             'summary': summary.summary,
         }
         for summary in summary_histories]
+    
+    folder_name = os.path.join('static', 'files', str(session['login_pin']))
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+
+    if request_type == 'chat':
+        chat_docx_file_path = os.path.join(folder_name, f"chat_history_{str(session['login_pin'])}.docx")
+        create_chat_history_docx(chat_history_data, summary_history_data, 'chat_history', chat_docx_file_path)
+        recipient_email = session['Email_id']  # Replace with actual recipient email
+        send_email_with_attachment(recipient_email, 'Chat History', 'Please find the chat history attached.', chat_docx_file_path)
+        os.remove(chat_docx_file_path)
+
+    elif request_type == 'summary':
+        summ_docx_file_path = os.path.join(folder_name, f"Summary_history_{str(session['login_pin'])}.docx")
+        create_chat_history_docx(summary_history_data, summary_history_data,'summary_history', summ_docx_file_path)
+        recipient_email = session['Email_id']  # Replace with actual recipient email
+        send_email_with_attachment(recipient_email, 'Summary History', 'Please find the summary history attached.', summ_docx_file_path)
+        os.remove(summ_docx_file_path)
+    else:
+        pass
 
     emit('chat_history', {'chat_history': chat_history_data[::-1]})
     emit('summary_history', {'summary_history': summary_history_data[::-1]})
@@ -1391,7 +1557,9 @@ def handle_connect():
     chat_history = [{"question": chat.question,
                      "answer": chat.answer,
                      "source": chat.source,
-                     "page_number": chat.page_number}
+                     "page_number": chat.page_number,
+                     'index': chat.id
+                    }
                     for chat in chat_history_from_db]
     emit('chat_history', {'chat_history': chat_history[::-1]})
 
@@ -1858,9 +2026,9 @@ def handle_summary_input(data):
 
         # Check if any results were returned
         if results.get_count() == 0:
-            error_messages.append("Please specify filenames in the given prompt!")
+            error_messages.append("No documents found!")
             # Display message if no filenames matched
-            print("No filenames matched the search query.")
+            print("No documents found or No filenames matched the search query.")
         else:
             # Process and display search results
             for result in results:
@@ -1896,21 +2064,21 @@ def handle_summary_input(data):
             for filename, documents in old_structure:
                 try:
                     summary_list = custom_summary(documents, custom_p, chain_type, word_count)
-                    summary_text = '\n'.join(summary_list)
 
                     # Create summary history record
                     summary_record = SummaryHistory(
                         login_pin=session['login_pin'],
-                        filename=filename,  # Assuming filename represents the question or context
+                        filename=filename,
                         summary=summary_list,
                         summary_date=datetime.datetime.now()
                     )
                     # Add record to session
                     db.session.add(summary_record)
                     db.session.commit()
-
+                    # Fetch the current summary index from the database
+                    current_summary_index = db.session.query(db.func.max(SummaryHistory.id)).filter_by(login_pin=session['login_pin']).scalar()
                     key = f'{filename}--{counter}--'
-                    summary_dict = {'key': key, 'value': summary_list}
+                    summary_dict = {'key': key, 'value': summary_list, 'index': current_summary_index}
                     summ.append(summary_dict)
                     counter += 1
                     emit('summary_response', summ)
@@ -3158,7 +3326,7 @@ def handle_eda_process(data):
                 "save_charts": True,
                 "save_logs": False,
                 "enable_cache": False,
-                "save_charts_path": 'static/files/image',
+                "save_charts_path": f"static/files/{session['login_pin']}/image",
                 "open_charts": False,
                 "max_retries": 1
             })
@@ -3181,7 +3349,7 @@ def handle_eda_process(data):
                 output_json = json.dumps(str(output))
                 output_type = 'unknown'
 
-            image_path = 'static/files/image/'
+            image_path = f"static/files/{session['login_pin']}/image"
             png_file = None
 
             if os.path.exists(image_path):
@@ -3196,7 +3364,7 @@ def handle_eda_process(data):
                     img_base64 = base64.b64encode(img_data).decode('utf-8')
                 output_json = json.dumps(question)
                 output_type = 'text'
-                os.remove(png_file)
+                # os.remove(png_file)
 
             response = {
                 'success': True,
@@ -3485,6 +3653,7 @@ def home():
             session['env_map'] = env_mapping_dict.get(request.base_url)
             session['login_pin'] = user.login_pin
             session['user_name'] = f"{user.first_name.title()} {user.last_name.title()}"
+            session['Email_id'] = user.email_id
             session['engine'] = engine
             session['bar_chart_ss'] = {}
             session['over_all_readiness'] = 0
@@ -3575,6 +3744,10 @@ def summary():
 def virtual_analyst():
     return render_template('virtual_analyst.html')
 
+@app.route('/Archived_Data', methods=['GET', 'POST'])
+def archive():
+    return render_template('archive.html')
+
 
 @app.route('/signup')
 def signup():
@@ -3617,6 +3790,96 @@ def handle_get_dropdown_data():
         emit('files_dropdown_data', {'error': str(e)})
 
 
+def get_chats_by_indexes(indexes, type, login_pin):
+    if type == 'chat_history':
+        # Fetch chat history from the database based on indexes and login_pin
+        chats = ChatHistory.query.filter_by(login_pin=login_pin).filter(ChatHistory.id.in_(indexes)).all()
+        chat_history = [{"question": chat.question,
+                         "answer": chat.answer,
+                         "source": chat.source,
+                         "page_number": chat.page_number,
+                         "index": chat.id}
+                        for chat in chats]
+    elif type == 'summary_history':
+        # Fetch chat history from the database based on indexes and login_pin
+        chats = SummaryHistory.query.filter_by(login_pin=login_pin).filter(SummaryHistory.id.in_(indexes)).all()
+        chat_history = [{"filename": chat.filename,
+                         "summary": chat.summary,
+                         "index": chat.id}
+                        for chat in chats]
+    elif type == 'virtual_analyst_history':
+        chats = 'NA'
+        chat_history = 'NA'
+    return chat_history
+
+
+@socketio.on('archive_chats')
+def handle_archive_chats(data):
+    indexes = data.get('indexes', [])
+    login_pin = session.get('login_pin')
+    type = data.get('type')
+    if not indexes:
+        emit('archive_response', {'success': False, 'message': 'No indexes provided.'})
+        return
+
+    if not login_pin:
+        emit('archive_response', {'success': False, 'message': 'User not logged in.'})
+        return
+
+    try:
+        folder_name = os.path.join('static', 'files', str(session['login_pin']))
+        if not os.path.exists(folder_name):
+            os.makedirs(folder_name)
+
+        history_docx_file_path = os.path.join(folder_name, f"history_{str(session['login_pin'])}.docx")
+        if type == 'chat_history':
+            # Fetch the chat history for the provided indexes
+            chats = get_chats_by_indexes(indexes, type, login_pin)
+            create_chat_history_docx(chats, type, history_docx_file_path)
+        elif type == 'summary_history':
+            # Fetch the chat history for the provided indexes
+            chats = get_chats_by_indexes(indexes, type, login_pin)
+            create_chat_history_docx(chats, type, history_docx_file_path)
+        elif type == 'virtual_analyst_history':
+            chats = {'Question': data.get('eda_question'), 'Answer': data.get('eda_response')}
+            print(chats)
+            create_chat_history_docx(chats, type, history_docx_file_path)
+        if not chats:
+            emit('archive_response', {'success': False, 'message': 'No chats found for the provided indexes.'})
+            return
+
+        # Archive the chats
+        # archive_chats(chats)  # Implement this function to archive the chats
+
+        emit('archive_response', {'success': True, 'chat_history': chats})
+    except Exception as e:
+        emit('archive_response', {'success': False, 'message': str(e)})
+
+
+@socketio.on('save_archive_data')
+def save_data(data):
+    request_type = data['type']
+    folder_name = os.path.join('static', 'files', str(session['login_pin']))
+    file_path = os.path.join('static', 'files', str(session['login_pin']), f"history_{str(session['login_pin'])}.docx")
+    if not os.path.exists(file_path):
+        emit('save_archive_response', {'success': False, 'message': 'File not found!'})
+
+    if request_type == 'email':
+        recipient_email = session['Email_id']  # Replace with actual recipient email
+        send_email_with_attachment(recipient_email, 'Archived History', 'Please find the attached archived history.', file_path)
+        os.remove(file_path)
+        emit('save_archive_response', {'success': True, 'message': f"Email sent on {session['Email_id']}"})
+    elif request_type == 'save':
+        with open(file_path, "rb") as file:
+            file_content = file.read()
+
+        # Upload the content to Azure Blob Storage, overwriting the existing blob if it exists
+        blob_name = f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/archived_history_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.docx"
+        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+        blob_client.upload_blob(file_content, blob_type="BlockBlob", overwrite=True)
+        os.remove(file_path)
+        emit('save_archive_response', {'success': True, 'message': 'History saved in vault.'})
+
+
 if __name__ == '__main__':
     socketio.run(app, debug=True)
-

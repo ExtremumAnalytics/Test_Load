@@ -214,7 +214,6 @@ function sendQuestion() {
                 const imageUrl = `data:image/png;base64,${data.image}`;
                 displayContent += `<div><img src="${imageUrl}" alt="Processed Image" style="max-width: 100%; height: auto;" /></div>`;
             }
-
             // Display the final content
             document.getElementById('eda_questionAnswer').innerHTML = displayContent;
         });
@@ -525,4 +524,33 @@ function handleJSON(data) {
 function handleExcel(data) {
     const workbook = XLSX.read(data, { type: 'binary' });
     // console.log('Excel Data:', workbook);
+}
+
+// Archive Summary
+function archiveSelectedChats() {
+    const question = document.getElementById('question_eda').value;
+    const answer = document.getElementById('eda_questionAnswer').innerHTML;
+
+    // Emit the selected indexes to the backend via SocketIO
+    socket.emit('archive_chats', { indexes: [-1], type: 'virtual_analyst_history', eda_question: question, eda_response: answer});
+
+    // Listen for the response from the server
+    socket.on('archive_response', function(data) {
+        if (data.success) {
+            let edaData = JSON.parse(localStorage.getItem('virtualAnalystData')) || [];
+
+            const newEntry = {
+                eda_question: question,
+                eda_response: answer
+            };
+
+            edaData.push(newEntry);
+
+            localStorage.setItem('virtualAnalystData', JSON.stringify(edaData));
+            alert("Data have been archived successfully.");
+
+        } else {
+            alert("Failed to archive summary: " + data.message);
+        }
+    });
 }

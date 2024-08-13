@@ -66,7 +66,6 @@ function sendQuestion() {
     var question = document.getElementById("question").value.trim(); // Trim the question
     var source = document.getElementById("selectSource").value;
     var selected_file = document.getElementById('selectFiles').value;
-    // console.log(selected_file);    
 
     if (selected_file === 'default') {
         selected_file = false
@@ -106,22 +105,40 @@ function sendQuestion() {
             currentItem.index > maxItem.index ? currentItem : maxItem, chatHistory[0]);
 
         chatHistory.forEach(function(item) {
-            var listItem = document.createElement('li');
-            var question = "<b>" + "Question: " + "</b>" + item.question;
-            var sourceLink = "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong></a>";
+            // Create the list item element
+            var listItem = document.createElement('div');
+            listItem.classList.add('chat-item'); // Optional: add a class for styling
+
+            // Create the checkbox for selecting the chat
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.classList.add('select-chat-checkbox');
+            checkbox.dataset.index = item.index;
+
+            // Create the question element
+            var questionElement = document.createElement('span');
+            questionElement.innerHTML = "<b> Question: </b>" + item.question;
+
+            // Combine checkbox and question in a single container
+            var questionContainer = document.createElement('label'); // Use label for better accessibility
+            questionContainer.appendChild(checkbox);
+            questionContainer.appendChild(questionElement);
+            questionContainer.style.fontFamily = 'Times New Roman';
+            questionContainer.style.fontSize = '16px';
+
+            // Create the answer and source link content
             var preElement = document.createElement('pre');
             preElement.classList.add('formatted-pre');
             preElement.style.whiteSpace = 'pre-wrap';
             preElement.style.overflowX = 'hidden';
             preElement.style.overflowY = 'auto';
             preElement.style.fontFamily = 'Times New Roman';
-            preElement.style.fontSize ='16px';
-            listItem.appendChild(preElement);
-            historyList.appendChild(listItem);
+            preElement.style.fontSize = '16px';
 
+            // Check if this item is the latest one
             if (item.index === latestItem.index) {
-                preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>";
-
+                preElement.innerHTML = "<b>Answer:</b> \n";
+                
                 var words = item.answer.split(' ');
                 var word_index = 0;
                 var typingComplete = false; // Track when typing is complete
@@ -135,12 +152,16 @@ function sendQuestion() {
                     } else {
                         clearInterval(intervalId);
                         typingComplete = true; // Mark typing as complete
+                        
                         var sourceElement = document.createElement('div');
-                        sourceElement.innerHTML = sourceLink + "\n\n";
-                        preElement.appendChild(sourceElement);
+                        sourceElement.innerHTML = "<a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong></a>\n\n";
+
                         sourceElement.querySelector('.source-link').addEventListener('click', function () {
                             openPopup(this.getAttribute('data-source').split(','), this.getAttribute('data-page').split(','));
                         });
+
+                        // sourceElement.appendChild(shareIcon);
+                        preElement.appendChild(sourceElement);
 
                         // Show the follow-up question only after typing is complete
                         if (response.follow_up !== 'N/A') {
@@ -157,8 +178,15 @@ function sendQuestion() {
                 document.getElementById('askTopics').style.display = 'block';
                 document.getElementById('sideImage').style.display = 'none';
             } else {
-                preElement.innerHTML = question + "\n" + "<b>" + "Answer: \n" + "</b>" + item.answer + "<br>" + sourceLink + "\n\n";
+                preElement.innerHTML = "<b>Answer:</b> \n" + item.answer + "<br><a href='javascript:void(0)' class='source-link' data-source='" + item.source + "' data-page='" + item.page_number + "'><strong> Source </strong></a>\n\n";
             }
+
+            // Append the question container and answer to the list item
+            listItem.appendChild(questionContainer);
+            listItem.appendChild(preElement);
+
+            // Append the list item to the chat history list (assumed to be a div)
+            document.getElementById('questionAnswer').appendChild(listItem); // Assume there's a div with this ID
         });
 
         document.querySelectorAll('.source-link').forEach(function(link) {
@@ -169,6 +197,23 @@ function sendQuestion() {
 
         document.getElementById("question").value = ""; // Clear the question input
     });
+}
+
+
+// Function to process email sending of the earliest item
+function sharelatestItem(earliestItem) {
+    const subject = "Check out this content!";
+
+    // Construct the email body from the earliest item
+    const question = "Question: " + earliestItem.question;
+    const answer = "Answer:\n" + earliestItem.answer;
+    const content = `${question}\n${answer}\n\n`;
+
+    // Create the mailto link with encoded content
+    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(content)}`;
+
+    // Open the email client
+    window.location.href = mailtoLink;
 }
 
 function showFollowUpQuestion(followUpText) {
@@ -272,7 +317,6 @@ function openPopup(sources, pageNumbers) {
 
     // Function to extract file name from URL
     function extractFileName(url) {
-        // console.log(url);
         // Regular expression to find the URL after the changeable part
         const pattern = /https:\/\/.+\/https:\/\/.+/;
         const pattern2 = /https:\/\/.*testcongnilink.blob.core.windows.net/;        
@@ -586,3 +630,52 @@ document.addEventListener('DOMContentLoaded', function() {
         recordButton.style.display = show ? 'block' : 'none';
     }
 });
+
+function archiveSelectedChats() {
+    var selectedIndexes = [];
+    document.querySelectorAll('.select-chat-checkbox:checked').forEach(function(checkbox) {
+        var index = checkbox.dataset.index;
+        selectedIndexes.push(index);  // Collect the selected indexes
+    });
+
+    if (selectedIndexes.length === 0) {
+        alert("Please select at least one chat to archive.");
+        return;
+    }
+
+    // Emit the selected indexes to the backend via SocketIO
+    socket.emit('archive_chats', { indexes: selectedIndexes, type: 'chat_history'});
+
+    // Listen for the response from the server
+    socket.on('archive_response', function(data) {
+        if (data.success) {
+            var selectedChats = [];
+            // Iterate through the returned chat history and push each chat to selectedChats
+            data.chat_history.forEach(item => {
+                // console.log(item);
+                selectedChats.push(item);
+            });
+            // Retrieve existing archived chats from localStorage
+            var archivedChats = JSON.parse(localStorage.getItem('archivedChats')) || [];
+            var archivedChats = archivedChats.concat(selectedChats);
+            // console.log(selectedChats);
+            // Save the updated archived chats back to localStorage
+            localStorage.setItem('archivedChats', JSON.stringify(archivedChats));
+            alert("Selected chats have been archived successfully.");
+
+            // Optionally clear the selected checkboxes after archiving
+            document.querySelectorAll('.select-chat-checkbox:checked').forEach(function(checkbox) {
+                checkbox.checked = false;
+            });
+        } else {
+            alert("Failed to archive chats: " + data.message);
+        }
+    });
+}
+
+// Function to toggle the menu visibility
+function toggleDropdown(x) {
+    x.classList.toggle("change");
+    var dropdownMenu = document.getElementById("dropdownMenu");
+    dropdownMenu.classList.toggle("show");
+}
