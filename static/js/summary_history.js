@@ -2,6 +2,7 @@ const displayedSummaries = new Set(); // To keep track of displayed summaries
 
 // Remove a specific item by its key
 // localStorage.removeItem('archivedSummary');
+socket.emit('table_update');
 
 document.getElementById('requestSummaryHistory').addEventListener('click', () => {
     const date = document.getElementById('summaryDate').value;
@@ -21,7 +22,7 @@ function displaySummaries(summaries) {
     }
 
     summaries.summary_history.forEach(summary => {
-        console.log(summaries.summary_history);
+        // console.log(summaries.summary_history);
         // Check if the summary has already been displayed
         const summaryKey = `${summary.filename}:${summary.summary}`;
         if (!displayedSummaries.has(summaryKey)) {
@@ -76,6 +77,7 @@ function requestSummaryHistory() {
     document.getElementById('summaryTopics').style.display = 'none';
 
     var socket = io();
+    socket.emit('table_update');
     const date = document.getElementById('summaryDate').value;
     // console.log(date);
     // Emit an event to request chat history
@@ -88,7 +90,7 @@ function requestSummaryHistory() {
         socket.emit('request_chat_history', { date: date });
         // Listen for the chat_history event
         socket.on('summary_history', function(response) {
-            console.log(response);
+            // console.log(response);
 
             if (response.summary_history.length == 0) {
                 summaryContainer.innerHTML = '<p>Sorry, No summary history found for this date.</p>';

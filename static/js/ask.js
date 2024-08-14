@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Files Dropdown
 document.addEventListener('DOMContentLoaded', function() {
     socket.emit('get_files_dropdown_data');
-
+    socket.emit('table_update');
     socket.on('files_dropdown_data', function(data) {
         if (data.error) {
             alert(data.error);
@@ -63,6 +63,7 @@ document.getElementById('selectFiles').addEventListener('change', function() {
 });
 
 function sendQuestion() {
+    socket.emit('table_update');
     var question = document.getElementById("question").value.trim(); // Trim the question
     var source = document.getElementById("selectSource").value;
     var selected_file = document.getElementById('selectFiles').value;
@@ -90,7 +91,7 @@ function sendQuestion() {
     });
 
     socket.on('response', function(response) {
-        console.log(response);
+        // console.log(response);
         updateProgressBar(100);
         setTimeout(() => {
             document.getElementById("waitImg").style.display = 'none';
