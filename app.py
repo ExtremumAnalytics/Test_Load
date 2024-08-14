@@ -138,6 +138,7 @@ text_word_cloud = ''
 nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
+nltk.download('punkt_tab')
 
 global blob_client, logger, chat_history_list, Limit_By_Size, mb_pop, file_size_bytes, df, png_file, loader
 
