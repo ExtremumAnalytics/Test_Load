@@ -2266,6 +2266,8 @@ def handle_ask_question(data):
                              "page_number": chat.page_number,
                              "index": chat.id}
                             for chat in chat_history_from_db]
+            print(chat_history[::-1])
+
             emit('progress', {'percentage': 100, 'pin': session['login_pin']})
             emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
 
@@ -2434,6 +2436,7 @@ def handle_ask_question(data):
                                  "page_number": chat.page_number,
                                  "index": chat.id}
                                 for chat in chat_history_from_db]
+                print(chat_history[::-1])
                 emit('response', {'chat_history': chat_history[::-1], 'follow_up': follow_up_question})
             else:
                 g.flag = 0
@@ -2477,6 +2480,7 @@ def handle_ask_question(data):
                                  "page_number": chat.page_number,
                                  "index": chat.id}
                                 for chat in chat_history_from_db]
+                print(chat_history[::-1])
                 emit('response', {'chat_history': chat_history[::-1], 'follow_up': "Sorry, I couldn't see anything relevant."})
 
     except Exception as e:

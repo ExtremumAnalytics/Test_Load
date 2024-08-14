@@ -90,6 +90,7 @@ function sendQuestion() {
     });
 
     socket.on('response', function(response) {
+        console.log(response);
         updateProgressBar(100);
         setTimeout(() => {
             document.getElementById("waitImg").style.display = 'none';
