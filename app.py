@@ -2267,7 +2267,7 @@ def handle_ask_question(data):
                              "page_number": chat.page_number,
                              "index": chat.id}
                             for chat in chat_history_from_db]
-            print(chat_history[::-1])
+            # print(chat_history[::-1])
 
             emit('progress', {'percentage': 100, 'pin': session['login_pin']})
             emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
@@ -2283,6 +2283,7 @@ def handle_ask_question(data):
             )
 
             if file_selected:
+                print('if')
                 if 'https://' in file_selected or 'http://' in file_selected:
                     file_name = file_selected.split('//')[1]
                 else:
@@ -2313,7 +2314,7 @@ def handle_ask_question(data):
                 documents.append(doc)
 
             sorted_documents = sorted(documents, key=lambda x: x['score'], reverse=True)
-            # print(sorted_documents)
+            print(sorted_documents)
             if len(sorted_documents) != 0:
                 vector_store: AzureSearch = AzureSearch(
                     azure_search_endpoint=vector_store_address,
@@ -2437,7 +2438,7 @@ def handle_ask_question(data):
                                  "page_number": chat.page_number,
                                  "index": chat.id}
                                 for chat in chat_history_from_db]
-                print(chat_history[::-1])
+                # print(chat_history[::-1])
                 emit('response', {'chat_history': chat_history[::-1], 'follow_up': follow_up_question})
             else:
                 g.flag = 0
@@ -2481,7 +2482,7 @@ def handle_ask_question(data):
                                  "page_number": chat.page_number,
                                  "index": chat.id}
                                 for chat in chat_history_from_db]
-                print(chat_history[::-1])
+                # print(chat_history[::-1])
                 emit('response', {'chat_history': chat_history[::-1], 'follow_up': "Sorry, I couldn't see anything relevant."})
 
     except Exception as e:
@@ -2948,7 +2949,7 @@ def table_update(search_term=None):
         blobs_chart = container_client.list_blobs(
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
         blob_list = [blob for blob in blobs_chart if
-                     not (blob.name.lower().endswith('.csv') or blob.name.lower().endswith('_schema.xlsx')  or blob.name.lower().endswith('.mp3'))]
+                     not (blob.name.lower().endswith('.csv') or blob.name.lower().endswith('_schema.xlsx') or blob.name.lower().endswith('_schema.json') or blob.name.lower().endswith('.mp3'))]
         new_blob_list_jpg = [blob for blob in blob_list if
                              not (blob.name.lower().endswith('.jpg') or blob.name.lower().endswith(
                                  '.png') or blob.name.lower().endswith('.jpeg'))]
