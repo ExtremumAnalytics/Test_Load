@@ -90,6 +90,7 @@ function sendQuestion() {
     });
 
     socket.on('response', function(response) {
+        console.log(response);
         updateProgressBar(100);
         setTimeout(() => {
             document.getElementById("waitImg").style.display = 'none';
@@ -99,8 +100,7 @@ function sendQuestion() {
         historyContainer.innerHTML = "<p>";
 
         var chatHistory = response.chat_history;
-        const sortedChatHistory = chatHistory.slice().sort((a, b) => a.index - b.index);
-        const latestItem = sortedChatHistory[sortedChatHistory.length - 1];
+        var latestItem = chatHistory.reduce((maxItem, currentItem) => currentItem.index > maxItem.index ? currentItem : maxItem, chatHistory[0]);
 
         chatHistory.forEach(function(item) {
             // Create the list item element

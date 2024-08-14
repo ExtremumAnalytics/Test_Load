@@ -53,7 +53,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
             // Append the question container and answer to the list item
             listItem.appendChild(questionContainer);
             listItem.appendChild(preElement);
-    
             // Append the list item to the chat history list (assumed to be a div)
             document.getElementById('questionAnswer').appendChild(listItem); // Assume there's a div with this ID
         });
