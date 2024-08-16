@@ -5,6 +5,11 @@ function loadArchivedChats() {
     var archivedEDA = JSON.parse(localStorage.getItem('virtualAnalystData')) || [];
     var container = document.getElementById('archivedChatsContainer');
     
+    if (archivedChats.length === 0 && archivedSummary.length===0 && archivedEDA.length===0) {
+        container.innerHTML = `<p style="font-size:22px; text-align:center;">No archive history found!</p>`;
+        return;
+    }
+
     // Show Archived Chats
     archivedChats.forEach(function(chat, index) {
         var listItem = document.createElement('div');
@@ -88,6 +93,7 @@ function emailArchivedChats() {
     var archivedChats = JSON.parse(localStorage.getItem('archivedChats')) || [];
     var archivedSummary = JSON.parse(localStorage.getItem('archivedSummary')) || [];
     var archivedEDA = JSON.parse(localStorage.getItem('virtualAnalystData')) || [];
+    document.getElementById('saveArchivedChats').disabled = true;
 
     // if (archivedChats.length === 0 || archivedSummary.length===0 || archivedEDA.length===0) {
     //     alert("No archived history to email.");
@@ -102,6 +108,8 @@ function emailArchivedChats() {
             localStorage.removeItem('archivedChats');
             localStorage.removeItem('archivedSummary');
             localStorage.removeItem('virtualAnalystData');
+            loadArchivedChats();
+            document.getElementById('emailArchivedChats').disabled = true;
         }
         else{
             alert(response.message);
@@ -117,7 +125,8 @@ function saveArchivedChats() {
     //     alert("No archived history to save.");
     //     return;
     // }
-    
+    document.getElementById('emailArchivedChats').disabled = true;
+
     socket.emit('save_archive_data', {type: 'save' });
 
     socket.on('save_archive_response', function(response) {
@@ -126,6 +135,8 @@ function saveArchivedChats() {
             localStorage.removeItem('archivedChats');
             localStorage.removeItem('archivedSummary');
             localStorage.removeItem('virtualAnalystData');
+            loadArchivedChats();
+            document.getElementById('saveArchivedChats').disabled = true;
         }
         else{
             alert(response.message);
