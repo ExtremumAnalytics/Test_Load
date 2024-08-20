@@ -2401,7 +2401,7 @@ def handle_ask_question(data):
                 chat_history = conversation_chain_handler.memory.chat_memory.messages
                 context = "Use the following pieces of context from the provided files only. Do not use any information from the internet to answer the question at the end."
                 follow_up_question = generate_followup_question(response['answer'], chat_history, context)
-
+                print('Response generated! Follow-Up Generated')
                 senti_text_q_a = ' '.join(entry['answer'] for entry in chat_history_list)
 
                 # Update progress to 75%
@@ -2409,7 +2409,7 @@ def handle_ask_question(data):
 
                 analyze_sentiment_q_a(senti_text_q_a)
                 perform_lda___Q_A(senti_text_q_a)
-
+                print('Sentiment Analysis Done')
                 # Save chat history to the database
                 for entry in chat_history_list:
                     new_chat = ChatHistory(
