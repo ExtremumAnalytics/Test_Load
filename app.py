@@ -2313,7 +2313,7 @@ def handle_ask_question(data):
                 documents.append(doc)
 
             sorted_documents = sorted(documents, key=lambda x: x['score'], reverse=True)
-            # print(sorted_documents)
+            print(sorted_documents)
             if len(sorted_documents) != 0:
                 vector_store: AzureSearch = AzureSearch(
                     azure_search_endpoint=vector_store_address,
