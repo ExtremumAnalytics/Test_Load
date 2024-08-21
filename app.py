@@ -118,6 +118,7 @@ from EA.Interrupt.flag import check_stop_flag, write_stop_flag_to_csv, read_stop
 from EA.Error_Handling.checkError import check_file, check_error
 from EA.Speech.speech import speak
 
+from EA.Loaders.Docx_loader import DocxDocumentLoader
 
 chunk_size = 8000
 chunk_overlap = 400
@@ -497,7 +498,7 @@ def update_when_file_delete():
                 #     socketio.emit('pending', session['embedding_not_created'])
 
                 elif '.docx' in file_name or '.doc' in file_name:
-                    loader = Docx2txtLoader(temp_path)
+                    loader = DocxDocumentLoader(temp_path)
                     session['embedding_not_created'].append(file_name)
                     socketio.emit('pending', session['embedding_not_created'])
 
@@ -2364,7 +2365,7 @@ def handle_ask_question(data):
                         # Add the source to the set of sources
                         if source.endswith('.docx') or page == "N|A":
                             docx_sources.append(source)
-                            docx_page.append(page)
+                            docx_page.append(str(page))
 
                         else:
                             # Adjust the page number to start from 1 if it starts from 0
@@ -2401,7 +2402,6 @@ def handle_ask_question(data):
                 chat_history = conversation_chain_handler.memory.chat_memory.messages
                 context = "Use the following pieces of context from the provided files only. Do not use any information from the internet to answer the question at the end."
                 follow_up_question = generate_followup_question(response['answer'], chat_history, context)
-
                 senti_text_q_a = ' '.join(entry['answer'] for entry in chat_history_list)
 
                 # Update progress to 75%
@@ -2409,7 +2409,6 @@ def handle_ask_question(data):
 
                 analyze_sentiment_q_a(senti_text_q_a)
                 perform_lda___Q_A(senti_text_q_a)
-
                 # Save chat history to the database
                 for entry in chat_history_list:
                     new_chat = ChatHistory(
@@ -2437,7 +2436,7 @@ def handle_ask_question(data):
                                  "page_number": chat.page_number,
                                  "index": chat.id}
                                 for chat in chat_history_from_db]
-                # print(chat_history[::-1])
+
                 emit('response', {'chat_history': chat_history[::-1], 'follow_up': follow_up_question})
             else:
                 g.flag = 0
