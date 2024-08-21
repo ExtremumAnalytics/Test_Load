@@ -549,3 +549,11 @@ document.addEventListener('DOMContentLoaded', function() {
         recordButton.style.display = show ? 'block' : 'none';
     }
 });
+
+// Function to handle incoming speech
+socket.on('speech', function(data) {
+    if (data.audio) {
+        var audio = new Audio('data:audio/mp3;base64,' + data.audio);
+        audio.play();
+    }
+});
