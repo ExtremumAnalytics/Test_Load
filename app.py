@@ -118,6 +118,7 @@ from EA.Interrupt.flag import check_stop_flag, write_stop_flag_to_csv, read_stop
 from EA.Error_Handling.checkError import check_file, check_error
 from EA.Speech.speech import speak
 
+from EA.Loaders.Docx_loader import DocxDocumentLoader
 
 chunk_size = 8000
 chunk_overlap = 400
@@ -497,7 +498,7 @@ def update_when_file_delete():
                 #     socketio.emit('pending', session['embedding_not_created'])
 
                 elif '.docx' in file_name or '.doc' in file_name:
-                    loader = Docx2txtLoader(temp_path)
+                    loader = DocxDocumentLoader(temp_path)
                     session['embedding_not_created'].append(file_name)
                     socketio.emit('pending', session['embedding_not_created'])
 
@@ -2435,7 +2436,7 @@ def handle_ask_question(data):
                                  "page_number": chat.page_number,
                                  "index": chat.id}
                                 for chat in chat_history_from_db]
-                # print(chat_history[::-1])
+
                 emit('response', {'chat_history': chat_history[::-1], 'follow_up': follow_up_question})
             else:
                 g.flag = 0
