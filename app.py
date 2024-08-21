@@ -3113,6 +3113,12 @@ def signup():
 def file_manager():
     return render_template('webcrawl_file_manager.html')
 
+@socketio.on('text_to_speech')
+def handle_text_to_speech(json):
+    text = json['text']
+    voice = json['voice']
+    speak(text, voice)
+
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
