@@ -3890,13 +3890,6 @@ def save_data(data):
         blob_client.upload_blob(file_content, blob_type="BlockBlob", overwrite=True)
         os.remove(file_path)
         emit('save_archive_response', {'success': True, 'message': 'History saved in vault.'})
-        
-@socketio.on('text_to_speech')
-def handle_text_to_speech(json):
-    text = json['text']
-    voice = json['voice']
-    speak(text, voice)
-
 
 
 if __name__ == '__main__':
