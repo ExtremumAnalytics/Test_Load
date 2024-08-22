@@ -81,16 +81,18 @@ function requestChatHistory() {
     } else {
         // Date is selected, request filtered chat history
         socket.emit('request_chat_history', { date: date });
+        document.getElementById("followUp").style.display = 'none';
         document.getElementById("questionAnswer").innerHTML = "";
 
         // Listen for the chat_history event
         socket.on('chat_history', function(response) {
             if (response.chat_history.length == 0) {
+                document.getElementById("followUp").style.display = 'none';
                 document.getElementById('questionAnswer').innerText = 'Sorry, No chat history found for this date.';
             }
-            // console.log(response);
             // Display chat history
             response.chat_history.forEach(function(item) {
+                document.getElementById("followUp").style.display = 'none';
                 // Create the list item element
                 var listItem = document.createElement('div');
                 listItem.classList.add('chat-item'); // Optional: add a class for styling
