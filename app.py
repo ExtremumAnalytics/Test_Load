@@ -1333,6 +1333,32 @@ def is_url_valid(url):
         return False
 
 
+def create_full_chat_history_docx(chat_history, summary_history, type, file_path):
+    doc = docx.Document()
+    if type == 'chat_history':
+        doc.add_heading('Chat History', level=1)
+
+        for chat in chat_history:
+            doc.add_heading('Question:', level=2)
+            doc.add_paragraph(chat['question'])
+            doc.add_heading('Answer:', level=2)
+            doc.add_paragraph(chat['answer'])
+            doc.add_heading('Source:', level=2)
+            doc.add_paragraph(chat['source'])
+            doc.add_heading('Page Number:', level=2)
+            doc.add_paragraph(str(chat['page_number']))
+    elif type == 'summary_history':
+        doc.add_heading('Summary History', level=1)
+
+        for summary in summary_history:
+            doc.add_heading('Filename:', level=2)
+            doc.add_paragraph(summary['filename'])
+            doc.add_heading('Summary:', level=2)
+            doc.add_paragraph(summary['summary'])
+
+    doc.save(file_path)
+
+
 def create_chat_history_docx(chat_history, type, file_path):
     # Check if the file exists; if it does, open it, otherwise create a new document
     if os.path.exists(file_path):
@@ -1526,7 +1552,7 @@ def handle_request_chat_history(data):
 
     if request_type == 'chat':
         chat_docx_file_path = os.path.join(folder_name, f"chat_history_{str(session['login_pin'])}.docx")
-        create_chat_history_docx(chat_history_data, summary_history_data, 'chat_history', chat_docx_file_path)
+        create_full_chat_history_docx(chat_history_data, summary_history_data, 'chat_history', chat_docx_file_path)
         recipient_email = session['Email_id']  # Replace with actual recipient email
         send_email_with_attachment(recipient_email, 'Chat History', 'Please find the chat history attached.',
                                    chat_docx_file_path)
@@ -1534,7 +1560,7 @@ def handle_request_chat_history(data):
 
     elif request_type == 'summary':
         summ_docx_file_path = os.path.join(folder_name, f"Summary_history_{str(session['login_pin'])}.docx")
-        create_chat_history_docx(summary_history_data, summary_history_data, 'summary_history', summ_docx_file_path)
+        create_full_chat_history_docx(summary_history_data, summary_history_data, 'summary_history', summ_docx_file_path)
         recipient_email = session['Email_id']  # Replace with actual recipient email
         send_email_with_attachment(recipient_email, 'Summary History', 'Please find the summary history attached.',
                                    summ_docx_file_path)
