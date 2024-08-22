@@ -86,7 +86,7 @@ function requestChatHistory() {
         // Listen for the chat_history event
         socket.on('chat_history', function(response) {
             if (response.chat_history.length == 0) {
-                historyContainer.innerHTML = '<p>Sorry, No chat history found for this date.</p>';
+                document.getElementById('questionAnswer').innerText = 'Sorry, No chat history found for this date.';
             }
             // console.log(response);
             // Display chat history

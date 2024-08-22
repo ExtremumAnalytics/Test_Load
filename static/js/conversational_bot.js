@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     set_speakingGif();
 
     socket.on('greetMeResponse',function(data){
-        console.log(data.message);
+        // console.log(data.message);
         if (data.message){
             set_loadingGif();
         }
@@ -43,7 +43,7 @@ document.getElementById('stopNaration').addEventListener('click', stopNarration)
 
 function stopNarration(event) {
     window.speechSynthesis.cancel(); // Stop the speech synthesis
-    console.log("Narration stopped");
+    // console.log("Narration stopped");
     if (event) {
         event.stopPropagation();
     }
@@ -122,7 +122,7 @@ function handleResponse(response) {
     handleFollowUp(response.follow_up);
 }
 socket.on('speech',function(data){
-    console.log(data.message);
+    // console.log(data.message);
     if (data.message){
         document.getElementById("question").value = "";
         set_loadingGif();

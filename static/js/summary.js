@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const filesDropdown = document.getElementById('selectFiles');
-        console.log(data);
+        // console.log(data);
         // Populate files dropdown
         data.files.forEach(file => {
             const option = document.createElement('option');
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displaySummaries(summaries) {
-        console.log(summaries);
+        // console.log(summaries);
         const summaryContainer = document.getElementById('summaryContainer');
     
         // Create or select the existing div element to hold the checkboxes

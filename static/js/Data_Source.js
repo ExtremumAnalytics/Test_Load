@@ -191,7 +191,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // Refresh MySQL Database
 function refreshDatabase(){
-    console.log('Refresh');
+    // console.log('Refresh');
     socket.emit('reset_database');
     // Listen for the database reset response
     socket.on('database_reset', (data) => {
