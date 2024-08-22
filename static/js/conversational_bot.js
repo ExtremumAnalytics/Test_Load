@@ -198,7 +198,6 @@ function displayChatHistory(chatHistory) {
     });
 
     attachSourceLinkEvents();
-    historyContainer.scrollTop = historyContainer.scrollHeight;
 }
 
 function handleLatestAnswer(item, preElement, questionText, sourceLink) {

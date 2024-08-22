@@ -2202,7 +2202,7 @@ def handle_ask_question(data):
             sources_str = ",".join(urls)
             page_num = []
             for i in range(len(urls)):
-                page_num.append('N/A')
+                page_num.append('N|A')
             page_num = ",".join(page_num)
             generate_prompt = PromptTemplate(
                 template="""
@@ -2361,7 +2361,7 @@ def handle_ask_question(data):
                     # Iterate over source documents in the response
                     for doc in response["source_documents"]:
                         source = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/" + doc.metadata.get(
-                            "source", "N/A")
+                            "source", "N|A")
                         page = doc.metadata.get("page", "N|A")
 
                         # Add the source to the set of sources
@@ -2505,7 +2505,7 @@ def handle_conversation(data):
 
         if not question:
             response = "You passed an empty question ! Please tell how may I assist you"
-            save_response_to_chatHistory(question, response, "N/A", "N/A")
+            save_response_to_chatHistory(question, response, "N|A", "N|A")
             chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
             chat_history = [{"question": chat.question,
                              "answer": chat.answer,
@@ -2521,7 +2521,7 @@ def handle_conversation(data):
 
         elif "how are you" in question.lower():
             response = "I am fine sir! Thanks for asking. How may I assist you!"
-            save_response_to_chatHistory(question, response, "N/A", "N/A")
+            save_response_to_chatHistory(question, response, "N|A", "N|A")
             chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
             chat_history = [{"question": chat.question,
                              "answer": chat.answer,
@@ -2537,7 +2537,7 @@ def handle_conversation(data):
         elif "remember" in question.lower():
             remember_message = question.replace("remember,", "").strip()
             response = "You told me to remember that " + remember_message
-            save_response_to_chatHistory(question, response, "N/A", "N/A")
+            save_response_to_chatHistory(question, response, "N|A", "N|A")
             chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
             chat_history = [{"question": chat.question,
                              "answer": chat.answer,
@@ -2568,7 +2568,7 @@ def handle_conversation(data):
             if os.path.exists(file_path):
                 with open(file_path, "r") as remember_file:
                     remembered_content = remember_file.read()
-                save_response_to_chatHistory(question, remembered_content, "N/A", "N/A")
+                save_response_to_chatHistory(question, remembered_content, "N|A", "N|A")
                 chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
                 chat_history = [{"question": chat.question,
                                  "answer": chat.answer,
@@ -2586,7 +2586,7 @@ def handle_conversation(data):
 
         elif "who are you" in question.lower():
             response = "I am Eva, a conversational assistant designed by: Extremum Analytics. How may I assist you!"
-            save_response_to_chatHistory(question, response, "N/A", "N/A")
+            save_response_to_chatHistory(question, response, "N|A", "N|A")
             chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
             chat_history = [{"question": chat.question,
                              "answer": chat.answer,
@@ -2604,11 +2604,9 @@ def handle_conversation(data):
             emit('response', {'answer': response})
             speak(response, voice)
 
-
-
         elif "hello" in question.lower():
             response = "Hello sir, how are you?"
-            save_response_to_chatHistory(question, response, "N/A", "N/A")
+            save_response_to_chatHistory(question, response, "N|A", "N|A")
             chat_history_from_db = ChatHistory.query.filter_by(login_pin=session['login_pin']).all()
             chat_history = [{"question": chat.question,
                              "answer": chat.answer,
@@ -2665,7 +2663,7 @@ def handle_conversation(data):
                 answer = generate_chain.invoke({"question": question, "context": context})
                 response_content = answer.content if isinstance(answer, AIMessage) else str(answer)
 
-                save_response_to_chatHistory(question, response_content, "Web/Internet", "N/A")
+                save_response_to_chatHistory(question, response_content, "Web|Internet", "N|A")
 
                 emit('progress', {'percentage': 75, 'pin': session['login_pin']})
 
@@ -2753,13 +2751,13 @@ def handle_conversation(data):
                     # Iterate over source documents in the response
                     for doc in response["source_documents"]:
                         source = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/cognilink-{str(session['env_map'])}/{str(session['login_pin'])}/" + doc.metadata.get(
-                            "source", "N/A")
+                            "source", "N|A")
                         page = doc.metadata.get("page", "N|A")
 
                         # Add the source to the set of sources
                         if source.endswith('.docx') or page == "N|A":
                             docx_sources.append(source)
-                            docx_page.append(page)
+                            docx_page.append(str(page))
 
                         else:
                             # Adjust the page number to start from 1 if it starts from 0
