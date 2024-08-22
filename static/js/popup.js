@@ -649,7 +649,7 @@ document.getElementById('dbForm').onsubmit = async (event) => {
     $("#waitImg").show(); 
     socket.on('excel_response', (data) => {
         document.getElementById('message').innerText = data.message;
-        console.log(data);
+        // console.log(data);
         setTimeout(() => {
             document.getElementById('message').innerText = '';
         }, 8000); // Clear message after 8 seconds

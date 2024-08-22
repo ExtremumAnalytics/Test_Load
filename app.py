@@ -22,7 +22,7 @@ from flask import Flask, jsonify, url_for, flash
 from flask import render_template, request, g, redirect, session
 import tempfile
 
-#for email
+# for email
 from docx import Document
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -1168,7 +1168,7 @@ def generate_followup_question(answer, chat_history, context):
     return follow_up_response
 
 
-def save_response_to_chatHistory(question,answer,source,pageNo):
+def save_response_to_chatHistory(question, answer, source, pageNo):
     chat_history_list = [{"question": question,
                           "answer": answer,
                           "source": source,
@@ -1466,7 +1466,6 @@ def send_email_with_attachment(recipient, subject, body, attachment_path):
         server.sendmail(sender_email, recipient, msg.as_string())
 
 
-
 @app.route('/checksession')
 def check_session():
     if 'login_pin' in session:
@@ -1520,7 +1519,7 @@ def handle_request_chat_history(data):
             'summary': summary.summary,
         }
         for summary in summary_histories]
-    
+
     folder_name = os.path.join('static', 'files', str(session['login_pin']))
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
@@ -1529,14 +1528,16 @@ def handle_request_chat_history(data):
         chat_docx_file_path = os.path.join(folder_name, f"chat_history_{str(session['login_pin'])}.docx")
         create_chat_history_docx(chat_history_data, summary_history_data, 'chat_history', chat_docx_file_path)
         recipient_email = session['Email_id']  # Replace with actual recipient email
-        send_email_with_attachment(recipient_email, 'Chat History', 'Please find the chat history attached.', chat_docx_file_path)
+        send_email_with_attachment(recipient_email, 'Chat History', 'Please find the chat history attached.',
+                                   chat_docx_file_path)
         os.remove(chat_docx_file_path)
 
     elif request_type == 'summary':
         summ_docx_file_path = os.path.join(folder_name, f"Summary_history_{str(session['login_pin'])}.docx")
-        create_chat_history_docx(summary_history_data, summary_history_data,'summary_history', summ_docx_file_path)
+        create_chat_history_docx(summary_history_data, summary_history_data, 'summary_history', summ_docx_file_path)
         recipient_email = session['Email_id']  # Replace with actual recipient email
-        send_email_with_attachment(recipient_email, 'Summary History', 'Please find the summary history attached.', summ_docx_file_path)
+        send_email_with_attachment(recipient_email, 'Summary History', 'Please find the summary history attached.',
+                                   summ_docx_file_path)
         os.remove(summ_docx_file_path)
     else:
         pass
@@ -1561,7 +1562,7 @@ def handle_connect():
                      "source": chat.source,
                      "page_number": chat.page_number,
                      'index': chat.id
-                    }
+                     }
                     for chat in chat_history_from_db]
     emit('chat_history', {'chat_history': chat_history[::-1]})
 
@@ -2078,7 +2079,8 @@ def handle_summary_input(data):
                     db.session.add(summary_record)
                     db.session.commit()
                     # Fetch the current summary index from the database
-                    current_summary_index = db.session.query(db.func.max(SummaryHistory.id)).filter_by(login_pin=session['login_pin']).scalar()
+                    current_summary_index = db.session.query(db.func.max(SummaryHistory.id)).filter_by(
+                        login_pin=session['login_pin']).scalar()
                     key = f'{filename}--{counter}--'
                     summary_dict = {'key': key, 'value': summary_list, 'index': current_summary_index}
                     summ.append(summary_dict)
@@ -2481,7 +2483,8 @@ def handle_ask_question(data):
                                  "index": chat.id}
                                 for chat in chat_history_from_db]
                 # print(chat_history[::-1])
-                emit('response', {'chat_history': chat_history[::-1], 'follow_up': "Sorry, I couldn't see anything relevant."})
+                emit('response',
+                     {'chat_history': chat_history[::-1], 'follow_up': "Sorry, I couldn't see anything relevant."})
 
     except Exception as e:
         g.flag = 0
@@ -2838,11 +2841,11 @@ def greetMe(data):
     voice = data['voice']
     hour = int(datetime.datetime.now().hour)
     if 0 <= hour <= 12:
-        speak("Good Morning,sir! Please tell me, How may I assist you ?",voice)
+        speak("Good Morning,sir! Please tell me, How may I assist you ?", voice)
     elif 12 < hour <= 18:
-        speak("Good Afternoon ,sir! Please tell me, How may I assist you ?",voice)
+        speak("Good Afternoon ,sir! Please tell me, How may I assist you ?", voice)
     else:
-        speak("Good Evening,sir! Please tell me, How may I assist you ?",voice)
+        speak("Good Evening,sir! Please tell me, How may I assist you ?", voice)
     emit('greetMeResponse', {'message': "Done Speaking"})
 
 
@@ -2947,7 +2950,9 @@ def table_update(search_term=None):
         blobs_chart = container_client.list_blobs(
             name_starts_with=f"cognilink-{str(session['env_map'])}/{str(session['login_pin'])}")
         blob_list = [blob for blob in blobs_chart if
-                     not (blob.name.lower().endswith('.csv') or blob.name.lower().endswith('_schema.xlsx') or blob.name.lower().endswith('_schema.json') or blob.name.lower().endswith('.mp3'))]
+                     not (blob.name.lower().endswith('.csv') or blob.name.lower().endswith(
+                         '_schema.xlsx') or blob.name.lower().endswith('_schema.json') or blob.name.lower().endswith(
+                         '.mp3'))]
         new_blob_list_jpg = [blob for blob in blob_list if
                              not (blob.name.lower().endswith('.jpg') or blob.name.lower().endswith(
                                  '.png') or blob.name.lower().endswith('.jpeg'))]
@@ -3612,8 +3617,10 @@ def handle_reset_database_event():
         rollover_date = datetime.datetime.now() - datetime.timedelta(days=2)
 
         # Delete records based on rollover date
-        ChatHistory.query.filter(ChatHistory.chat_date < rollover_date, ChatHistory.login_pin == session['login_pin']).delete()
-        SummaryHistory.query.filter(SummaryHistory.summary_date < rollover_date, SummaryHistory.login_pin == session['login_pin']).delete()
+        ChatHistory.query.filter(ChatHistory.chat_date < rollover_date,
+                                 ChatHistory.login_pin == session['login_pin']).delete()
+        SummaryHistory.query.filter(SummaryHistory.summary_date < rollover_date,
+                                    SummaryHistory.login_pin == session['login_pin']).delete()
         db.session.commit()
 
         # Delete logs
@@ -3642,7 +3649,7 @@ def home():
         group_user = request.form.get('Grp_usr')
         engine = request.form.get('engine')
         voices = request.form.get('voices')
-        print(group_user, pin, engine,voices)
+        print(group_user, pin, engine, voices)
 
         role_id_mapping = {'Admin': 1, 'Guest': 2, 'ML Engine': 3}
         role_id = role_id_mapping.get(group_user)
@@ -3747,6 +3754,7 @@ def summary():
 @app.route('/Virtual_Analyst', methods=['GET', 'POST'])
 def virtual_analyst():
     return render_template('virtual_analyst.html')
+
 
 @app.route('/Archived_Data', methods=['GET', 'POST'])
 def archive():
@@ -3870,7 +3878,8 @@ def save_data(data):
 
     if request_type == 'email':
         recipient_email = session['Email_id']  # Replace with actual recipient email
-        send_email_with_attachment(recipient_email, 'Archived History', 'Please find the attached archived history.', file_path)
+        send_email_with_attachment(recipient_email, 'Archived History', 'Please find the attached archived history.',
+                                   file_path)
         os.remove(file_path)
         emit('save_archive_response', {'success': True, 'message': f"Email sent on {session['Email_id']}"})
     elif request_type == 'save':
@@ -3883,12 +3892,6 @@ def save_data(data):
         blob_client.upload_blob(file_content, blob_type="BlockBlob", overwrite=True)
         os.remove(file_path)
         emit('save_archive_response', {'success': True, 'message': 'History saved in vault.'})
-
-@socketio.on('text_to_speech')
-def handle_text_to_speech(json):
-    text = json['text']
-    voice = json['voice']
-    speak(text, voice)
 
 
 if __name__ == '__main__':
