@@ -1172,7 +1172,8 @@ def save_response_to_chatHistory(question, answer, source, pageNo):
     chat_history_list = [{"question": question,
                           "answer": answer,
                           "source": source,
-                          "page_number": pageNo, }]
+                          "page_number": pageNo,
+                          "date": datetime.datetime.now()}]
 
     # Save chat history to the database
     for entry in chat_history_list:
@@ -1181,7 +1182,8 @@ def save_response_to_chatHistory(question, answer, source, pageNo):
             question=entry['question'],
             answer=entry['answer'],
             source=entry['source'],
-            page_number=entry['page_number']
+            page_number=entry['page_number'],
+            chat_date=entry['date']
         )
         db.session.add(new_chat)
     db.session.commit()
@@ -1331,6 +1333,32 @@ def is_url_valid(url):
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
         return False
+
+
+def create_full_chat_history_docx(chat_history, summary_history, type, file_path):
+    doc = docx.Document()
+    if type == 'chat_history':
+        doc.add_heading('Chat History', level=1)
+
+        for chat in chat_history:
+            doc.add_heading('Question:', level=2)
+            doc.add_paragraph(chat['question'])
+            doc.add_heading('Answer:', level=2)
+            doc.add_paragraph(chat['answer'])
+            doc.add_heading('Source:', level=2)
+            doc.add_paragraph(chat['source'])
+            doc.add_heading('Page Number:', level=2)
+            doc.add_paragraph(str(chat['page_number']))
+    elif type == 'summary_history':
+        doc.add_heading('Summary History', level=1)
+
+        for summary in summary_history:
+            doc.add_heading('Filename:', level=2)
+            doc.add_paragraph(summary['filename'])
+            doc.add_heading('Summary:', level=2)
+            doc.add_paragraph(summary['summary'])
+
+    doc.save(file_path)
 
 
 def create_chat_history_docx(chat_history, type, file_path):
@@ -1526,7 +1554,7 @@ def handle_request_chat_history(data):
 
     if request_type == 'chat':
         chat_docx_file_path = os.path.join(folder_name, f"chat_history_{str(session['login_pin'])}.docx")
-        create_chat_history_docx(chat_history_data, summary_history_data, 'chat_history', chat_docx_file_path)
+        create_full_chat_history_docx(chat_history_data, summary_history_data, 'chat_history', chat_docx_file_path)
         recipient_email = session['Email_id']  # Replace with actual recipient email
         send_email_with_attachment(recipient_email, 'Chat History', 'Please find the chat history attached.',
                                    chat_docx_file_path)
@@ -1534,7 +1562,7 @@ def handle_request_chat_history(data):
 
     elif request_type == 'summary':
         summ_docx_file_path = os.path.join(folder_name, f"Summary_history_{str(session['login_pin'])}.docx")
-        create_chat_history_docx(summary_history_data, summary_history_data, 'summary_history', summ_docx_file_path)
+        create_full_chat_history_docx(summary_history_data, summary_history_data, 'summary_history', summ_docx_file_path)
         recipient_email = session['Email_id']  # Replace with actual recipient email
         send_email_with_attachment(recipient_email, 'Summary History', 'Please find the summary history attached.',
                                    summ_docx_file_path)
@@ -2518,7 +2546,6 @@ def handle_conversation(data):
             speak(response, voice)
             return
 
-
         elif "how are you" in question.lower():
             response = "I am fine sir! Thanks for asking. How may I assist you!"
             save_response_to_chatHistory(question, response, "N|A", "N|A")
@@ -2532,7 +2559,6 @@ def handle_conversation(data):
             emit('progress', {'percentage': 100, 'pin': session['login_pin']})
             emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
             speak(response, voice)
-
 
         elif "remember" in question.lower():
             remember_message = question.replace("remember,", "").strip()
@@ -2558,8 +2584,6 @@ def handle_conversation(data):
 
             with open(file_path, "a") as remember_file:
                 remember_file.write(remember_message + "\n")
-
-
 
         elif "what do you remember" in question.lower():
             folder_name = str(session['login_pin'])
@@ -2619,51 +2643,65 @@ def handle_conversation(data):
             speak(response, voice)
 
         else:
-
             if source == "webInternet":
                 llm = AzureChatOpenAI(azure_deployment="gpt-35-turbo", model_name="gpt-4", temperature=0.50)
 
                 # Web search tool
                 wrapper = DuckDuckGoSearchAPIWrapper(max_results=25)
                 emit('progress', {'percentage': 25, 'pin': session['login_pin']})
-                web_search_tool = DuckDuckGoSearchRun(api_wrapper=wrapper)
+                web_search_tool = DuckDuckGoSearchResults(api_wrapper=wrapper, source="duckduckgo")
 
-                context = web_search_tool.invoke({"query": question})
+                # Perform the web search
+                search_results = web_search_tool.invoke(question)
+                # Extract context and sources
 
+                urls = re.findall(r'(https?://\S+)', search_results)
+                # Clean URLs (remove any trailing punctuation or brackets)
+                urls = [url.rstrip('],') for url in urls]
+                snippets = re.split(r'https?://\S+', search_results)
+
+                # Combine snippets and URLs into context and sources
+                context_str = "\n".join(snippet.strip() for snippet in snippets if snippet.strip())
+                sources_str = ",".join(urls)
+                page_num = []
+                for i in range(len(urls)):
+                    page_num.append('N|A')
+                page_num = ",".join(page_num)
                 generate_prompt = PromptTemplate(
                     template="""
 
-                    <|begin_of_text|>
+                                <|begin_of_text|>
 
-                    <|start_header_id|>system<|end_header_id|> 
+                                <|start_header_id|>system<|end_header_id|> 
 
-                    You are an AI assistant for Web surfing, that synthesizes web search results. 
-                    Strictly use the following pieces of web search context to answer the question. If you don't know the answer, just say that you don't know. 
-                    keep the answer concise, and in a human friendly way. 
-                    Only make direct references to material if provided in the context.
+                                You are an AI assistant for Web surfing, that synthesizes web search results. 
+                                Strictly use the following pieces of web search context to answer the question. If you don't know the answer, just say that you don't know. 
+                                keep the answer concise, and in a human friendly way. 
+                                Only make direct references to material if provided in the context.
 
-                    <|eot_id|>
+                                <|eot_id|>
 
-                    <|start_header_id|>user<|end_header_id|>
+                                <|start_header_id|>user<|end_header_id|>
 
-                    Question: {question} 
-                    Web Search Context: {context} 
-                    Answer: 
+                                Question: {question} 
+                                Web Search Context: {context} 
+                                Sources: {sources}
+                                Answer: 
 
-                    <|eot_id|>
+                                <|eot_id|>
 
-                    <|start_header_id|>assistant<|end_header_id|>""",
-                    input_variables=["question", "context"],
+                                <|start_header_id|>assistant<|end_header_id|>""",
+                    input_variables=["question", "context", "sources"],
                 )
 
                 # Chain
                 generate_chain = generate_prompt | llm
                 emit('progress', {'percentage': 50, 'pin': session['login_pin']})
 
-                answer = generate_chain.invoke({"question": question, "context": context})
+                answer = generate_chain.invoke({"question": question, "context": context_str, "sources": sources_str})
                 response_content = answer.content if isinstance(answer, AIMessage) else str(answer)
 
-                save_response_to_chatHistory(question, response_content, "Web|Internet", "N|A")
+                save_response_to_chatHistory(question, response_content, sources_str, page_num)
 
                 emit('progress', {'percentage': 75, 'pin': session['login_pin']})
 
@@ -2678,7 +2716,6 @@ def handle_conversation(data):
                 emit('progress', {'percentage': 100, 'pin': session['login_pin']})
                 emit('response', {'chat_history': chat_history[::-1], 'follow_up': 'N/A'})
                 speak(response_content, voice)
-
 
             else:
                 question_embeddings = embeddings.embed_query(question)

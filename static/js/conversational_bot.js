@@ -3,31 +3,48 @@ var pin = localStorage.getItem('pin');
 socket.emit('table_update');
 var isSpeechEnabled = true;
 
-// Toggle Switch
 document.addEventListener('DOMContentLoaded', function() {
     const toggleSwitch = document.getElementById('toggleSwitch');
     var voice = localStorage.getItem('voice');
-    setGif(voice);
-    socket.emit('greetme',{voice:voice});
-    set_speakingGif();
 
-    socket.on('greetMeResponse',function(data){
-        // console.log(data.message);
-        if (data.message){
-            set_loadingGif();
+    // Set the initial GIF based on the voice
+    setGif(voice);
+
+    // Emit the 'greetme' event to start the greeting process
+    socket.emit('greetme', {voice: voice});
+
+    // Listen for the start of the speaking process
+    socket.on('speech', function(data) {
+        if (data.audio) {
+            // Stop and reset any existing audio
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+
+            // Create new audio object
+            audio = new Audio('data:audio/mp3;base64,' + data.audio);
+
+            // Set the speaking GIF when the audio starts playing
+            set_speakingGif();
+
+            // Play the audio
+            audio.play();
+
+            // Event listener for when the audio finishes playing
+            audio.onended = function() {
+                set_loadingGif();  // Switch back to the loading GIF when the audio ends
+            };
         }
     });
 
- 
     if (toggleSwitch) {
         toggleSwitch.addEventListener('change', function() {
             if (window.location.pathname === '/Ask_Question') {
-                // Redirect to the toggle page when the switch is turned on
                 if (this.checked) {
                     window.location.href = '/conversational_bot';
                 }
             } else if (window.location.pathname === '/conversational_bot') {
-                // Redirect back to the main page when the switch is turned off
                 if (!this.checked) {
                     window.location.href = '/Ask_Question';
                 }
@@ -36,14 +53,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-
- 
 // Add event listener to the stop button
-document.getElementById('stopNaration').addEventListener('click', stopNarration);
+document.getElementById('stopNarration').addEventListener('click', stopNarration);
 
 function stopNarration(event) {
     window.speechSynthesis.cancel(); // Stop the speech synthesis
-    // console.log("Narration stopped");
+    console.log("Narration stopped");
     if (event) {
         event.stopPropagation();
     }
@@ -84,58 +99,28 @@ function setGif(voice) {
     if (voice === "male") {
         document.getElementById('loadingGifMale').style.display = 'block'; // or 'inline-block' as needed
         // Simulate loading followed by speaking
-       
+
     } else if (voice === "female") {
         document.getElementById('loadingGifFemale').style.display = 'block';
-       
+
     }
 }
 
 
-// // Progress Bar update
-// function updateProgressBar(percentage) {
-//     const progressBar = document.getElementById('waitImg');
-//     progressBar.style.width = percentage + '%';
-//     const percent = percentage + '%';
-//     progressBar.setAttribute('width', percent);
-//     progressBar.innerText = percentage + '% ';
-// }
-
-// Global socket initialization and response handling outside of the sendQuestion function
-// var socket = io(); // Assuming socket.io is being used and initialized here
-
-// socket.on('progress', function(data) {
-//     if (data.pin === pin) {
-//         updateProgressBar(data.percentage);
-//     }
-// });
-
 socket.on('response', handleResponse);
 
 function handleResponse(response) {
-    // updateProgressBar(100);
-    // setTimeout(() => {
-    //     document.getElementById("waitImg").style.display = 'none';
-    // }, 1500);
     set_speakingGif();
     displayChatHistory(response.chat_history);
     handleFollowUp(response.follow_up);
 }
 socket.on('speech',function(data){
-    // console.log(data.message);
+    console.log(data.message);
     if (data.message){
         document.getElementById("question").value = "";
         set_loadingGif();
     }
-    // if (!recognition || !recognition.running) {
-    //     // Start recording
-    //     startRecording();
-    //     recordButton.textContent = '';
-    //     recordButton.classList.remove('off'); // Remove the "off" class
-    // } 
-    
 });
-
 
 function sendQuestion() {
     var question = document.getElementById("question").value.trim();
@@ -151,10 +136,6 @@ function sendQuestion() {
         alert("Ask Question!");
         return;
     }
-
-    // document.getElementById("waitImg").style.display = 'block';
-
-    
 
     socket.emit('conversation', { question: question, source: source, voice: voice });
 }
@@ -198,13 +179,14 @@ function displayChatHistory(chatHistory) {
     });
 
     attachSourceLinkEvents();
+    // historyContainer.scrollTop = historyContainer.scrollHeight;
 }
 
 function handleLatestAnswer(item, preElement, questionText, sourceLink) {
     preElement.innerHTML = questionText + "\n<b>Answer: \n</b>";
     var words = item.answer.split(' ');
 
-    
+
     // Incrementally update the text display regardless of speech state
     var answerText = "";
     var wordIndex = 0;
@@ -226,10 +208,6 @@ function handleLatestAnswer(item, preElement, questionText, sourceLink) {
     }, 400); // Adjust the interval time as needed
 }
 
-       
-
-
-
 
 //change here
 function attachSourceLinkEvents() {
@@ -239,11 +217,11 @@ function attachSourceLinkEvents() {
         });
     });
 }
- 
+
 function handleFollowUp(followUp) {
     var follow_up_question = document.getElementById("followUp");
     follow_up_question.innerHTML = "";
- 
+
     if (followUp === 'N/A') {
         follow_up_question.style.display = 'none';
     } else {
@@ -251,7 +229,7 @@ function handleFollowUp(followUp) {
         follow_up_question.style.display = 'block';
         follow_up_question.appendChild(followup_list);
         followup_list.innerHTML = "<button class='btn btn-primary m-4' id='followUpButton'>" + followUp + "</button><br>";
- 
+
         document.getElementById('followUpButton').addEventListener('click', function() {
             if (followUp) {
                 var strippedString = followUp.replace("Do you also want to know", "").replace("Do you also want to know about", "");
@@ -260,21 +238,31 @@ function handleFollowUp(followUp) {
             }
         });
     }
- 
+
     document.getElementById("question").value = "";
 }
- 
- 
- 
+
+
 function openFileInNewTab(url) {
     try {
         const pattern = /https:\/\/.+\/https:\/\/.+/;
-        // console.log(url);
+        const pattern2 = /https:\/\/.+/;
+        
+        // Search for the pattern in the input string
         const match = url.match(pattern);
+        const match_web_url = url.match(pattern2);
         if(match){
             const extractedUrl = match[0].split('https://').slice(2).join('https://');
             const finalUrl = `https://${extractedUrl}`;
             var win = window.open(finalUrl, '_blank');
+            if (win) {
+                win.focus();
+            } else {
+                console.error("Failed to open new tab. Popup blocker might be enabled.");
+            }
+        }
+        else if (match_web_url) {
+            var win = window.open(url, '_blank');
             if (win) {
                 win.focus();
             } else {
@@ -297,15 +285,15 @@ function openFileInNewTab(url) {
         console.error("Error opening file in new tab:", e);
     }
 }
- 
- 
+
+
 function openPopup(sources, pageNumbers) {
     // console.log("Opening popup with sources:", sources, "and page numbers:", pageNumbers);
- 
+
     // Create the popup div
     var popupDiv = document.createElement('div');
     popupDiv.classList.add('popup');
- 
+
     // Create the content div
     var popupContent = document.createElement('div');
     var tableContent = document.createElement('div');
@@ -315,7 +303,7 @@ function openPopup(sources, pageNumbers) {
     tableContent.style.whiteSpace = 'pre-wrap'; // Allows text to wrap
     tableContent.style.overflowX = 'hidden';    // Hides horizontal overflow
     tableContent.style.overflowY = 'auto';      // Allows vertical overflow (optional)
- 
+
     // Create the close button
     var closeButton = document.createElement('span');
     closeButton.classList.add('close-button');
@@ -324,10 +312,10 @@ function openPopup(sources, pageNumbers) {
         popupDiv.style.display = 'none';
         document.body.removeChild(popupDiv);
     };
- 
+
     // Create the table
     var table = document.createElement('table');
- 
+
     // Create and append the table header row
     var headerRow = document.createElement('tr');
     var sourceHeader = document.createElement('th');
@@ -337,35 +325,37 @@ function openPopup(sources, pageNumbers) {
     headerRow.appendChild(sourceHeader);
     headerRow.appendChild(pageNumberHeader);
     table.appendChild(headerRow);
- 
+
     // Function to extract file name from URL
     function extractFileName(url) {
         // Regular expression to find the URL after the changeable part
         const pattern = /https:\/\/.+\/https:\/\/.+/;
- 
+        const pattern2 = /https:\/\/.*testcongnilink.blob.core.windows.net/;        
         // Search for the pattern in the input string
         const match = url.match(pattern);
- 
-        if (match) {
+        const match_file_url = url.match(pattern2);
+        if (match_file_url) {
+            return url.split('/').pop();
+        }
+        else if (match) {
             // Extract the URL part after the last occurrence of 'https://'
             const extractedUrl = match[0].split('https://').slice(2).join('https://');
             // console.log("Extracted URL:", `https://${extractedUrl}`);
             return extractedUrl;
         }
         else{
-            return url.split('/').pop();
+            return url;
         }
-       
+        
     }
- 
+
     // Create and append the source rows
     for (var i = 0; i < sources.length; i++) {
         var sourceRow = document.createElement('tr');
         var sourceData = document.createElement('td');
         var sourceLink = document.createElement('a');
- 
+
         var fileName = extractFileName(sources[i]);  // Extract the file name from the URL
- 
         sourceLink.href = 'javascript:void(0)';  // Prevent default link behavior
         if(fileName.length>40){
             sourceLink.textContent = fileName.substring(0, 40) + '...';
@@ -373,14 +363,14 @@ function openPopup(sources, pageNumbers) {
         else{
             sourceLink.textContent = fileName;
         }
- 
+
         // Add event listener to open the file in Google Viewer
         sourceLink.addEventListener('click', (function(url) {
             return function() {
                 openFileInNewTab(url);
             };
         })(sources[i]));
- 
+
         sourceData.appendChild(sourceLink);
         var pageNumberData = document.createElement('td');
         pageNumberData.textContent = pageNumbers[i];
@@ -388,34 +378,34 @@ function openPopup(sources, pageNumbers) {
         sourceRow.appendChild(pageNumberData);
         table.appendChild(sourceRow);
     }
- 
+
     // Append the close button and table to the popup content
     popupContent.appendChild(closeButton);
     tableContent.appendChild(table);
     popupContent.appendChild(tableContent);
- 
+
     // Append the content to the popup div
     popupDiv.appendChild(popupContent);
- 
+
     // Append the popup to the body
     document.body.appendChild(popupDiv);
- 
+
     // Display the popup
     popupDiv.style.display = 'flex';
 }
- 
- 
+
+
 // Clear Chat
 function clearChat() {
     socket.emit('clear_chat');
- 
+
     socket.on('chat_cleared', function(data) {
         // console.log('response', data);
         $('#message').text(data.message);
         setTimeout(function() {
             $('#message').text('');
         }, 8000); // Clear the message after 8 seconds
- 
+
         if (data.message === 'Chat history cleared successfully') {
             var historyContainer = document.getElementById("questionAnswer");
             var followup_list = document.getElementById("followUp");
@@ -426,13 +416,13 @@ function clearChat() {
         }
     });
 }
- 
- 
+
+
 socket.on('lda_topics_QA', function(data) {
     // Only update the UI if the data is for the current user
     if (data.pin === pin) {
         // console.log('Received LDA keywords:', data); // Debug
- 
+
         // let htmlString = '';
         if (Array.isArray(data.keywords)) {
             let htmlString = data.keywords.map(keyword => `<span style="color: #0D076A">${keyword}</span>`).join(', ');
@@ -442,9 +432,9 @@ socket.on('lda_topics_QA', function(data) {
         }
     }
 });
- 
+
 // Chart update
- 
+
 (function ($) {
     var pin = localStorage.getItem('pin');
 
@@ -459,9 +449,6 @@ socket.on('lda_topics_QA', function(data) {
                 `<p>${readiness}% / 100%</p>`
             );
         }
-
-        // Display initial readiness values
-//        displayReadiness(readiness, dataLeft);
 
         // Listen for updates from the socket
         socket.on('update_gauge_chart', function(data) {
@@ -478,14 +465,15 @@ socket.on('lda_topics_QA', function(data) {
     });
 
 })(jQuery);
+
 //Ask  Q/A Voice Recording Button
 document.addEventListener('DOMContentLoaded', function() {
     let recognition;
     const outputDiv = document.getElementById('message');
     const recordButton = document.getElementById('recordButton');
- 
+
     let timeoutId;
- 
+
     recordButton.addEventListener('click', () => {
         if (!recognition || !recognition.running) {
             // Start recording
@@ -499,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
             recordButton.classList.add('off'); // Add the "off" class
         }
     });
- 
+
     function startRecording() {
         let SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
         if (!SpeechRecognition) {
@@ -512,23 +500,23 @@ document.addEventListener('DOMContentLoaded', function() {
             toggleRecordButtonVisibility(false); // Hide the record button
             return;
         }
- 
+
         recognition = new SpeechRecognition();
         recognition.lang = 'en-US';
         recognition.interimResults = true;
         recognition.maxAlternatives = 1;
- 
+
         recognition.onresult = function(event) {
             const transcript = event.results[event.results.length - 1][0].transcript;
             const inputField = document.getElementById('question');
             inputField.value = transcript;
- 
+
         };
- 
+
         recognition.onerror = function(event) {
             console.error('Speech recognition error:', event.error);
         };
- 
+
         recognition.onend = function() {
             recognition.stop();
             sendQuestion();
@@ -539,12 +527,73 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Send text to server only if not empty
             }
         };
- 
+
         toggleRecordButtonVisibility(true); // Show the record button
         recognition.start();
     }
- 
+
     function toggleRecordButtonVisibility(show) {
         recordButton.style.display = show ? 'block' : 'none';
     }
 });
+
+var audioManager = (function() {
+    var currentAudio = null;  // This manages the currently playing audio
+
+    return {
+        playAudio: function(audioBase64) {
+            this.stopAudio();  // Ensure any existing audio is stopped before playing new audio
+
+            // Create a new audio object and play it
+            currentAudio = new Audio('data:audio/wav;base64,' + audioBase64);
+
+            currentAudio.onerror = function(e) {
+                console.error('Audio playback error:', e);
+            };
+
+            currentAudio.onended = function() {
+                currentAudio = null;
+                console.log("Speech playback ended.");
+            };
+
+            // Attempt to play the audio, handling user interaction issues
+            var playPromise = currentAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(function(error) {
+                    console.error('Playback error:', error);
+                });
+            }
+        },
+
+        stopAudio: function() {
+            if (currentAudio) {
+                currentAudio.pause();  // Pause the audio
+                currentAudio.src = '';  // Unload the audio source
+                currentAudio = null;  // Clear the audio object
+                console.log("Speech playback stopped.");
+            }
+        }
+    };
+})();
+
+// Function to send text and voice to server, triggered by a user action (e.g., button click)
+function sendSpeakRequest() {
+    const text = document.getElementById('textInput').value;
+    const voice = document.getElementById('voiceSelect').value;
+    audioManager.stopAudio();  // Stop any existing audio before sending a new request
+    socket.emit('speak', {audio: text, voice: voice});
+}
+
+// Function to handle incoming speech from the server
+socket.on('speech', function(data) {
+    // Ensure that audio playback only starts in response to a user interaction
+    document.addEventListener('click', function() {
+        audioManager.playAudio(data.audio);
+    }, { once: true });  // Use { once: true } to ensure the listener is removed after being triggered
+});
+
+// Function to stop the narration via button
+function stopNarration_voice() {
+    audioManager.stopAudio();
+    console.log("Narration stopped");
+}
