@@ -1,4 +1,4 @@
-rom flask_socketio import emit
+from flask_socketio import emit
 from gtts import gTTS
 from io import BytesIO
 import base64
