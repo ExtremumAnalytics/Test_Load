@@ -1685,28 +1685,30 @@ def popup_form():
 
             for file in files:
                 # OCR
-                scan_source = False
-                if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg', '.pdf']):
-                    lang = request.form.get('selected_language', False)
-                    if lang and '.pdf' in file.filename:
-                        extract_text_from_pdf(file, lang)
-                        scan_source = True
-                    elif lang:
-                        extract_text_from_image(file, lang)
-                        
-                # Check if the file is blank
-                check = check_file(file)
-                error_files = []
-                if check:
-                    if check_error(str(check)) == 'corruptFile':
-                        print(f"The file {file.filename} is corrupt.")
-                        error_files.append(f"The file {file.filename} is corrupt.")
-                        socketio.emit('uploadError', {'message': error_files})
-                        continue
-                    else:
-                        error_files.append(f"The file {file.filename} is blank.")
-                        socketio.emit('uploadError', {'message': error_files})
-                        continue
+                lang = request.form.get('selected_language', False)
+                if lang:
+                    scan_source = False
+                    if any(ext in file.filename for ext in ['.png', '.jpg', '.JPG', '.JPEG', '.jpeg', '.pdf']):
+                        print(lang)
+                        if lang and '.pdf' in file.filename:
+                            extract_text_from_pdf(file, lang)
+                            scan_source = True
+                        elif lang:
+                            extract_text_from_image(file, lang)
+                else:
+                    # Check if the file is blank
+                    check = check_file(file)
+                    error_files = []
+                    if check:
+                        if check_error(str(check)) == 'corruptFile':
+                            print(f"The file {file.filename} is corrupt.")
+                            error_files.append(f"The file {file.filename} is corrupt.")
+                            socketio.emit('uploadError', {'message': error_files})
+                            continue
+                        else:
+                            error_files.append(f"The file {file.filename} is blank.")
+                            socketio.emit('uploadError', {'message': error_files})
+                            continue
 
                 if file.filename.endswith('.mp3'):
                     folder_name = os.path.join('static', 'login', str(session['login_pin']))
