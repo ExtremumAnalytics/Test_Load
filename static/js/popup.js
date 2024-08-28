@@ -185,6 +185,9 @@ function runDefaultProgram(called_from) {
     if(called_from=='image_file'){
         formData.append('selected_language', lang);
     }
+    else{
+        formData.append('selected_languege', false);
+    }
     
     var Source_URL = document.getElementsByName('Source_URL')[0].value;
     
